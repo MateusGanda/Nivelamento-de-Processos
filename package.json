@@ -1,0 +1,11 @@
+{
+  "name": "modulo-indicadores-producao",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "demo": "node --experimental-strip-types examples/demo.ts"
+  },
+  "engines": { "node": ">=22.18.0" }
+}
