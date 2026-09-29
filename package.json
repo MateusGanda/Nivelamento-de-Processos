@@ -1,11 +1,26 @@
 {
-  "name": "modulo-indicadores-producao",
+  "name": "nivelamento-de-processos",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "demo": "node --experimental-strip-types examples/demo.ts"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
   },
-  "engines": { "node": ">=22.18.0" }
+  "dependencies": {
+    "next": "16.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
 }
