@@ -1,0 +1,17 @@
+# Dependências
+node_modules/
+
+# Arquivos compilados e cliente gerado
+dist/
+generated/
+
+# Variáveis de ambiente com credenciais
+.env
+.env.*
+
+# Permitir o modelo sem credenciais
+!.env.example
+
+# Logs
+*.log
+.neon

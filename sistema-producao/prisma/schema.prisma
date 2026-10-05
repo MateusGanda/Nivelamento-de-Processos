@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum StatusProducao {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+model Linha {
+  id     Int     @id @default(autoincrement())
+  codigo String  @unique
+  nome   String
+  ativo  Boolean @default(true)
+
+  postos Posto[]
+}
+
+model Posto {
+  id      Int     @id @default(autoincrement())
+  codigo  String  @unique
+  nome    String
+  ativo   Boolean @default(true)
+  linhaId Int
+
+  linha   Linha             @relation(fields: [linhaId], references: [id], onDelete: Restrict)
+  roteiro OperacaoProduto[]
+
+  @@index([linhaId])
+}
+
+model Produto {
+  id        Int     @id @default(autoincrement())
+  codigo    String  @unique
+  nome      String
+  descricao String?
+  ativo     Boolean @default(true)
+
+  roteiro OperacaoProduto[]
+  ordens  OrdemServico[]
+}
+
+model Operacao {
+  id        Int     @id @default(autoincrement())
+  codigo    String  @unique
+  nome      String
+  descricao String?
+  ativo     Boolean @default(true)
+
+  produtos OperacaoProduto[]
+}
+
+model OperacaoProduto {
+  id                    Int @id @default(autoincrement())
+  produtoId             Int
+  operacaoId            Int
+  postoId               Int
+  sequencia             Int
+  tempoPrevistoSegundos Int
+
+  produto  Produto  @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+  operacao Operacao @relation(fields: [operacaoId], references: [id], onDelete: Restrict)
+  posto    Posto    @relation(fields: [postoId], references: [id], onDelete: Restrict)
+
+  etapas FichaEtapa[]
+
+  @@unique([produtoId, sequencia])
+  @@index([operacaoId])
+  @@index([postoId])
+}
+
+model OrdemServico {
+  id         Int            @id @default(autoincrement())
+  numero     String         @unique
+  produtoId  Int
+  quantidade Int
+  status     StatusProducao @default(PENDENTE)
+  criadaEm   DateTime       @default(now())
+  prazo      DateTime?
+  observacao String?
+
+  produto Produto @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+  fichas  Ficha[]
+
+  @@index([produtoId])
+}
+
+model Ficha {
+  id             Int            @id @default(autoincrement())
+  codigo         String         @unique
+  ordemServicoId Int
+  status         StatusProducao @default(PENDENTE)
+  criadaEm       DateTime       @default(now())
+  iniciadaEm     DateTime?
+  concluidaEm    DateTime?
+
+  ordemServico OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Restrict)
+  etapas       FichaEtapa[]
+
+  @@index([ordemServicoId])
+}
+
+model FichaEtapa {
+  id                    Int            @id @default(autoincrement())
+  fichaId               Int
+  operacaoProdutoId     Int
+  sequencia             Int
+  nomeOperacao          String
+  codigoPosto           String
+  tempoPrevistoSegundos Int
+  status                StatusProducao @default(PENDENTE)
+  iniciadaEm            DateTime?
+  concluidaEm           DateTime?
+  observacao            String?
+
+  ficha           Ficha           @relation(fields: [fichaId], references: [id], onDelete: Restrict)
+  operacaoProduto OperacaoProduto @relation(fields: [operacaoProdutoId], references: [id], onDelete: Restrict)
+
+  @@unique([fichaId, sequencia])
+  @@index([operacaoProdutoId])
+}
