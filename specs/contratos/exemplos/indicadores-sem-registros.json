@@ -6,24 +6,15 @@
     "filtros": {
       "inicio": "2026-10-07T10:00:00.000Z",
       "fim": "2026-10-07T18:00:00.000Z",
-      "postoId": "00000000-0000-4000-8000-000000000102"
+      "setorId": null,
+      "postoId": null
     },
-    "pendencias": [
-      { "codigo": "SEM_PLANO", "postoId": "00000000-0000-4000-8000-000000000102" }
-    ]
+    "pendencias": []
   },
-  "producaoFinalPares": 0,
-  "postos": [
-    {
-      "posto": {
-        "id": "00000000-0000-4000-8000-000000000102",
-        "codigo": "P02",
-        "nome": "Costura (fictício)"
-      },
-      "producao": [],
-      "tempos": [],
-      "tempoMedioPorPar": [],
-      "carga": []
-    }
-  ]
+  "ordens": [],
+  "producao": [],
+  "producaoFinal": [],
+  "tempos": [],
+  "tempoMedio": [],
+  "cargaPendente": []
 }

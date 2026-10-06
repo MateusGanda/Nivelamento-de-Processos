@@ -6,95 +6,82 @@
     "filtros": {
       "inicio": "2026-10-06T10:00:00.000Z",
       "fim": "2026-10-06T18:00:00.000Z",
-      "postoId": "00000000-0000-4000-8000-000000000101"
+      "setorId": null,
+      "postoId": null
     },
     "pendencias": [
       {
         "codigo": "SEM_TEMPO_PADRAO",
-        "postoId": "00000000-0000-4000-8000-000000000101",
-        "fichaEtapaId": "00000000-0000-4000-8000-000000000401"
-      },
-      {
-        "codigo": "SEM_JANELA_OPERADOR",
-        "operadorId": "00000000-0000-4000-8000-000000000202"
+        "produtoCodigo": "REF-002",
+        "etapaRoteiroId": "00000000-0000-4000-8000-000000000411"
       },
       {
         "codigo": "EXECUCAO_ABERTA",
-        "postoId": "00000000-0000-4000-8000-000000000101",
-        "execucaoId": "00000000-0000-4000-8000-000000000302"
+        "execucaoId": "00000000-0000-4000-8000-000000000502",
+        "postoId": "00000000-0000-4000-8000-000000000101"
       }
     ]
   },
-  "producaoFinalPares": 0,
-  "postos": [
+  "ordens": [
+    {
+      "ordemId": "00000000-0000-4000-8000-000000000303",
+      "numero": "000125",
+      "produtoCodigo": "REF-002",
+      "produtoNome": "Outro produto fictício",
+      "quantidade": 12.5,
+      "unidade": "kg",
+      "planoCodigo": null,
+      "etapasTotal": 1,
+      "etapasBaixadas": 0,
+      "etapaAtual": {
+        "etapaRoteiroId": "00000000-0000-4000-8000-000000000411",
+        "ordem": 1,
+        "operacaoNome": "Corte"
+      },
+      "emExecucao": true,
+      "ultimaBaixaEm": null
+    }
+  ],
+  "producao": [],
+  "producaoFinal": [],
+  "tempos": [
     {
       "posto": {
         "id": "00000000-0000-4000-8000-000000000101",
         "codigo": "P01",
-        "nome": "Corte (fictício)"
+        "nome": "Corte (fictício)",
+        "setorNome": "Setor A (fictício)"
       },
-      "producao": [
+      "produtivoSegundos": 1800,
+      "pausaSegundos": 300,
+      "pausasPorMotivo": [
         {
-          "fichaEtapaId": "00000000-0000-4000-8000-000000000401",
-          "fichaCodigo": "000123",
-          "ordemServicoCodigo": "OS-0001",
-          "produtoCodigo": "REF-001",
-          "operacaoCodigo": "CORTE",
-          "operacaoNome": "Corte",
-          "sequencia": 1,
-          "ultimaEtapa": false,
-          "previstoFichaPares": 240,
-          "bonsAcumuladosPares": 30,
-          "saldoPares": 210,
-          "excedePrevisto": false,
-          "bonsNoPeriodoPares": 30,
-          "refugoNoPeriodoPares": 0,
-          "planejadoNoPeriodoPares": 240,
-          "cumprimentoPercentual": 12.5
+          "motivoNome": "Ajuste de equipamento",
+          "segundos": 300,
+          "ocorrencias": 1
         }
       ],
-      "tempos": [
+      "execucoesFinalizadas": 0,
+      "execucoesAbertas": 1
+    }
+  ],
+  "tempoMedio": [],
+  "cargaPendente": [
+    {
+      "produtoCodigo": "REF-002",
+      "etapaRoteiroId": "00000000-0000-4000-8000-000000000411",
+      "ordem": 1,
+      "operacaoNome": "Corte",
+      "unidade": "kg",
+      "ordensPendentes": 1,
+      "quantidadePendente": 12.5,
+      "tempoPadrao": null,
+      "cargaPendente": null,
+      "postosCompativeis": [
         {
-          "operador": {
-            "id": "00000000-0000-4000-8000-000000000202",
-            "codigoCracha": "0012",
-            "nome": "Operador Fictício B"
-          },
-          "porCategoriaSegundos": {
-            "PRODUTIVO": 1800,
-            "APOIO_PREPARACAO": 300,
-            "INTERRUPCAO": 0,
-            "PAUSA_PREVISTA": 0
-          },
-          "porMotivo": [
-            { "categoria": "APOIO_PREPARACAO", "motivo": "PREPARACAO", "segundos": 300 }
-          ],
-          "classificadoSegundos": 2100,
-          "naoProdutivoApontadoSegundos": 300,
-          "cobertura": null
-        }
-      ],
-      "tempoMedioPorPar": [],
-      "carga": [
-        {
-          "planoPostoId": "00000000-0000-4000-8000-000000000502",
-          "periodoInicio": "2026-10-06T10:00:00.000Z",
-          "periodoFim": "2026-10-06T18:00:00.000Z",
-          "disponibilidadeSegundos": 25200,
-          "itens": [
-            {
-              "fichaEtapaId": "00000000-0000-4000-8000-000000000401",
-              "fichaCodigo": "000123",
-              "operacaoCodigo": "CORTE",
-              "quantidadePlanejadaPares": 240,
-              "tempoPadraoSegundosPorPar": null,
-              "cargaSegundos": null,
-              "postoDiferenteDoPrevisto": false
-            }
-          ],
-          "referenciasPendentes": 1,
-          "cargaSegundos": null,
-          "ocupacaoPlanejadaPercentual": null
+          "id": "00000000-0000-4000-8000-000000000101",
+          "codigo": "P01",
+          "nome": "Corte (fictício)"
         }
       ]
     }
