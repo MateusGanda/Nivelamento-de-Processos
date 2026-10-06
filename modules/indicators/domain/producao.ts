@@ -1,4 +1,4 @@
-import { quantidade } from './validacao.ts';
+import { quantidade } from '../../../shared/validation.ts';
 
 /** Saldo de UMA ficha/etapa: previsto da ficha menos pares bons acumulados nessa
  * mesma etapa, já líquidos de correções. Não depende do período consultado.

@@ -1,4 +1,4 @@
-import { naoNegativo, quantidade } from './validacao.ts';
+import { naoNegativo, quantidade } from '../../../shared/validation.ts';
 
 export type ItemCarga = { quantidadePlanejada: number; tempoReferenciaSegundosPorPar: number | null };
 
