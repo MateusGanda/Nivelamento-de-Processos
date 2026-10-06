@@ -1,0 +1,2644 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.EtapaPosto",
+    "label": "Create table \"EtapaPosto\"",
+    "summary": "Creates table \"EtapaPosto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "EtapaPosto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"EtapaPosto\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaPosto\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"EtapaPosto\"",
+        "sql": "CREATE TABLE \"public\".\"EtapaPosto\" (\n  \"etapaRoteiroId\" uuid NOT NULL,\n  \"postoId\" uuid NOT NULL,\n  PRIMARY KEY (\"etapaRoteiroId\", \"postoId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"EtapaPosto\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaPosto\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.EtapaRoteiro",
+    "label": "Create table \"EtapaRoteiro\"",
+    "summary": "Creates table \"EtapaRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "EtapaRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"EtapaRoteiro\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaRoteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"EtapaRoteiro\"",
+        "sql": "CREATE TABLE \"public\".\"EtapaRoteiro\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"operacaoId\" uuid NOT NULL,\n  \"ordem\" int4 NOT NULL,\n  \"roteiroId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"EtapaRoteiro\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaRoteiro\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.EventoTempo",
+    "label": "Create table \"EventoTempo\"",
+    "summary": "Creates table \"EventoTempo\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "EventoTempo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"EventoTempo\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EventoTempo\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"EventoTempo\"",
+        "sql": "CREATE TABLE \"public\".\"EventoTempo\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"dataHora\" timestamptz NOT NULL,\n  \"execucaoId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"motivoPausaId\" uuid,\n  \"tipo\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"EventoTempo_tipo_check_c655f9d0\" CHECK (\"tipo\" IN ('INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"EventoTempo\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EventoTempo\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Execucao",
+    "label": "Create table \"Execucao\"",
+    "summary": "Creates table \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Execucao\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Execucao\"",
+        "sql": "CREATE TABLE \"public\".\"Execucao\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"etapaRoteiroId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"operadorId\" uuid NOT NULL,\n  \"ordemProducaoId\" uuid NOT NULL,\n  \"postoId\" uuid NOT NULL,\n  \"quantidadeBoa\" numeric(12,2) DEFAULT '0'::numeric(12,2) NOT NULL,\n  \"quantidadeRefugo\" numeric(12,2) DEFAULT '0'::numeric(12,2) NOT NULL,\n  \"quantidadeRetrabalho\" numeric(12,2) DEFAULT '0'::numeric(12,2) NOT NULL,\n  \"status\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Execucao_status_check_03bbbb48\" CHECK (\"status\" IN ('EM_EXECUCAO', 'PAUSADA', 'FINALIZADA'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Execucao\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.MotivoPausa",
+    "label": "Create table \"MotivoPausa\"",
+    "summary": "Creates table \"MotivoPausa\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "MotivoPausa"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"MotivoPausa\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"MotivoPausa\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"MotivoPausa\"",
+        "sql": "CREATE TABLE \"public\".\"MotivoPausa\" (\n  \"ativo\" bool DEFAULT true NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"descricao\" text,\n  \"id\" uuid NOT NULL,\n  \"nome\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"MotivoPausa\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"MotivoPausa\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Operacao",
+    "label": "Create table \"Operacao\"",
+    "summary": "Creates table \"Operacao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Operacao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Operacao\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Operacao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Operacao\"",
+        "sql": "CREATE TABLE \"public\".\"Operacao\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"descricao\" text,\n  \"id\" uuid NOT NULL,\n  \"nome\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Operacao\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Operacao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Operador",
+    "label": "Create table \"Operador\"",
+    "summary": "Creates table \"Operador\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Operador"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Operador\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Operador\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Operador\"",
+        "sql": "CREATE TABLE \"public\".\"Operador\" (\n  \"ativo\" bool DEFAULT true NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"matricula\" text NOT NULL,\n  \"nome\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Operador\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Operador\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.OrdemProducao",
+    "label": "Create table \"OrdemProducao\"",
+    "summary": "Creates table \"OrdemProducao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "OrdemProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"OrdemProducao\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"OrdemProducao\"",
+        "sql": "CREATE TABLE \"public\".\"OrdemProducao\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"numero\" text NOT NULL,\n  \"planoProducaoId\" uuid NOT NULL,\n  \"produtoId\" uuid NOT NULL,\n  \"quantidade\" numeric(12,2) NOT NULL,\n  \"roteiroId\" uuid NOT NULL,\n  \"unidade\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"OrdemProducao\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.PlanoProducao",
+    "label": "Create table \"PlanoProducao\"",
+    "summary": "Creates table \"PlanoProducao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "PlanoProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"PlanoProducao\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PlanoProducao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"PlanoProducao\"",
+        "sql": "CREATE TABLE \"public\".\"PlanoProducao\" (\n  \"codigo\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"dataFim\" date,\n  \"dataInicio\" date,\n  \"descricao\" text,\n  \"id\" uuid NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"PlanoProducao\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"PlanoProducao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Posto",
+    "label": "Create table \"Posto\"",
+    "summary": "Creates table \"Posto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Posto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Posto\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Posto\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Posto\"",
+        "sql": "CREATE TABLE \"public\".\"Posto\" (\n  \"ativo\" bool DEFAULT true NOT NULL,\n  \"codigo\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"nome\" text NOT NULL,\n  \"setorId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Posto\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Posto\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Produto",
+    "label": "Create table \"Produto\"",
+    "summary": "Creates table \"Produto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Produto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Produto\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Produto\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Produto\"",
+        "sql": "CREATE TABLE \"public\".\"Produto\" (\n  \"codigo\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"nome\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Produto\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Produto\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.ProdutoEtapa",
+    "label": "Create table \"ProdutoEtapa\"",
+    "summary": "Creates table \"ProdutoEtapa\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "ProdutoEtapa"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"ProdutoEtapa\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoEtapa\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"ProdutoEtapa\"",
+        "sql": "CREATE TABLE \"public\".\"ProdutoEtapa\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"etapaRoteiroId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"produtoId\" uuid NOT NULL,\n  \"tempoPadrao\" numeric(10,2) NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"ProdutoEtapa\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoEtapa\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.ProdutoRoteiro",
+    "label": "Create table \"ProdutoRoteiro\"",
+    "summary": "Creates table \"ProdutoRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "ProdutoRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"ProdutoRoteiro\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoRoteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"ProdutoRoteiro\"",
+        "sql": "CREATE TABLE \"public\".\"ProdutoRoteiro\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"produtoId\" uuid NOT NULL,\n  \"roteiroId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"vigente\" bool DEFAULT false NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"ProdutoRoteiro\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoRoteiro\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Roteiro",
+    "label": "Create table \"Roteiro\"",
+    "summary": "Creates table \"Roteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Roteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Roteiro\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Roteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Roteiro\"",
+        "sql": "CREATE TABLE \"public\".\"Roteiro\" (\n  \"ativo\" bool DEFAULT true NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"nome\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"versao\" int4 NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Roteiro\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Roteiro\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.Setor",
+    "label": "Create table \"Setor\"",
+    "summary": "Creates table \"Setor\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Setor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Setor\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Setor\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Setor\"",
+        "sql": "CREATE TABLE \"public\".\"Setor\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"descricao\" text,\n  \"id\" uuid NOT NULL,\n  \"nome\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Setor\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Setor\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.EtapaRoteiro.EtapaRoteiro_roteiroId_ordem_key",
+    "label": "Add unique constraint on \"EtapaRoteiro\" (roteiroId, ordem)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "EtapaRoteiro_roteiroId_ordem_key",
+        "table": "EtapaRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"EtapaRoteiro_roteiroId_ordem_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaRoteiro_roteiroId_ordem_key",
+          "public",
+          "\"public\".\"EtapaRoteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"EtapaRoteiro_roteiroId_ordem_key\"",
+        "sql": "ALTER TABLE \"public\".\"EtapaRoteiro\" ADD CONSTRAINT \"EtapaRoteiro_roteiroId_ordem_key\" UNIQUE (\"roteiroId\", \"ordem\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"EtapaRoteiro_roteiroId_ordem_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaRoteiro_roteiroId_ordem_key",
+          "public",
+          "\"public\".\"EtapaRoteiro\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.MotivoPausa.MotivoPausa_nome_key",
+    "label": "Add unique constraint on \"MotivoPausa\" (nome)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "MotivoPausa_nome_key",
+        "table": "MotivoPausa"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"MotivoPausa_nome_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "MotivoPausa_nome_key",
+          "public",
+          "\"public\".\"MotivoPausa\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"MotivoPausa_nome_key\"",
+        "sql": "ALTER TABLE \"public\".\"MotivoPausa\" ADD CONSTRAINT \"MotivoPausa_nome_key\" UNIQUE (\"nome\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"MotivoPausa_nome_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "MotivoPausa_nome_key",
+          "public",
+          "\"public\".\"MotivoPausa\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Operacao.Operacao_nome_key",
+    "label": "Add unique constraint on \"Operacao\" (nome)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Operacao_nome_key",
+        "table": "Operacao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Operacao_nome_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Operacao_nome_key",
+          "public",
+          "\"public\".\"Operacao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Operacao_nome_key\"",
+        "sql": "ALTER TABLE \"public\".\"Operacao\" ADD CONSTRAINT \"Operacao_nome_key\" UNIQUE (\"nome\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Operacao_nome_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Operacao_nome_key",
+          "public",
+          "\"public\".\"Operacao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Operador.Operador_matricula_key",
+    "label": "Add unique constraint on \"Operador\" (matricula)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Operador_matricula_key",
+        "table": "Operador"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Operador_matricula_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Operador_matricula_key",
+          "public",
+          "\"public\".\"Operador\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Operador_matricula_key\"",
+        "sql": "ALTER TABLE \"public\".\"Operador\" ADD CONSTRAINT \"Operador_matricula_key\" UNIQUE (\"matricula\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Operador_matricula_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Operador_matricula_key",
+          "public",
+          "\"public\".\"Operador\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.OrdemProducao.OrdemProducao_numero_key",
+    "label": "Add unique constraint on \"OrdemProducao\" (numero)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "OrdemProducao_numero_key",
+        "table": "OrdemProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"OrdemProducao_numero_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OrdemProducao_numero_key",
+          "public",
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"OrdemProducao_numero_key\"",
+        "sql": "ALTER TABLE \"public\".\"OrdemProducao\" ADD CONSTRAINT \"OrdemProducao_numero_key\" UNIQUE (\"numero\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"OrdemProducao_numero_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OrdemProducao_numero_key",
+          "public",
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.PlanoProducao.PlanoProducao_codigo_key",
+    "label": "Add unique constraint on \"PlanoProducao\" (codigo)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "PlanoProducao_codigo_key",
+        "table": "PlanoProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"PlanoProducao_codigo_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PlanoProducao_codigo_key",
+          "public",
+          "\"public\".\"PlanoProducao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"PlanoProducao_codigo_key\"",
+        "sql": "ALTER TABLE \"public\".\"PlanoProducao\" ADD CONSTRAINT \"PlanoProducao_codigo_key\" UNIQUE (\"codigo\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"PlanoProducao_codigo_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "PlanoProducao_codigo_key",
+          "public",
+          "\"public\".\"PlanoProducao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Posto.Posto_codigo_key",
+    "label": "Add unique constraint on \"Posto\" (codigo)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Posto_codigo_key",
+        "table": "Posto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Posto_codigo_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Posto_codigo_key",
+          "public",
+          "\"public\".\"Posto\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Posto_codigo_key\"",
+        "sql": "ALTER TABLE \"public\".\"Posto\" ADD CONSTRAINT \"Posto_codigo_key\" UNIQUE (\"codigo\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Posto_codigo_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Posto_codigo_key",
+          "public",
+          "\"public\".\"Posto\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Produto.Produto_codigo_key",
+    "label": "Add unique constraint on \"Produto\" (codigo)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Produto_codigo_key",
+        "table": "Produto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Produto_codigo_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Produto_codigo_key",
+          "public",
+          "\"public\".\"Produto\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Produto_codigo_key\"",
+        "sql": "ALTER TABLE \"public\".\"Produto\" ADD CONSTRAINT \"Produto_codigo_key\" UNIQUE (\"codigo\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Produto_codigo_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Produto_codigo_key",
+          "public",
+          "\"public\".\"Produto\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.ProdutoEtapa.ProdutoEtapa_produtoId_etapaRoteiroId_key",
+    "label": "Add unique constraint on \"ProdutoEtapa\" (produtoId, etapaRoteiroId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "ProdutoEtapa_produtoId_etapaRoteiroId_key",
+        "table": "ProdutoEtapa"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"ProdutoEtapa_produtoId_etapaRoteiroId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoEtapa_produtoId_etapaRoteiroId_key",
+          "public",
+          "\"public\".\"ProdutoEtapa\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"ProdutoEtapa_produtoId_etapaRoteiroId_key\"",
+        "sql": "ALTER TABLE \"public\".\"ProdutoEtapa\" ADD CONSTRAINT \"ProdutoEtapa_produtoId_etapaRoteiroId_key\" UNIQUE (\"produtoId\", \"etapaRoteiroId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"ProdutoEtapa_produtoId_etapaRoteiroId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoEtapa_produtoId_etapaRoteiroId_key",
+          "public",
+          "\"public\".\"ProdutoEtapa\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.ProdutoRoteiro.ProdutoRoteiro_produtoId_roteiroId_key",
+    "label": "Add unique constraint on \"ProdutoRoteiro\" (produtoId, roteiroId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "ProdutoRoteiro_produtoId_roteiroId_key",
+        "table": "ProdutoRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"ProdutoRoteiro_produtoId_roteiroId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoRoteiro_produtoId_roteiroId_key",
+          "public",
+          "\"public\".\"ProdutoRoteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"ProdutoRoteiro_produtoId_roteiroId_key\"",
+        "sql": "ALTER TABLE \"public\".\"ProdutoRoteiro\" ADD CONSTRAINT \"ProdutoRoteiro_produtoId_roteiroId_key\" UNIQUE (\"produtoId\", \"roteiroId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"ProdutoRoteiro_produtoId_roteiroId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoRoteiro_produtoId_roteiroId_key",
+          "public",
+          "\"public\".\"ProdutoRoteiro\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Roteiro.Roteiro_nome_versao_key",
+    "label": "Add unique constraint on \"Roteiro\" (nome, versao)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Roteiro_nome_versao_key",
+        "table": "Roteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Roteiro_nome_versao_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Roteiro_nome_versao_key",
+          "public",
+          "\"public\".\"Roteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Roteiro_nome_versao_key\"",
+        "sql": "ALTER TABLE \"public\".\"Roteiro\" ADD CONSTRAINT \"Roteiro_nome_versao_key\" UNIQUE (\"nome\", \"versao\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Roteiro_nome_versao_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Roteiro_nome_versao_key",
+          "public",
+          "\"public\".\"Roteiro\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Setor.Setor_nome_key",
+    "label": "Add unique constraint on \"Setor\" (nome)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Setor_nome_key",
+        "table": "Setor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Setor_nome_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Setor_nome_key",
+          "public",
+          "\"public\".\"Setor\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Setor_nome_key\"",
+        "sql": "ALTER TABLE \"public\".\"Setor\" ADD CONSTRAINT \"Setor_nome_key\" UNIQUE (\"nome\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Setor_nome_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Setor_nome_key",
+          "public",
+          "\"public\".\"Setor\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.EtapaPosto.EtapaPosto_etapaRoteiroId_idx_17d641ff",
+    "label": "Create index \"EtapaPosto_etapaRoteiroId_idx_17d641ff\" on \"EtapaPosto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "EtapaPosto_etapaRoteiroId_idx_17d641ff",
+        "table": "EtapaPosto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"EtapaPosto_etapaRoteiroId_idx_17d641ff\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaPosto_etapaRoteiroId_idx_17d641ff\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"EtapaPosto_etapaRoteiroId_idx_17d641ff\"",
+        "sql": "CREATE INDEX \"EtapaPosto_etapaRoteiroId_idx_17d641ff\" ON \"public\".\"EtapaPosto\" (\"etapaRoteiroId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"EtapaPosto_etapaRoteiroId_idx_17d641ff\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaPosto_etapaRoteiroId_idx_17d641ff\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.EtapaPosto.EtapaPosto_postoId_idx_13be8f3c",
+    "label": "Create index \"EtapaPosto_postoId_idx_13be8f3c\" on \"EtapaPosto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "EtapaPosto_postoId_idx_13be8f3c",
+        "table": "EtapaPosto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"EtapaPosto_postoId_idx_13be8f3c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaPosto_postoId_idx_13be8f3c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"EtapaPosto_postoId_idx_13be8f3c\"",
+        "sql": "CREATE INDEX \"EtapaPosto_postoId_idx_13be8f3c\" ON \"public\".\"EtapaPosto\" (\"postoId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"EtapaPosto_postoId_idx_13be8f3c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaPosto_postoId_idx_13be8f3c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.EtapaRoteiro.EtapaRoteiro_operacaoId_idx_33359931",
+    "label": "Create index \"EtapaRoteiro_operacaoId_idx_33359931\" on \"EtapaRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "EtapaRoteiro_operacaoId_idx_33359931",
+        "table": "EtapaRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"EtapaRoteiro_operacaoId_idx_33359931\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaRoteiro_operacaoId_idx_33359931\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"EtapaRoteiro_operacaoId_idx_33359931\"",
+        "sql": "CREATE INDEX \"EtapaRoteiro_operacaoId_idx_33359931\" ON \"public\".\"EtapaRoteiro\" (\"operacaoId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"EtapaRoteiro_operacaoId_idx_33359931\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaRoteiro_operacaoId_idx_33359931\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.EtapaRoteiro.EtapaRoteiro_roteiroId_idx_1cd14ed6",
+    "label": "Create index \"EtapaRoteiro_roteiroId_idx_1cd14ed6\" on \"EtapaRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "EtapaRoteiro_roteiroId_idx_1cd14ed6",
+        "table": "EtapaRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"EtapaRoteiro_roteiroId_idx_1cd14ed6\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaRoteiro_roteiroId_idx_1cd14ed6\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"EtapaRoteiro_roteiroId_idx_1cd14ed6\"",
+        "sql": "CREATE INDEX \"EtapaRoteiro_roteiroId_idx_1cd14ed6\" ON \"public\".\"EtapaRoteiro\" (\"roteiroId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"EtapaRoteiro_roteiroId_idx_1cd14ed6\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EtapaRoteiro_roteiroId_idx_1cd14ed6\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.EventoTempo.EventoTempo_execucaoId_dataHora_idx_1b757161",
+    "label": "Create index \"EventoTempo_execucaoId_dataHora_idx_1b757161\" on \"EventoTempo\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "EventoTempo_execucaoId_dataHora_idx_1b757161",
+        "table": "EventoTempo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"EventoTempo_execucaoId_dataHora_idx_1b757161\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EventoTempo_execucaoId_dataHora_idx_1b757161\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"EventoTempo_execucaoId_dataHora_idx_1b757161\"",
+        "sql": "CREATE INDEX \"EventoTempo_execucaoId_dataHora_idx_1b757161\" ON \"public\".\"EventoTempo\" (\"execucaoId\", \"dataHora\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"EventoTempo_execucaoId_dataHora_idx_1b757161\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EventoTempo_execucaoId_dataHora_idx_1b757161\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.EventoTempo.EventoTempo_execucaoId_idx_a797c763",
+    "label": "Create index \"EventoTempo_execucaoId_idx_a797c763\" on \"EventoTempo\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "EventoTempo_execucaoId_idx_a797c763",
+        "table": "EventoTempo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"EventoTempo_execucaoId_idx_a797c763\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EventoTempo_execucaoId_idx_a797c763\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"EventoTempo_execucaoId_idx_a797c763\"",
+        "sql": "CREATE INDEX \"EventoTempo_execucaoId_idx_a797c763\" ON \"public\".\"EventoTempo\" (\"execucaoId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"EventoTempo_execucaoId_idx_a797c763\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EventoTempo_execucaoId_idx_a797c763\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.EventoTempo.EventoTempo_motivoPausaId_idx_82c69795",
+    "label": "Create index \"EventoTempo_motivoPausaId_idx_82c69795\" on \"EventoTempo\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "EventoTempo_motivoPausaId_idx_82c69795",
+        "table": "EventoTempo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"EventoTempo_motivoPausaId_idx_82c69795\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EventoTempo_motivoPausaId_idx_82c69795\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"EventoTempo_motivoPausaId_idx_82c69795\"",
+        "sql": "CREATE INDEX \"EventoTempo_motivoPausaId_idx_82c69795\" ON \"public\".\"EventoTempo\" (\"motivoPausaId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"EventoTempo_motivoPausaId_idx_82c69795\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"EventoTempo_motivoPausaId_idx_82c69795\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Execucao.Execucao_etapaRoteiroId_idx_17d641ff",
+    "label": "Create index \"Execucao_etapaRoteiroId_idx_17d641ff\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Execucao_etapaRoteiroId_idx_17d641ff",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Execucao_etapaRoteiroId_idx_17d641ff\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_etapaRoteiroId_idx_17d641ff\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Execucao_etapaRoteiroId_idx_17d641ff\"",
+        "sql": "CREATE INDEX \"Execucao_etapaRoteiroId_idx_17d641ff\" ON \"public\".\"Execucao\" (\"etapaRoteiroId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Execucao_etapaRoteiroId_idx_17d641ff\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_etapaRoteiroId_idx_17d641ff\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Execucao.Execucao_operadorId_idx_b7d31568",
+    "label": "Create index \"Execucao_operadorId_idx_b7d31568\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Execucao_operadorId_idx_b7d31568",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Execucao_operadorId_idx_b7d31568\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_operadorId_idx_b7d31568\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Execucao_operadorId_idx_b7d31568\"",
+        "sql": "CREATE INDEX \"Execucao_operadorId_idx_b7d31568\" ON \"public\".\"Execucao\" (\"operadorId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Execucao_operadorId_idx_b7d31568\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_operadorId_idx_b7d31568\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Execucao.Execucao_ordemProducaoId_idx_422138c7",
+    "label": "Create index \"Execucao_ordemProducaoId_idx_422138c7\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Execucao_ordemProducaoId_idx_422138c7",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Execucao_ordemProducaoId_idx_422138c7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_ordemProducaoId_idx_422138c7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Execucao_ordemProducaoId_idx_422138c7\"",
+        "sql": "CREATE INDEX \"Execucao_ordemProducaoId_idx_422138c7\" ON \"public\".\"Execucao\" (\"ordemProducaoId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Execucao_ordemProducaoId_idx_422138c7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_ordemProducaoId_idx_422138c7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Execucao.Execucao_postoId_idx_13be8f3c",
+    "label": "Create index \"Execucao_postoId_idx_13be8f3c\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Execucao_postoId_idx_13be8f3c",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Execucao_postoId_idx_13be8f3c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_postoId_idx_13be8f3c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Execucao_postoId_idx_13be8f3c\"",
+        "sql": "CREATE INDEX \"Execucao_postoId_idx_13be8f3c\" ON \"public\".\"Execucao\" (\"postoId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Execucao_postoId_idx_13be8f3c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_postoId_idx_13be8f3c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Execucao.Execucao_status_idx_e98638ab",
+    "label": "Create index \"Execucao_status_idx_e98638ab\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Execucao_status_idx_e98638ab",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Execucao_status_idx_e98638ab\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_status_idx_e98638ab\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Execucao_status_idx_e98638ab\"",
+        "sql": "CREATE INDEX \"Execucao_status_idx_e98638ab\" ON \"public\".\"Execucao\" (\"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Execucao_status_idx_e98638ab\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_status_idx_e98638ab\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.OrdemProducao.OrdemProducao_planoProducaoId_idx_d14976d3",
+    "label": "Create index \"OrdemProducao_planoProducaoId_idx_d14976d3\" on \"OrdemProducao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "OrdemProducao_planoProducaoId_idx_d14976d3",
+        "table": "OrdemProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"OrdemProducao_planoProducaoId_idx_d14976d3\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OrdemProducao_planoProducaoId_idx_d14976d3\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"OrdemProducao_planoProducaoId_idx_d14976d3\"",
+        "sql": "CREATE INDEX \"OrdemProducao_planoProducaoId_idx_d14976d3\" ON \"public\".\"OrdemProducao\" (\"planoProducaoId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"OrdemProducao_planoProducaoId_idx_d14976d3\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OrdemProducao_planoProducaoId_idx_d14976d3\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.OrdemProducao.OrdemProducao_produtoId_idx_eb62fdb9",
+    "label": "Create index \"OrdemProducao_produtoId_idx_eb62fdb9\" on \"OrdemProducao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "OrdemProducao_produtoId_idx_eb62fdb9",
+        "table": "OrdemProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"OrdemProducao_produtoId_idx_eb62fdb9\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OrdemProducao_produtoId_idx_eb62fdb9\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"OrdemProducao_produtoId_idx_eb62fdb9\"",
+        "sql": "CREATE INDEX \"OrdemProducao_produtoId_idx_eb62fdb9\" ON \"public\".\"OrdemProducao\" (\"produtoId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"OrdemProducao_produtoId_idx_eb62fdb9\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OrdemProducao_produtoId_idx_eb62fdb9\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.OrdemProducao.OrdemProducao_roteiroId_idx_1cd14ed6",
+    "label": "Create index \"OrdemProducao_roteiroId_idx_1cd14ed6\" on \"OrdemProducao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "OrdemProducao_roteiroId_idx_1cd14ed6",
+        "table": "OrdemProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"OrdemProducao_roteiroId_idx_1cd14ed6\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OrdemProducao_roteiroId_idx_1cd14ed6\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"OrdemProducao_roteiroId_idx_1cd14ed6\"",
+        "sql": "CREATE INDEX \"OrdemProducao_roteiroId_idx_1cd14ed6\" ON \"public\".\"OrdemProducao\" (\"roteiroId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"OrdemProducao_roteiroId_idx_1cd14ed6\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"OrdemProducao_roteiroId_idx_1cd14ed6\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Posto.Posto_setorId_idx_e3349e5c",
+    "label": "Create index \"Posto_setorId_idx_e3349e5c\" on \"Posto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Posto_setorId_idx_e3349e5c",
+        "table": "Posto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Posto_setorId_idx_e3349e5c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Posto_setorId_idx_e3349e5c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Posto_setorId_idx_e3349e5c\"",
+        "sql": "CREATE INDEX \"Posto_setorId_idx_e3349e5c\" ON \"public\".\"Posto\" (\"setorId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Posto_setorId_idx_e3349e5c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Posto_setorId_idx_e3349e5c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ProdutoEtapa.ProdutoEtapa_etapaRoteiroId_idx_17d641ff",
+    "label": "Create index \"ProdutoEtapa_etapaRoteiroId_idx_17d641ff\" on \"ProdutoEtapa\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ProdutoEtapa_etapaRoteiroId_idx_17d641ff",
+        "table": "ProdutoEtapa"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ProdutoEtapa_etapaRoteiroId_idx_17d641ff\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoEtapa_etapaRoteiroId_idx_17d641ff\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ProdutoEtapa_etapaRoteiroId_idx_17d641ff\"",
+        "sql": "CREATE INDEX \"ProdutoEtapa_etapaRoteiroId_idx_17d641ff\" ON \"public\".\"ProdutoEtapa\" (\"etapaRoteiroId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ProdutoEtapa_etapaRoteiroId_idx_17d641ff\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoEtapa_etapaRoteiroId_idx_17d641ff\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ProdutoEtapa.ProdutoEtapa_produtoId_idx_eb62fdb9",
+    "label": "Create index \"ProdutoEtapa_produtoId_idx_eb62fdb9\" on \"ProdutoEtapa\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ProdutoEtapa_produtoId_idx_eb62fdb9",
+        "table": "ProdutoEtapa"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ProdutoEtapa_produtoId_idx_eb62fdb9\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoEtapa_produtoId_idx_eb62fdb9\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ProdutoEtapa_produtoId_idx_eb62fdb9\"",
+        "sql": "CREATE INDEX \"ProdutoEtapa_produtoId_idx_eb62fdb9\" ON \"public\".\"ProdutoEtapa\" (\"produtoId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ProdutoEtapa_produtoId_idx_eb62fdb9\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoEtapa_produtoId_idx_eb62fdb9\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ProdutoRoteiro.ProdutoRoteiro_produtoId_idx_eb62fdb9",
+    "label": "Create index \"ProdutoRoteiro_produtoId_idx_eb62fdb9\" on \"ProdutoRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ProdutoRoteiro_produtoId_idx_eb62fdb9",
+        "table": "ProdutoRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ProdutoRoteiro_produtoId_idx_eb62fdb9\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoRoteiro_produtoId_idx_eb62fdb9\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ProdutoRoteiro_produtoId_idx_eb62fdb9\"",
+        "sql": "CREATE INDEX \"ProdutoRoteiro_produtoId_idx_eb62fdb9\" ON \"public\".\"ProdutoRoteiro\" (\"produtoId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ProdutoRoteiro_produtoId_idx_eb62fdb9\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoRoteiro_produtoId_idx_eb62fdb9\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ProdutoRoteiro.ProdutoRoteiro_roteiroId_idx_1cd14ed6",
+    "label": "Create index \"ProdutoRoteiro_roteiroId_idx_1cd14ed6\" on \"ProdutoRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ProdutoRoteiro_roteiroId_idx_1cd14ed6",
+        "table": "ProdutoRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ProdutoRoteiro_roteiroId_idx_1cd14ed6\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoRoteiro_roteiroId_idx_1cd14ed6\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ProdutoRoteiro_roteiroId_idx_1cd14ed6\"",
+        "sql": "CREATE INDEX \"ProdutoRoteiro_roteiroId_idx_1cd14ed6\" ON \"public\".\"ProdutoRoteiro\" (\"roteiroId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ProdutoRoteiro_roteiroId_idx_1cd14ed6\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoRoteiro_roteiroId_idx_1cd14ed6\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.EtapaPosto.EtapaPosto_etapaRoteiroId_fkey",
+    "label": "Add foreign key \"EtapaPosto_etapaRoteiroId_fkey\" on \"EtapaPosto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "EtapaPosto_etapaRoteiroId_fkey",
+        "table": "EtapaPosto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"EtapaPosto_etapaRoteiroId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaPosto_etapaRoteiroId_fkey",
+          "public",
+          "\"public\".\"EtapaPosto\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"EtapaPosto_etapaRoteiroId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"EtapaPosto\"\nADD CONSTRAINT \"EtapaPosto_etapaRoteiroId_fkey\"\nFOREIGN KEY (\"etapaRoteiroId\")\nREFERENCES \"public\".\"EtapaRoteiro\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"EtapaPosto_etapaRoteiroId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaPosto_etapaRoteiroId_fkey",
+          "public",
+          "\"public\".\"EtapaPosto\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.EtapaPosto.EtapaPosto_postoId_fkey",
+    "label": "Add foreign key \"EtapaPosto_postoId_fkey\" on \"EtapaPosto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "EtapaPosto_postoId_fkey",
+        "table": "EtapaPosto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"EtapaPosto_postoId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaPosto_postoId_fkey",
+          "public",
+          "\"public\".\"EtapaPosto\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"EtapaPosto_postoId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"EtapaPosto\"\nADD CONSTRAINT \"EtapaPosto_postoId_fkey\"\nFOREIGN KEY (\"postoId\")\nREFERENCES \"public\".\"Posto\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"EtapaPosto_postoId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaPosto_postoId_fkey",
+          "public",
+          "\"public\".\"EtapaPosto\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.EtapaRoteiro.EtapaRoteiro_roteiroId_fkey",
+    "label": "Add foreign key \"EtapaRoteiro_roteiroId_fkey\" on \"EtapaRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "EtapaRoteiro_roteiroId_fkey",
+        "table": "EtapaRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"EtapaRoteiro_roteiroId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaRoteiro_roteiroId_fkey",
+          "public",
+          "\"public\".\"EtapaRoteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"EtapaRoteiro_roteiroId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"EtapaRoteiro\"\nADD CONSTRAINT \"EtapaRoteiro_roteiroId_fkey\"\nFOREIGN KEY (\"roteiroId\")\nREFERENCES \"public\".\"Roteiro\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"EtapaRoteiro_roteiroId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaRoteiro_roteiroId_fkey",
+          "public",
+          "\"public\".\"EtapaRoteiro\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.EtapaRoteiro.EtapaRoteiro_operacaoId_fkey",
+    "label": "Add foreign key \"EtapaRoteiro_operacaoId_fkey\" on \"EtapaRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "EtapaRoteiro_operacaoId_fkey",
+        "table": "EtapaRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"EtapaRoteiro_operacaoId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaRoteiro_operacaoId_fkey",
+          "public",
+          "\"public\".\"EtapaRoteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"EtapaRoteiro_operacaoId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"EtapaRoteiro\"\nADD CONSTRAINT \"EtapaRoteiro_operacaoId_fkey\"\nFOREIGN KEY (\"operacaoId\")\nREFERENCES \"public\".\"Operacao\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"EtapaRoteiro_operacaoId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EtapaRoteiro_operacaoId_fkey",
+          "public",
+          "\"public\".\"EtapaRoteiro\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.EventoTempo.EventoTempo_execucaoId_fkey",
+    "label": "Add foreign key \"EventoTempo_execucaoId_fkey\" on \"EventoTempo\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "EventoTempo_execucaoId_fkey",
+        "table": "EventoTempo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"EventoTempo_execucaoId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EventoTempo_execucaoId_fkey",
+          "public",
+          "\"public\".\"EventoTempo\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"EventoTempo_execucaoId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"EventoTempo\"\nADD CONSTRAINT \"EventoTempo_execucaoId_fkey\"\nFOREIGN KEY (\"execucaoId\")\nREFERENCES \"public\".\"Execucao\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"EventoTempo_execucaoId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EventoTempo_execucaoId_fkey",
+          "public",
+          "\"public\".\"EventoTempo\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.EventoTempo.EventoTempo_motivoPausaId_fkey",
+    "label": "Add foreign key \"EventoTempo_motivoPausaId_fkey\" on \"EventoTempo\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "EventoTempo_motivoPausaId_fkey",
+        "table": "EventoTempo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"EventoTempo_motivoPausaId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EventoTempo_motivoPausaId_fkey",
+          "public",
+          "\"public\".\"EventoTempo\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"EventoTempo_motivoPausaId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"EventoTempo\"\nADD CONSTRAINT \"EventoTempo_motivoPausaId_fkey\"\nFOREIGN KEY (\"motivoPausaId\")\nREFERENCES \"public\".\"MotivoPausa\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"EventoTempo_motivoPausaId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "EventoTempo_motivoPausaId_fkey",
+          "public",
+          "\"public\".\"EventoTempo\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Execucao.Execucao_ordemProducaoId_fkey",
+    "label": "Add foreign key \"Execucao_ordemProducaoId_fkey\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Execucao_ordemProducaoId_fkey",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Execucao_ordemProducaoId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Execucao_ordemProducaoId_fkey",
+          "public",
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Execucao_ordemProducaoId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Execucao\"\nADD CONSTRAINT \"Execucao_ordemProducaoId_fkey\"\nFOREIGN KEY (\"ordemProducaoId\")\nREFERENCES \"public\".\"OrdemProducao\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Execucao_ordemProducaoId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Execucao_ordemProducaoId_fkey",
+          "public",
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Execucao.Execucao_etapaRoteiroId_fkey",
+    "label": "Add foreign key \"Execucao_etapaRoteiroId_fkey\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Execucao_etapaRoteiroId_fkey",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Execucao_etapaRoteiroId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Execucao_etapaRoteiroId_fkey",
+          "public",
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Execucao_etapaRoteiroId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Execucao\"\nADD CONSTRAINT \"Execucao_etapaRoteiroId_fkey\"\nFOREIGN KEY (\"etapaRoteiroId\")\nREFERENCES \"public\".\"EtapaRoteiro\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Execucao_etapaRoteiroId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Execucao_etapaRoteiroId_fkey",
+          "public",
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Execucao.Execucao_operadorId_fkey",
+    "label": "Add foreign key \"Execucao_operadorId_fkey\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Execucao_operadorId_fkey",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Execucao_operadorId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Execucao_operadorId_fkey",
+          "public",
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Execucao_operadorId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Execucao\"\nADD CONSTRAINT \"Execucao_operadorId_fkey\"\nFOREIGN KEY (\"operadorId\")\nREFERENCES \"public\".\"Operador\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Execucao_operadorId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Execucao_operadorId_fkey",
+          "public",
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Execucao.Execucao_postoId_fkey",
+    "label": "Add foreign key \"Execucao_postoId_fkey\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Execucao_postoId_fkey",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Execucao_postoId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Execucao_postoId_fkey",
+          "public",
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Execucao_postoId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Execucao\"\nADD CONSTRAINT \"Execucao_postoId_fkey\"\nFOREIGN KEY (\"postoId\")\nREFERENCES \"public\".\"Posto\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Execucao_postoId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Execucao_postoId_fkey",
+          "public",
+          "\"public\".\"Execucao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.OrdemProducao.OrdemProducao_planoProducaoId_fkey",
+    "label": "Add foreign key \"OrdemProducao_planoProducaoId_fkey\" on \"OrdemProducao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "OrdemProducao_planoProducaoId_fkey",
+        "table": "OrdemProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"OrdemProducao_planoProducaoId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OrdemProducao_planoProducaoId_fkey",
+          "public",
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"OrdemProducao_planoProducaoId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"OrdemProducao\"\nADD CONSTRAINT \"OrdemProducao_planoProducaoId_fkey\"\nFOREIGN KEY (\"planoProducaoId\")\nREFERENCES \"public\".\"PlanoProducao\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"OrdemProducao_planoProducaoId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OrdemProducao_planoProducaoId_fkey",
+          "public",
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.OrdemProducao.OrdemProducao_produtoId_fkey",
+    "label": "Add foreign key \"OrdemProducao_produtoId_fkey\" on \"OrdemProducao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "OrdemProducao_produtoId_fkey",
+        "table": "OrdemProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"OrdemProducao_produtoId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OrdemProducao_produtoId_fkey",
+          "public",
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"OrdemProducao_produtoId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"OrdemProducao\"\nADD CONSTRAINT \"OrdemProducao_produtoId_fkey\"\nFOREIGN KEY (\"produtoId\")\nREFERENCES \"public\".\"Produto\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"OrdemProducao_produtoId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OrdemProducao_produtoId_fkey",
+          "public",
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.OrdemProducao.OrdemProducao_roteiroId_fkey",
+    "label": "Add foreign key \"OrdemProducao_roteiroId_fkey\" on \"OrdemProducao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "OrdemProducao_roteiroId_fkey",
+        "table": "OrdemProducao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"OrdemProducao_roteiroId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OrdemProducao_roteiroId_fkey",
+          "public",
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"OrdemProducao_roteiroId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"OrdemProducao\"\nADD CONSTRAINT \"OrdemProducao_roteiroId_fkey\"\nFOREIGN KEY (\"roteiroId\")\nREFERENCES \"public\".\"Roteiro\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"OrdemProducao_roteiroId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "OrdemProducao_roteiroId_fkey",
+          "public",
+          "\"public\".\"OrdemProducao\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Posto.Posto_setorId_fkey",
+    "label": "Add foreign key \"Posto_setorId_fkey\" on \"Posto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Posto_setorId_fkey",
+        "table": "Posto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Posto_setorId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Posto_setorId_fkey",
+          "public",
+          "\"public\".\"Posto\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Posto_setorId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Posto\"\nADD CONSTRAINT \"Posto_setorId_fkey\"\nFOREIGN KEY (\"setorId\")\nREFERENCES \"public\".\"Setor\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Posto_setorId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Posto_setorId_fkey",
+          "public",
+          "\"public\".\"Posto\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ProdutoEtapa.ProdutoEtapa_produtoId_fkey",
+    "label": "Add foreign key \"ProdutoEtapa_produtoId_fkey\" on \"ProdutoEtapa\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ProdutoEtapa_produtoId_fkey",
+        "table": "ProdutoEtapa"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ProdutoEtapa_produtoId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoEtapa_produtoId_fkey",
+          "public",
+          "\"public\".\"ProdutoEtapa\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ProdutoEtapa_produtoId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ProdutoEtapa\"\nADD CONSTRAINT \"ProdutoEtapa_produtoId_fkey\"\nFOREIGN KEY (\"produtoId\")\nREFERENCES \"public\".\"Produto\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ProdutoEtapa_produtoId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoEtapa_produtoId_fkey",
+          "public",
+          "\"public\".\"ProdutoEtapa\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ProdutoEtapa.ProdutoEtapa_etapaRoteiroId_fkey",
+    "label": "Add foreign key \"ProdutoEtapa_etapaRoteiroId_fkey\" on \"ProdutoEtapa\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ProdutoEtapa_etapaRoteiroId_fkey",
+        "table": "ProdutoEtapa"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ProdutoEtapa_etapaRoteiroId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoEtapa_etapaRoteiroId_fkey",
+          "public",
+          "\"public\".\"ProdutoEtapa\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ProdutoEtapa_etapaRoteiroId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ProdutoEtapa\"\nADD CONSTRAINT \"ProdutoEtapa_etapaRoteiroId_fkey\"\nFOREIGN KEY (\"etapaRoteiroId\")\nREFERENCES \"public\".\"EtapaRoteiro\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ProdutoEtapa_etapaRoteiroId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoEtapa_etapaRoteiroId_fkey",
+          "public",
+          "\"public\".\"ProdutoEtapa\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ProdutoRoteiro.ProdutoRoteiro_produtoId_fkey",
+    "label": "Add foreign key \"ProdutoRoteiro_produtoId_fkey\" on \"ProdutoRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ProdutoRoteiro_produtoId_fkey",
+        "table": "ProdutoRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ProdutoRoteiro_produtoId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoRoteiro_produtoId_fkey",
+          "public",
+          "\"public\".\"ProdutoRoteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ProdutoRoteiro_produtoId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ProdutoRoteiro\"\nADD CONSTRAINT \"ProdutoRoteiro_produtoId_fkey\"\nFOREIGN KEY (\"produtoId\")\nREFERENCES \"public\".\"Produto\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ProdutoRoteiro_produtoId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoRoteiro_produtoId_fkey",
+          "public",
+          "\"public\".\"ProdutoRoteiro\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ProdutoRoteiro.ProdutoRoteiro_roteiroId_fkey",
+    "label": "Add foreign key \"ProdutoRoteiro_roteiroId_fkey\" on \"ProdutoRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ProdutoRoteiro_roteiroId_fkey",
+        "table": "ProdutoRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ProdutoRoteiro_roteiroId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoRoteiro_roteiroId_fkey",
+          "public",
+          "\"public\".\"ProdutoRoteiro\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ProdutoRoteiro_roteiroId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ProdutoRoteiro\"\nADD CONSTRAINT \"ProdutoRoteiro_roteiroId_fkey\"\nFOREIGN KEY (\"roteiroId\")\nREFERENCES \"public\".\"Roteiro\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ProdutoRoteiro_roteiroId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ProdutoRoteiro_roteiroId_fkey",
+          "public",
+          "\"public\".\"ProdutoRoteiro\""
+        ]
+      }
+    ]
+  }
+]
