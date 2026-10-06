@@ -1,10 +1,10 @@
 // Dados fictícios. Testes das fórmulas, sem banco, API ou tela.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calcularTempos, descontarPausasProgramadas, calcularTempoMedioPorPar } from './tempos.ts';
-import type { Intervalo } from './tempos.ts';
-import { calcularCarga } from './carga.ts';
-import { calcularSaldo, calcularCumprimento, calcularProducaoFinal } from './producao.ts';
+import { calcularTempos, descontarPausasProgramadas, calcularTempoMedioPorPar } from '../../../../modules/indicators/domain/tempos.ts';
+import type { Intervalo } from '../../../../modules/indicators/domain/tempos.ts';
+import { calcularCarga } from '../../../../modules/indicators/domain/carga.ts';
+import { calcularSaldo, calcularCumprimento, calcularProducaoFinal } from '../../../../modules/indicators/domain/producao.ts';
 
 const instante = (hora: string) => Date.parse(`2026-09-29T${hora}:00-03:00`);
 const janela = (inicio: string, fim: string) => ({ inicioMs: instante(inicio), fimMs: instante(fim) });

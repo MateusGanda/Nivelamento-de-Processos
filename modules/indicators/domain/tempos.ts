@@ -1,5 +1,5 @@
-import { intersecao, naoNegativo, quantidade, segundos, semSobreposicao, validarJanela } from './validacao.ts';
-import type { Janela } from './validacao.ts';
+import { intersecao, naoNegativo, quantidade, segundos, semSobreposicao, validarJanela } from '../../../shared/validation.ts';
+import type { Janela } from '../../../shared/validation.ts';
 
 /** Mesmos valores da categoria do intervalo de apontamento no banco. */
 export type Categoria = 'PRODUTIVO' | 'APOIO_PREPARACAO' | 'INTERRUPCAO' | 'PAUSA_PREVISTA';
