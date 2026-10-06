@@ -1,172 +1,283 @@
-# Proposta de modelo de banco do MVP
+# Modelo de banco do MVP
 
-Versão de trabalho — 04/10/2026. Autor: Mateus. Para: Arthur (banco) e Gustavo (fluxo de apontamento).
+Versão de trabalho 2 — 06/10/2026. Substitui a proposta de 04/10/2026 (Linha, OrdemServico, Ficha, FichaEtapa, PlanoPosto), que deixa de valer.
 
-**A fase 1 está fechada e é o que precisamos para 06/10.** As fases 2 e 3 estão em revisão com o Gustavo; a estrutura deve se manter, mas alguns detalhes podem mudar. Os nomes podem ser adaptados ao padrão do código, desde que as regras de negócio sejam preservadas.
+Este documento descreve o modelo consolidado pela equipe em 06/10, depois das respostas do Ricardo sobre o processo da empresa. Ele separa três coisas:
 
-## Decisões de escopo
+- **Decisão:** o que está no diagrama e nas regras acordadas.
+- **Recomendação:** restrição ou detalhe que o diagrama não define e que este documento sugere.
+- **Em aberto:** ponto que precisa de resposta antes de implementar.
 
-- `OrdemServico` e `Ficha` são entidades diferentes.
-- Hipótese de trabalho, a confirmar com a empresa: uma Ordem de Serviço pode conter várias Fichas.
-- Cada Ficha representa um produto/referência e uma quantidade em pares. Se uma ordem tiver produtos diferentes, cada um fica em uma Ficha própria.
-- Cada Produto tem um roteiro vigente, formado por operações em sequência. Não teremos entidade `Roteiro` separada no MVP.
-- Ao criar uma Ficha, as etapas do roteiro são copiadas para `FichaEtapa` (sequência, operação, tempo padrão e posto previsto). Alterações futuras no roteiro não alteram fichas já criadas.
-- A quantidade prevista de cada etapa é a `quantidadePares` da Ficha; não há quantidade própria por etapa.
-- Um Operador pode executar várias operações ao longo do dia, mas só uma execução aberta por vez, inclusive pausada.
-- O Posto é um local físico da linha, independente do Operador.
-- O leitor USB funciona como teclado: o sistema recebe o código digitado e localiza a Ficha ou o Operador.
-- Comparação de cenários fica fora do MVP.
+## O que mudou em relação à versão anterior
 
-## Fase 1 — entrega de 06/10 (fechada)
-
-### Linha — linha ou área produtiva
-
-`id`, `codigo` único, `nome`, `ativo`.
-
-### Posto — estação física da linha
-
-`id`, `linhaId`, `codigo`, `nome`, `sequencia`, `ativo`.
-
-Único: `(linhaId, codigo)`.
-
-### Produto — produto ou referência produzida
-
-`id`, `codigo` único, `descricao`, `ativo`.
-
-### Operacao — catálogo de operações
-
-`id`, `codigo` único, `nome`, `descricao`, `ativo`.
-
-### OperacaoProduto — etapa do roteiro de um produto
-
-`id`, `produtoId`, `operacaoId`, `postoPrevistoId`, `sequencia`, `tempoPadraoSegundosPorPar` (**pode ser nulo**), `tempoPadraoFonte` (opcional), `tempoPadraoData` (opcional), `ativo`.
-
-Único: `(produtoId, sequencia)`. Quando informado, o tempo padrão deve ser maior que zero.
-
-### OrdemServico — agrupador das Fichas
-
-`id`, `codigo` único, `dataCriacao`, `dataPrevistaEntrega` (opcional), `status`, `createdAt`, `updatedAt`.
-
-Status sugeridos: `ABERTA`, `CONCLUIDA`, `CANCELADA`. Não armazenar total de pares; ele é a soma das Fichas.
-
-### Ficha — produção de um Produto dentro da Ordem de Serviço
-
-`id`, `codigoLeitura` único, `ordemServicoId`, `produtoId`, `quantidadePares`, `status`, `dataPrevista` (opcional), `createdAt`, `updatedAt`.
-
-Status sugeridos: `ABERTA`, `CONCLUIDA`, `CANCELADA`. `quantidadePares` inteiro maior que zero.
-
-### FichaEtapa — cópia de uma etapa do roteiro aplicada à Ficha
-
-`id`, `fichaId`, `operacaoProdutoId`, `sequencia`, `codigoOperacaoSnapshot`, `nomeOperacaoSnapshot`, `tempoPadraoSegundosPorParSnapshot` (**pode ser nulo**), `postoPrevistoId`, `createdAt`.
-
-Único: `(fichaId, sequencia)`. A mesma operação pode aparecer mais de uma vez, em sequências diferentes. Sem campo de status: a situação da etapa é derivada da produção registrada.
-
-### Seed da fase 1
-
-Uma linha, poucos postos, um produto com roteiro, uma ordem e pelo menos uma ficha com etapas. Todos os dados fictícios.
-
-## Fase 2 — fluxo de apontamento (em revisão com Gustavo)
-
-### Usuario — acesso ao painel de gestão
-
-`id`, `nome`, `email` único, `perfil` (`ADMIN` ou `GESTOR`), `ativo`, `createdAt`, `updatedAt`.
-
-Campos de credencial e sessão ficam a critério do Arthur, conforme a biblioteca de autenticação escolhida. Não vamos construir autenticação própria.
-
-### Operador — pessoa que realiza as operações
-
-`id`, `codigoCracha` único, `nome`, `ativo`, `createdAt`, `updatedAt`.
-
-### Execucao — trabalho de um Operador em uma FichaEtapa
-
-`id`, `fichaEtapaId`, `operadorId`, `postoId` (posto real), `status` (`EM_EXECUCAO`, `PAUSADA`, `FINALIZADA`), `inicio`, `fim` (opcional), `solicitacaoId` único, `createdAt`.
-
-O posto da execução registra onde o trabalho ocorreu; pode ser diferente do previsto.
-
-### IntervaloApontamento — intervalo de tempo dentro de uma execução
-
-`id`, `execucaoId`, `categoria` (`PRODUTIVO`, `APOIO_PREPARACAO`, `INTERRUPCAO`, `PAUSA_PREVISTA`), `motivo` (obrigatório quando não produtivo), `inicio`, `fim` (opcional), `solicitacaoId` único, `createdAt`.
-
-Motivos iniciais sugeridos, a confirmar com Gustavo:
-
-| Categoria | Motivos |
+| Antes (04/10) | Agora |
 | --- | --- |
-| Apoio/preparação | preparação, troca de modelo |
-| Interrupção | falta de material, falha de equipamento, espera |
-| Pausa prevista | intervalo previsto |
+| Ordem de Serviço com várias Fichas | Ficha e Ordem de Produção são o mesmo conceito: `ORDEM_PRODUCAO` |
+| Baixas incrementais de quantidade | Não existe baixa parcial; a baixa é de 100% da ordem na etapa |
+| Execução individual por operador | Execução é a passagem da ordem por uma etapa; o operador é só o responsável pelo apontamento |
+| Roteiro como lista de operações do produto, copiado para a ficha | `ROTEIRO` versionado; a ordem referencia a versão usada |
+| Tempo padrão na operação do produto | Tempo padrão em `PRODUTO_ETAPA` (produto + etapa do roteiro) |
+| Linha → Posto | `SETOR` → `POSTO` |
+| Intervalos de tempo gravados | Eventos (`EVENTO_TEMPO`); os intervalos são derivados |
+| Plano com disponibilidade por posto | Fora do MVP; `PLANO_PRODUCAO` só agrupa ordens |
+| Quantidade inteira em pares | Quantidade decimal com unidade, sem amarrar a um tipo de produto |
 
-**Para o Gustavo:** a especificação previa eventos com intervalos derivados. Aqui gravamos o intervalo direto, como única fonte de verdade. Se concordar, atualizamos o `MVP_APONTAMENTO.md`.
+## Respostas do Ricardo que fundamentam o modelo
 
-### RegistroProducao — apontamentos incrementais de quantidade
+1. Ficha de Produção e Ordem de Produção são sinônimos. "Ficha" é o nome do documento físico.
+2. A ficha representa uma quantidade definida de um único produto: é um lote físico. O mesmo produto pode estar em várias fichas.
+3. Não é preciso controlar a execução individual por operador. Muitas atividades são feitas por células. O que importa é saber em qual etapa a ficha está e quando ocorreu a baixa.
+4. O tempo padrão pertence a uma tarefa de uma etapa do processo e pode variar conforme o produto. O tempo de giro entre etapas (em dias) é outro conceito.
+5. O posto está ligado a uma etapa do processo, não a uma pessoa, e os postos se organizam em setores.
+6. Não existe baixa parcial: até a baixa, 100% da quantidade está pendente na etapa; na baixa, 100% é considerada produzida.
 
-`id`, `execucaoId`, `paresBons`, `paresRefugo`, `dataHora`, `solicitacaoId` único, `createdAt`.
+## Diagrama
 
-Cada registro é um incremento; nunca sobrescrever. Os dois campos são inteiros não negativos e a soma deve ser maior que zero.
+```mermaid
+erDiagram
+    PRODUTO {
+        uuid id PK
+        string codigo UK
+        string nome
+        datetime createdAt
+        datetime updatedAt
+    }
+    OPERACAO {
+        uuid id PK
+        string nome UK
+        string descricao
+        datetime createdAt
+        datetime updatedAt
+    }
+    ROTEIRO {
+        uuid id PK
+        string nome
+        int versao
+        boolean ativo
+        datetime createdAt
+        datetime updatedAt
+    }
+    ETAPA_ROTEIRO {
+        uuid id PK
+        uuid roteiroId FK
+        uuid operacaoId FK
+        int ordem
+        datetime createdAt
+        datetime updatedAt
+    }
+    PRODUTO_ROTEIRO {
+        uuid id PK
+        uuid produtoId FK
+        uuid roteiroId FK
+        boolean vigente
+        datetime createdAt
+        datetime updatedAt
+    }
+    PRODUTO_ETAPA {
+        uuid id PK
+        uuid produtoId FK
+        uuid etapaRoteiroId FK
+        decimal tempoPadrao
+        datetime createdAt
+        datetime updatedAt
+    }
+    PLANO_PRODUCAO {
+        uuid id PK
+        string codigo UK
+        string descricao
+        date dataInicio
+        date dataFim
+        datetime createdAt
+        datetime updatedAt
+    }
+    ORDEM_PRODUCAO {
+        uuid id PK
+        string numero UK
+        uuid planoProducaoId FK
+        uuid produtoId FK
+        uuid roteiroId FK
+        decimal quantidade
+        string unidade
+        datetime createdAt
+        datetime updatedAt
+    }
+    OPERADOR {
+        uuid id PK
+        string matricula UK
+        string nome
+        boolean ativo
+        datetime createdAt
+        datetime updatedAt
+    }
+    SETOR {
+        uuid id PK
+        string nome UK
+        string descricao
+        datetime createdAt
+        datetime updatedAt
+    }
+    POSTO {
+        uuid id PK
+        uuid setorId FK
+        string codigo UK
+        string nome
+        boolean ativo
+        datetime createdAt
+        datetime updatedAt
+    }
+    ETAPA_POSTO {
+        uuid etapaRoteiroId PK, FK
+        uuid postoId PK, FK
+    }
+    EXECUCAO {
+        uuid id PK
+        uuid ordemProducaoId FK
+        uuid etapaRoteiroId FK
+        uuid operadorId FK
+        uuid postoId FK
+        string status
+        decimal quantidadeBoa
+        decimal quantidadeRetrabalho
+        decimal quantidadeRefugo
+        datetime createdAt
+        datetime updatedAt
+    }
+    EVENTO_TEMPO {
+        uuid id PK
+        uuid execucaoId FK
+        string tipo
+        uuid motivoPausaId FK
+        datetime dataHora
+        datetime createdAt
+    }
+    MOTIVO_PAUSA {
+        uuid id PK
+        string nome UK
+        string descricao
+        boolean ativo
+    }
 
-## Fase 3 — carga por posto (em revisão)
-
-### PlanoPosto — disponibilidade de um Posto em um período
-
-`id`, `postoId`, `periodoInicio`, `periodoFim`, `disponibilidadeSegundos`, `createdByUsuarioId`, `createdAt`, `updatedAt`.
-
-Único: `(postoId, periodoInicio)`. A disponibilidade é informada uma vez por posto e período; períodos do mesmo posto não se sobrepõem (validar na aplicação).
-
-### PlanoPostoItem — quantidade planejada de uma etapa naquele posto e período
-
-`id`, `planoPostoId`, `fichaEtapaId`, `quantidadeParesPlanejada`.
-
-Único: `(planoPostoId, fichaEtapaId)`. Se o posto do plano for diferente do posto previsto da etapa, o sistema avisa, mas **não bloqueia**: planejar uma etapa em outro posto é justamente a decisão de nivelamento.
-
-## Fase 4 — previstas, ainda sem detalhamento
-
-- `JanelaOperador`: janela prevista do operador e pausas programadas. Sem ela não há cobertura nem tempo "sem apontamento".
-- `Correcao`: autor, motivo, instante e valores antes/depois. Define quais registros de produção são válidos.
-
-## Relacionamentos principais
-
-```text
-Linha 1 ── N Posto
-
-Produto 1 ── N OperacaoProduto N ── 1 Operacao
-Posto   1 ── N OperacaoProduto
-
-OrdemServico 1 ── N Ficha N ── 1 Produto
-Ficha 1 ── N FichaEtapa N ── 1 OperacaoProduto
-Posto 1 ── N FichaEtapa
-
-Operador 1 ── N Execucao N ── 1 FichaEtapa
-Posto    1 ── N Execucao
-Execucao 1 ── N IntervaloApontamento
-Execucao 1 ── N RegistroProducao
-
-Posto      1 ── N PlanoPosto
-PlanoPosto 1 ── N PlanoPostoItem N ── 1 FichaEtapa
-Usuario    1 ── N PlanoPosto
+    PRODUTO ||--o{ PRODUTO_ROTEIRO : utiliza
+    ROTEIRO ||--o{ PRODUTO_ROTEIRO : associado
+    ROTEIRO ||--|{ ETAPA_ROTEIRO : possui
+    OPERACAO ||--o{ ETAPA_ROTEIRO : representa
+    PRODUTO ||--o{ PRODUTO_ETAPA : define
+    ETAPA_ROTEIRO ||--o{ PRODUTO_ETAPA : possui_tempo
+    PLANO_PRODUCAO ||--o{ ORDEM_PRODUCAO : agrupa
+    PRODUTO ||--o{ ORDEM_PRODUCAO : produz
+    ROTEIRO ||--o{ ORDEM_PRODUCAO : utiliza
+    SETOR ||--o{ POSTO : possui
+    ETAPA_ROTEIRO ||--o{ ETAPA_POSTO : aceita
+    POSTO ||--o{ ETAPA_POSTO : atende
+    ORDEM_PRODUCAO ||--o{ EXECUCAO : possui
+    ETAPA_ROTEIRO ||--o{ EXECUCAO : executada
+    OPERADOR ||--o{ EXECUCAO : aponta
+    POSTO ||--o{ EXECUCAO : ocorre
+    EXECUCAO ||--|{ EVENTO_TEMPO : registra
+    MOTIVO_PAUSA ||--o{ EVENTO_TEMPO : classifica
 ```
 
-## Regras de cálculo e validação
+## Entidades
 
-- Quantidades são inteiros em pares. Tempos padrão e disponibilidade são inteiros em segundos. A unidade real dos tempos da empresa ainda precisa ser confirmada.
-- Tempo padrão ausente: a carga daquela etapa fica indisponível. Nunca tratar como zero.
-- Carga planejada do posto: soma de `quantidadeParesPlanejada × tempoPadraoSegundosPorParSnapshot` dos itens do plano.
-- Ocupação planejada: `carga ÷ disponibilidade × 100`. Disponibilidade ausente ou zero resulta em indisponível.
-- Tempo produtivo: soma dos intervalos `PRODUTIVO`.
-- Tempos não produtivos: somente intervalos apontados, apresentados por categoria e motivo. Pausa prevista não é perda.
-- Períodos sem apontamento aparecem como "sem apontamento"; não inferir ociosidade.
-- Tempo médio produtivo por par bom: `tempo produtivo ÷ pares bons` das execuções encerradas da mesma operação e produto. Não é o ciclo da linha.
-- Produção acima da quantidade da Ficha naquela etapa é rejeitada.
-- Timestamps em UTC no banco, exibidos em `America/Sao_Paulo`.
+Os campos são os do diagrama (decisão). A coluna "Restrições recomendadas" traz o que o diagrama não define.
 
-## Restrições técnicas
+| Entidade | Papel | Restrições recomendadas |
+| --- | --- | --- |
+| `PRODUTO` | Item fabricado. | — |
+| `OPERACAO` | Atividade produtiva reutilizável. Não tem tempo padrão próprio. | — |
+| `ROTEIRO` | Versão de um processo de fabricação. | Único: `(nome, versao)`. Roteiro já usado em ordem não é editado; cria-se nova versão. |
+| `ETAPA_ROTEIRO` | Ocorrência de uma operação em um roteiro. | Único: `(roteiroId, ordem)`. |
+| `PRODUTO_ROTEIRO` | Liga produto e roteiro e marca o vigente. | Único: `(produtoId, roteiroId)`. No máximo um `vigente` por produto (índice único parcial). |
+| `PRODUTO_ETAPA` | Tempo padrão da etapa para o produto. | Único: `(produtoId, etapaRoteiroId)`. `tempoPadrao` maior que zero; ausência é pendência, nunca zero. |
+| `PLANO_PRODUCAO` | Agrupador de planejamento com período. | `dataFim` não anterior a `dataInicio`. |
+| `ORDEM_PRODUCAO` | A ficha: lote de um único produto. | `quantidade` maior que zero. O roteiro precisa estar associado ao produto (validação na aplicação). |
+| `OPERADOR` | Responsável pelo apontamento. | — |
+| `SETOR` | Organiza os postos. | — |
+| `POSTO` | Local ou recurso produtivo. | — |
+| `ETAPA_POSTO` | Postos em que a etapa pode ser feita. | — |
+| `EXECUCAO` | Passagem de uma ordem por uma etapa. | Ver regras abaixo. |
+| `EVENTO_TEMPO` | Início, pausa, retomada e finalização. | Ver regras abaixo. |
+| `MOTIVO_PAUSA` | Classificação padronizada das pausas. | — |
 
-- IDs do tipo UUID.
-- Índices nas chaves estrangeiras e nos campos de busca: códigos de Ficha, Produto, Operador e Ordem de Serviço; status e períodos.
-- Não apagar registros já usados em produção; marcar cadastros como inativos.
-- Uma execução não pode terminar antes de começar; intervalos do mesmo Operador não se sobrepõem.
-- **Uma execução aberta por Operador, garantida também no banco:** índice único parcial em `operadorId` para execuções não finalizadas (SQL na migração). O mesmo vale para um intervalo aberto por execução.
-- **Reenvio não duplica:** o `solicitacaoId` único faz a repetição de uma solicitação ser reconhecida em vez de gravar de novo.
-- Transações ao iniciar, pausar, retomar ou finalizar uma execução e ao registrar produção.
+## Regras de negócio (decisão)
+
+### Ordem e quantidade
+
+- Uma ordem representa uma quantidade de um único produto.
+- Não existe baixa parcial nem registro incremental de quantidade.
+- A baixa considera 100% da quantidade da ordem na etapa.
+- O resultado da baixa se divide em boa, retrabalho e refugo, e `boa + retrabalho + refugo = quantidade da ordem`.
+- A ordem guarda a versão do roteiro usada. Mudar o roteiro vigente do produto não altera ordens já criadas.
+
+### Execução
+
+- Estados: `EM_EXECUCAO`, `PAUSADA`, `FINALIZADA`. Não há estado "não iniciada" gravado; a ausência de execução é que indica isso.
+- Transições: `EM_EXECUCAO → PAUSADA`, `PAUSADA → EM_EXECUCAO`, `EM_EXECUCAO → FINALIZADA`.
+- Execução finalizada é terminal e não recebe novos eventos.
+- Uma ordem pode ter várias execuções, inclusive para a mesma etapa, mas a baixa efetiva de uma etapa ocorre uma única vez.
+- Um operador não mantém duas execuções abertas ao mesmo tempo; execução pausada continua contando como aberta.
+- Trocar de operação finaliza a execução atual e cria outra.
+- O operador é o responsável pelo apontamento, não necessariamente o único trabalhador da célula.
+
+### Tempo
+
+- Cada execução tem um `INICIO` e uma `FINALIZACAO`, e pode ter várias `PAUSA` e `RETOMADA`.
+- Toda `PAUSA` tem um motivo.
+- O tempo produtivo é derivado dos intervalos ativos. Ausência de evento não é ociosidade.
+
+### Posto e roteiro
+
+- Uma etapa pode ser feita em vários postos compatíveis; um posto recebe várias execuções ao longo do tempo.
+- Posto e recurso são a mesma entidade no MVP.
+- A sequência das etapas é só nominal: não há dependência, bloqueio ou liberação automática entre etapas.
+
+## Restrições recomendadas para execução e eventos
+
+Estas não estão no diagrama, mas decorrem das regras acima e do `ARCHITECTURE.md`.
+
+- **Uma execução aberta por operador, garantida no banco:** índice único parcial em `operadorId` para `status` diferente de `FINALIZADA`.
+- **Quantidades só na baixa:** os três campos ficam nulos até a finalização que dá a baixa.
+- **Soma conferida:** `boa + retrabalho + refugo = ORDEM_PRODUCAO.quantidade`, validado na transação da baixa.
+- **Uma baixa por ordem e etapa:** no máximo uma execução com quantidades preenchidas por `(ordemProducaoId, etapaRoteiroId)`.
+- **Etapa do roteiro certo:** `etapaRoteiroId` pertence ao roteiro da ordem.
+- **Posto compatível:** `postoId` consta em `ETAPA_POSTO` para a etapa.
+- **Motivo só em pausa:** `motivoPausaId` obrigatório quando `tipo = PAUSA` e nulo nos demais.
+- **Eventos em ordem:** o evento novo não pode ter `dataHora` anterior ao último evento da execução.
+- **`status` e `tipo` como enum**, não texto livre.
+- **Transação** em toda mudança de estado: o evento e o novo `status` são gravados juntos.
+
+## Em aberto
+
+1. **Unidade do tempo padrão.** `tempoPadrao` é decimal, sem unidade definida. Segundos por unidade produzida? Os indicadores dependem disso.
+2. **Várias execuções na mesma etapa.** Se só uma dá a baixa, o que as outras registram? Ficam com as quantidades nulas?
+3. **Proteção contra reenvio.** O `ARCHITECTURE.md` exige que duplo clique ou reenvio não dupliquem evento nem baixa. O diagrama não tem identificador de solicitação em `EXECUCAO` nem em `EVENTO_TEMPO`.
+4. **Usuário e permissões.** Não há tabela de usuário. Fica por conta da solução de autenticação?
+5. **Correções.** Não há histórico de correção de apontamento. Como se corrige uma baixa errada?
+6. **Plano obrigatório.** Toda ordem precisa de um plano de produção, ou `planoProducaoId` pode ser nulo?
+7. **Inativação.** `PRODUTO`, `OPERACAO` e `SETOR` não têm `ativo`. Cadastros usados em ordens não podem ser apagados; como serão desativados?
+8. **Categoria do motivo de pausa.** `MOTIVO_PAUSA` só tem nome. Sem uma categoria, o painel não separa pausa prevista de interrupção.
+9. **Linha de produção.** Não existe entidade de linha; o setor é o nível mais alto. Com mais de uma linha, será preciso um agrupador.
 
 ## Fora do MVP
 
-Comparação de cenários, câmeras/visão computacional, sensores/IoT, controle de estoque, compras, folha de pagamento e funcionalidades genéricas de PCP.
+Dependências entre etapas; otimização automática; sensores e integração com máquinas; controle de todos os operadores de uma célula; capacidade e disponibilidade de postos; tempo de giro entre etapas e previsão de datas; QR Code e código de barras; permissões granulares; pedidos de venda; fluxo separado de retrabalho; componentes reutilizáveis com tempo padrão próprio.
+
+## Diferença para o schema Prisma já publicado
+
+A branch `adicionar-sistema-producao` (05/10) implementa a fase 1 da proposta anterior em `sistema-producao/prisma/schema.prisma`. Ela precisa ser migrada para este modelo.
+
+| No schema publicado | Neste modelo |
+| --- | --- |
+| `Linha` | Sai; entra `SETOR` |
+| `Posto` com `linhaId` | `POSTO` com `setorId` |
+| `Produto` | `PRODUTO` (sem `descricao` e `ativo` no diagrama) |
+| `Operacao` com `codigo` | `OPERACAO` (só `nome` único) |
+| `OperacaoProduto` (produto, operação, posto, sequência, tempo) | Divide-se em `ROTEIRO`, `ETAPA_ROTEIRO`, `PRODUTO_ROTEIRO`, `PRODUTO_ETAPA` e `ETAPA_POSTO` |
+| `OrdemServico` e `Ficha` | Uma só entidade: `ORDEM_PRODUCAO` |
+| `FichaEtapa` com cópia de operação, posto e tempo | Sai; a ordem aponta para a versão do roteiro |
+| `StatusProducao` em ordem, ficha e etapa | Sai; a situação é derivada das execuções |
+| Chaves `Int` com autoincremento | Chaves `uuid` |
+| `quantidade` inteira | `quantidade` decimal com `unidade` |
+| — | Novas: `PLANO_PRODUCAO`, `OPERADOR`, `EXECUCAO`, `EVENTO_TEMPO`, `MOTIVO_PAUSA` |
+
+O projeto do schema está em uma pasta separada (`sistema-producao/`), fora da aplicação Next.js. A integração das duas partes é uma decisão do Arthur.

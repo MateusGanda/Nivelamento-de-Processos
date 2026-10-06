@@ -6,95 +6,134 @@
     "filtros": {
       "inicio": "2026-10-06T10:00:00.000Z",
       "fim": "2026-10-06T18:00:00.000Z",
-      "postoId": "00000000-0000-4000-8000-000000000102"
+      "setorId": null,
+      "postoId": null
     },
     "pendencias": []
   },
-  "producaoFinalPares": 40,
-  "postos": [
+  "ordens": [
+    {
+      "ordemId": "00000000-0000-4000-8000-000000000301",
+      "numero": "000123",
+      "produtoCodigo": "REF-001",
+      "produtoNome": "Produto fictício",
+      "quantidade": 40,
+      "unidade": "un",
+      "planoCodigo": "PLANO-2026-41",
+      "etapasTotal": 2,
+      "etapasBaixadas": 2,
+      "etapaAtual": null,
+      "emExecucao": false,
+      "ultimaBaixaEm": "2026-10-06T12:30:00.000Z"
+    },
+    {
+      "ordemId": "00000000-0000-4000-8000-000000000302",
+      "numero": "000124",
+      "produtoCodigo": "REF-001",
+      "produtoNome": "Produto fictício",
+      "quantidade": 24,
+      "unidade": "un",
+      "planoCodigo": "PLANO-2026-41",
+      "etapasTotal": 2,
+      "etapasBaixadas": 0,
+      "etapaAtual": {
+        "etapaRoteiroId": "00000000-0000-4000-8000-000000000401",
+        "ordem": 1,
+        "operacaoNome": "Corte"
+      },
+      "emExecucao": false,
+      "ultimaBaixaEm": null
+    }
+  ],
+  "producao": [
+    {
+      "produtoCodigo": "REF-001",
+      "etapaRoteiroId": "00000000-0000-4000-8000-000000000402",
+      "ordem": 2,
+      "operacaoNome": "Costura",
+      "ultimaEtapa": true,
+      "unidade": "un",
+      "ordensBaixadas": 1,
+      "quantidadeBoa": 40,
+      "quantidadeRetrabalho": 0,
+      "quantidadeRefugo": 0
+    }
+  ],
+  "producaoFinal": [
+    {
+      "produtoCodigo": "REF-001",
+      "unidade": "un",
+      "quantidadeBoa": 40
+    }
+  ],
+  "tempos": [
     {
       "posto": {
         "id": "00000000-0000-4000-8000-000000000102",
         "codigo": "P02",
-        "nome": "Costura (fictício)"
+        "nome": "Costura (fictício)",
+        "setorNome": "Setor A (fictício)"
       },
-      "producao": [
+      "produtivoSegundos": 4800,
+      "pausaSegundos": 600,
+      "pausasPorMotivo": [
         {
-          "fichaEtapaId": "00000000-0000-4000-8000-000000000402",
-          "fichaCodigo": "000123",
-          "ordemServicoCodigo": "OS-0001",
-          "produtoCodigo": "REF-001",
-          "operacaoCodigo": "COSTURA",
-          "operacaoNome": "Costura",
-          "sequencia": 2,
-          "ultimaEtapa": true,
-          "previstoFichaPares": 240,
-          "bonsAcumuladosPares": 40,
-          "saldoPares": 200,
-          "excedePrevisto": false,
-          "bonsNoPeriodoPares": 40,
-          "refugoNoPeriodoPares": 0,
-          "planejadoNoPeriodoPares": 240,
-          "cumprimentoPercentual": 16.666666666666664
+          "motivoNome": "Falta de material",
+          "segundos": 600,
+          "ocorrencias": 1
         }
       ],
-      "tempos": [
+      "execucoesFinalizadas": 1,
+      "execucoesAbertas": 0
+    }
+  ],
+  "tempoMedio": [
+    {
+      "produtoCodigo": "REF-001",
+      "etapaRoteiroId": "00000000-0000-4000-8000-000000000402",
+      "operacaoNome": "Costura",
+      "unidade": "un",
+      "execucoesConsideradas": 1,
+      "produtivoSegundos": 4800,
+      "quantidadeBoa": 40,
+      "segundosPorUnidade": 120.0,
+      "tempoPadrao": 100
+    }
+  ],
+  "cargaPendente": [
+    {
+      "produtoCodigo": "REF-001",
+      "etapaRoteiroId": "00000000-0000-4000-8000-000000000401",
+      "ordem": 1,
+      "operacaoNome": "Corte",
+      "unidade": "un",
+      "ordensPendentes": 1,
+      "quantidadePendente": 24,
+      "tempoPadrao": 30,
+      "cargaPendente": 720,
+      "postosCompativeis": [
         {
-          "operador": {
-            "id": "00000000-0000-4000-8000-000000000201",
-            "codigoCracha": "0007",
-            "nome": "Operador Fictício A"
-          },
-          "porCategoriaSegundos": {
-            "PRODUTIVO": 4800,
-            "APOIO_PREPARACAO": 0,
-            "INTERRUPCAO": 600,
-            "PAUSA_PREVISTA": 0
-          },
-          "porMotivo": [
-            { "categoria": "INTERRUPCAO", "motivo": "FALTA_MATERIAL", "segundos": 600 }
-          ],
-          "classificadoSegundos": 5400,
-          "naoProdutivoApontadoSegundos": 600,
-          "cobertura": {
-            "janelaSegundos": 7200,
-            "classificadoSegundos": 5400,
-            "semInformacaoSegundos": 1800,
-            "pausasProgramadasExcluidasSegundos": 0,
-            "coberturaPercentual": 75
-          }
+          "id": "00000000-0000-4000-8000-000000000101",
+          "codigo": "P01",
+          "nome": "Corte (fictício)"
         }
-      ],
-      "tempoMedioPorPar": [
+      ]
+    },
+    {
+      "produtoCodigo": "REF-001",
+      "etapaRoteiroId": "00000000-0000-4000-8000-000000000402",
+      "ordem": 2,
+      "operacaoNome": "Costura",
+      "unidade": "un",
+      "ordensPendentes": 1,
+      "quantidadePendente": 24,
+      "tempoPadrao": 100,
+      "cargaPendente": 2400,
+      "postosCompativeis": [
         {
-          "produtoCodigo": "REF-001",
-          "operacaoCodigo": "COSTURA",
-          "execucoesEncerradas": 1,
-          "produtivoSegundos": 4800,
-          "paresBons": 40,
-          "segundosPorPar": 120
-        }
-      ],
-      "carga": [
-        {
-          "planoPostoId": "00000000-0000-4000-8000-000000000501",
-          "periodoInicio": "2026-10-06T10:00:00.000Z",
-          "periodoFim": "2026-10-06T18:00:00.000Z",
-          "disponibilidadeSegundos": 25200,
-          "itens": [
-            {
-              "fichaEtapaId": "00000000-0000-4000-8000-000000000402",
-              "fichaCodigo": "000123",
-              "operacaoCodigo": "COSTURA",
-              "quantidadePlanejadaPares": 240,
-              "tempoPadraoSegundosPorPar": 120,
-              "cargaSegundos": 28800,
-              "postoDiferenteDoPrevisto": false
-            }
-          ],
-          "referenciasPendentes": 0,
-          "cargaSegundos": 28800,
-          "ocupacaoPlanejadaPercentual": 114.28571428571428
+          "id": "00000000-0000-4000-8000-000000000102",
+          "codigo": "P02",
+          "nome": "Costura (fictício)"
         }
       ]
     }
