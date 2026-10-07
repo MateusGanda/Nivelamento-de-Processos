@@ -1,0 +1,304 @@
+// use prisma-8
+
+
+// =========================
+// ENUMS
+// =========================
+
+enum StatusExecucao {
+  EM_EXECUCAO
+  PAUSADA
+  FINALIZADA
+}
+
+enum TipoEventoTempo {
+  INICIO
+  PAUSA
+  RETOMADA
+  FINALIZACAO
+}
+
+model Produto {
+  id        Uuid      @id @default(uuid())
+  codigo    String    @unique
+  nome      String
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+
+  roteiros       ProdutoRoteiro[]
+  temposPadrao   ProdutoEtapa[]
+  ordensProducao OrdemProducao[]
+}
+
+model Operacao {
+  id        Uuid      @id @default(uuid())
+  nome      String    @unique
+  descricao String?
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+
+  etapas EtapaRoteiro[]
+}
+
+model Roteiro {
+  id        Uuid      @id @default(uuid())
+  nome      String
+  versao    Int
+  ativo     Boolean   @default(true)
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+
+  produtos       ProdutoRoteiro[]
+  etapas         EtapaRoteiro[]
+  ordensProducao OrdemProducao[]
+
+  @@unique([nome, versao])
+}
+
+model EtapaRoteiro {
+  id         Uuid      @id @default(uuid())
+  roteiroId  Uuid
+  operacaoId Uuid
+  ordem      Int
+  createdAt  TimestamptzString @default(now())
+  updatedAt  TimestamptzString @default(now())
+
+  roteiro  Roteiro  @relation(fields: [roteiroId], references: [id])
+  operacao Operacao @relation(fields: [operacaoId], references: [id])
+
+  temposPadrao ProdutoEtapa[]
+  postos       EtapaPosto[]
+  execucoes    Execucao[]
+
+  @@unique([roteiroId, ordem])
+  @@index([roteiroId])
+  @@index([operacaoId])
+}
+
+// =========================
+// PRODUTO ↔ ROTEIRO
+// =========================
+
+model ProdutoRoteiro {
+  id        Uuid      @id @default(uuid())
+  produtoId Uuid
+  roteiroId Uuid
+  vigente   Boolean   @default(false)
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+
+  produto Produto @relation(fields: [produtoId], references: [id])
+  roteiro Roteiro @relation(fields: [roteiroId], references: [id])
+
+  @@unique([produtoId, roteiroId])
+  @@index([produtoId])
+  @@index([roteiroId])
+}
+
+
+// =========================
+// PRODUTO + ETAPA
+// TEMPO PADRÃO
+// =========================
+
+model ProdutoEtapa {
+  id             Uuid      @id @default(uuid())
+  produtoId      Uuid
+  etapaRoteiroId Uuid
+  tempoPadrao    Numeric(10, 2)
+  createdAt      TimestamptzString @default(now())
+  updatedAt      TimestamptzString @default(now())
+
+  produto      Produto      @relation(fields: [produtoId], references: [id])
+  etapaRoteiro EtapaRoteiro @relation(fields: [etapaRoteiroId], references: [id])
+
+  @@unique([produtoId, etapaRoteiroId])
+  @@index([produtoId])
+  @@index([etapaRoteiroId])
+}
+
+model PlanoProducao {
+  id         Uuid      @id @default(uuid())
+  codigo     String    @unique
+  descricao  String?
+  dataInicio Date?
+  dataFim    Date?
+  createdAt  TimestamptzString @default(now())
+  updatedAt  TimestamptzString @default(now())
+
+  ordensProducao OrdemProducao[]
+}
+
+model OrdemProducao {
+  id              Uuid      @id @default(uuid())
+  numero          String    @unique
+  planoProducaoId Uuid
+  produtoId       Uuid
+  roteiroId       Uuid
+  quantidade      Numeric(12, 2)
+  unidade         String
+  createdAt       TimestamptzString @default(now())
+  updatedAt       TimestamptzString @default(now())
+
+  planoProducao PlanoProducao @relation(
+    fields: [planoProducaoId],
+    references: [id]
+  )
+
+  produto Produto @relation(
+    fields: [produtoId],
+    references: [id]
+  )
+
+  roteiro Roteiro @relation(
+    fields: [roteiroId],
+    references: [id]
+  )
+
+  execucoes Execucao[]
+
+  @@index([planoProducaoId])
+  @@index([produtoId])
+  @@index([roteiroId])
+}
+
+model Operador {
+  id        Uuid      @id @default(uuid())
+  matricula String    @unique
+  nome      String
+  ativo     Boolean   @default(true)
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+
+  execucoes Execucao[]
+}
+
+model Setor {
+  id        Uuid      @id @default(uuid())
+  nome      String    @unique
+  descricao String?
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+
+  postos Posto[]
+}
+
+model Posto {
+  id        Uuid      @id @default(uuid())
+  setorId   Uuid
+  codigo    String    @unique
+  nome      String
+  ativo     Boolean   @default(true)
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+
+  setor Setor @relation(
+    fields: [setorId],
+    references: [id]
+  )
+
+  etapas    EtapaPosto[]
+  execucoes Execucao[]
+
+  @@index([setorId])
+}
+
+
+// =========================
+// ETAPA ↔ POSTO
+// =========================
+
+model EtapaPosto {
+  etapaRoteiroId Uuid
+  postoId        Uuid
+
+  etapaRoteiro EtapaRoteiro @relation(
+    fields: [etapaRoteiroId],
+    references: [id]
+  )
+
+  posto Posto @relation(
+    fields: [postoId],
+    references: [id]
+  )
+
+  @@id([etapaRoteiroId, postoId])
+  @@index([postoId])
+}
+
+model Execucao {
+  id                   Uuid            @id @default(uuid())
+  ordemProducaoId      Uuid
+  etapaRoteiroId       Uuid
+  operadorId           Uuid
+  postoId              Uuid
+  status               StatusExecucao
+
+  quantidadeBoa        Numeric(12, 2) @default(0)
+  quantidadeRetrabalho Numeric(12, 2) @default(0)
+  quantidadeRefugo     Numeric(12, 2) @default(0)
+
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+
+  ordemProducao OrdemProducao @relation(
+    fields: [ordemProducaoId],
+    references: [id]
+  )
+
+  etapaRoteiro EtapaRoteiro @relation(
+    fields: [etapaRoteiroId],
+    references: [id]
+  )
+
+  operador Operador @relation(
+    fields: [operadorId],
+    references: [id]
+  )
+
+  posto Posto @relation(
+    fields: [postoId],
+    references: [id]
+  )
+
+  eventosTempo EventoTempo[]
+
+  @@index([ordemProducaoId])
+  @@index([etapaRoteiroId])
+  @@index([operadorId])
+  @@index([postoId])
+  @@index([status])
+}
+
+model EventoTempo {
+  id            Uuid             @id @default(uuid())
+  execucaoId    Uuid
+  tipo          TipoEventoTempo
+  motivoPausaId Uuid?
+  dataHora      TimestamptzString
+  createdAt     TimestamptzString @default(now())
+
+  execucao Execucao @relation(
+    fields: [execucaoId],
+    references: [id]
+  )
+
+  motivoPausa MotivoPausa? @relation(
+    fields: [motivoPausaId],
+    references: [id]
+  )
+
+  @@index([execucaoId, dataHora])
+  @@index([motivoPausaId])
+}
+
+model MotivoPausa {
+  id        Uuid      @id @default(uuid())
+  nome      String    @unique
+  descricao String?
+  ativo     Boolean   @default(true)
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+
+  eventosTempo EventoTempo[]
+}

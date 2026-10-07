@@ -48,7 +48,7 @@ modules/<modulo>/
 
 Essa árvore é uma convenção de organização, não um requisito para que todo módulo tenha todas as pastas. Um CRUD simples pode ter uma estrutura menor, desde que não coloque regras de negócio ou acesso ao banco em lugares errados.
 
-**Obrigatório:** código que pertence claramente a um domínio fica no módulo correspondente. Uma área `shared/` só pode conter elementos realmente transversais, por exemplo erros genéricos, tipos utilitários e validação técnica. Ela não deve virar destino para regras de negócio sem dono.
+**Obrigatório:** código que pertence claramente a um domínio fica no módulo correspondente. Uma área `shared/` só pode conter elementos realmente transversais, por exemplo erros genéricos, tipos utilitários e validação técnica. Validações técnicas reutilizáveis, como `shared/validation.ts`, ficam nessa área; cálculos e regras de negócio continuam no módulo que os possui. `shared/` não deve virar destino para regras de negócio sem dono.
 
 ## 4. Responsabilidades das camadas
 
