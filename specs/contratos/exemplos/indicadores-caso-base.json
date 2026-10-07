@@ -1,0 +1,141 @@
+{
+  "meta": {
+    "origem": "FICTICIA",
+    "consultadoEm": "2026-10-06T19:00:00.000Z",
+    "fuso": "America/Sao_Paulo",
+    "filtros": {
+      "inicio": "2026-10-06T10:00:00.000Z",
+      "fim": "2026-10-06T18:00:00.000Z",
+      "setorId": null,
+      "postoId": null
+    },
+    "pendencias": []
+  },
+  "ordens": [
+    {
+      "ordemId": "00000000-0000-4000-8000-000000000301",
+      "numero": "000123",
+      "produtoCodigo": "REF-001",
+      "produtoNome": "Produto fictício",
+      "quantidade": 40,
+      "unidade": "un",
+      "planoCodigo": "PLANO-2026-41",
+      "etapasTotal": 2,
+      "etapasBaixadas": 2,
+      "etapaAtual": null,
+      "emExecucao": false,
+      "ultimaBaixaEm": "2026-10-06T12:30:00.000Z"
+    },
+    {
+      "ordemId": "00000000-0000-4000-8000-000000000302",
+      "numero": "000124",
+      "produtoCodigo": "REF-001",
+      "produtoNome": "Produto fictício",
+      "quantidade": 24,
+      "unidade": "un",
+      "planoCodigo": "PLANO-2026-41",
+      "etapasTotal": 2,
+      "etapasBaixadas": 0,
+      "etapaAtual": {
+        "etapaRoteiroId": "00000000-0000-4000-8000-000000000401",
+        "ordem": 1,
+        "operacaoNome": "Corte"
+      },
+      "emExecucao": false,
+      "ultimaBaixaEm": null
+    }
+  ],
+  "producao": [
+    {
+      "produtoCodigo": "REF-001",
+      "etapaRoteiroId": "00000000-0000-4000-8000-000000000402",
+      "ordem": 2,
+      "operacaoNome": "Costura",
+      "ultimaEtapa": true,
+      "unidade": "un",
+      "ordensBaixadas": 1,
+      "quantidadeBoa": 40,
+      "quantidadeRetrabalho": 0,
+      "quantidadeRefugo": 0
+    }
+  ],
+  "producaoFinal": [
+    {
+      "produtoCodigo": "REF-001",
+      "unidade": "un",
+      "quantidadeBoa": 40
+    }
+  ],
+  "tempos": [
+    {
+      "posto": {
+        "id": "00000000-0000-4000-8000-000000000102",
+        "codigo": "P02",
+        "nome": "Costura (fictício)",
+        "setorNome": "Setor A (fictício)"
+      },
+      "produtivoSegundos": 4800,
+      "pausaSegundos": 600,
+      "pausasPorMotivo": [
+        {
+          "motivoNome": "Falta de material",
+          "segundos": 600,
+          "ocorrencias": 1
+        }
+      ],
+      "execucoesFinalizadas": 1,
+      "execucoesAbertas": 0
+    }
+  ],
+  "tempoMedio": [
+    {
+      "produtoCodigo": "REF-001",
+      "etapaRoteiroId": "00000000-0000-4000-8000-000000000402",
+      "operacaoNome": "Costura",
+      "unidade": "un",
+      "execucoesConsideradas": 1,
+      "produtivoSegundos": 4800,
+      "quantidadeBoa": 40,
+      "segundosPorUnidade": 120.0,
+      "tempoPadraoSegundos": 100
+    }
+  ],
+  "cargaPendente": [
+    {
+      "produtoCodigo": "REF-001",
+      "etapaRoteiroId": "00000000-0000-4000-8000-000000000401",
+      "ordem": 1,
+      "operacaoNome": "Corte",
+      "unidade": "un",
+      "ordensPendentes": 1,
+      "quantidadePendente": 24,
+      "tempoPadraoSegundos": 30,
+      "cargaPendenteSegundos": 720,
+      "postosCompativeis": [
+        {
+          "id": "00000000-0000-4000-8000-000000000101",
+          "codigo": "P01",
+          "nome": "Corte (fictício)"
+        }
+      ]
+    },
+    {
+      "produtoCodigo": "REF-001",
+      "etapaRoteiroId": "00000000-0000-4000-8000-000000000402",
+      "ordem": 2,
+      "operacaoNome": "Costura",
+      "unidade": "un",
+      "ordensPendentes": 1,
+      "quantidadePendente": 24,
+      "tempoPadraoSegundos": 100,
+      "cargaPendenteSegundos": 2400,
+      "postosCompativeis": [
+        {
+          "id": "00000000-0000-4000-8000-000000000102",
+          "codigo": "P02",
+          "nome": "Costura (fictício)"
+        }
+      ]
+    }
+  ]
+}
