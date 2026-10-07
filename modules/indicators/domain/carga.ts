@@ -1,28 +1,25 @@
-import { naoNegativo, quantidade } from '../../../shared/validation.ts';
+import { centesimos } from '../../../shared/validation.ts';
 
-export type ItemCarga = { quantidadePlanejada: number; tempoReferenciaSegundosPorPar: number | null };
+/** Tempo padrão em segundos por unidade produzida, na unidade da ordem. */
+export type ItemCarga = { quantidade: number; tempoPadraoSegundos: number | null };
 
-/** Um único posto e período; tempo de referência ausente não vale zero.
- * Ocupação acima de 100% é carga planejada superior à disponibilidade,
- * não comprovação de gargalo.
+/** Carga pendente de UMA etapa, em segundos: soma de quantidade sem baixa ×
+ * tempo padrão do produto na etapa. Tempo padrão ausente torna a carga
+ * indisponível, nunca zero. É estimativa para comparar etapas; não comprova gargalo.
  */
-export function calcularCarga(itens: readonly ItemCarga[], disponibilidadeSegundos: number | null) {
-  if (disponibilidadeSegundos !== null) naoNegativo(disponibilidadeSegundos, 'Disponibilidade');
-  for (const i of itens) {
-    quantidade(i.quantidadePlanejada);
-    if (i.tempoReferenciaSegundosPorPar !== null) {
-      naoNegativo(i.tempoReferenciaSegundosPorPar, 'Tempo de referência');
-      if (i.tempoReferenciaSegundosPorPar === 0) throw new Error('Tempo de referência deve ser positivo.');
+export function calcularCargaPendente(itens: readonly ItemCarga[]) {
+  let carga = 0;
+  let referenciasPendentes = 0;
+  for (const item of itens) {
+    const q = centesimos(item.quantidade, 'Quantidade');
+    if (item.tempoPadraoSegundos === null) {
+      if (q > 0) referenciasPendentes += 1;
+      continue;
     }
+    const t = centesimos(item.tempoPadraoSegundos, 'Tempo padrão');
+    if (t === 0) throw new Error('Tempo padrão deve ser positivo.');
+    carga += q * t;
   }
-  const referenciasPendentes = itens.filter(i => i.quantidadePlanejada > 0 && i.tempoReferenciaSegundosPorPar === null).length;
-  const cargaSegundos = referenciasPendentes > 0 ? null : itens.reduce((s, i) => s + i.quantidadePlanejada * (i.tempoReferenciaSegundosPorPar ?? 0), 0);
-  if (cargaSegundos !== null && !Number.isFinite(cargaSegundos)) throw new Error('Carga excedeu o limite numérico.');
-  return {
-    cargaSegundos,
-    referenciasPendentes,
-    disponibilidadeSegundos,
-    ocupacaoPlanejadaPercentual: cargaSegundos !== null && disponibilidadeSegundos !== null && disponibilidadeSegundos > 0
-      ? cargaSegundos / disponibilidadeSegundos * 100 : null,
-  };
+  if (!Number.isSafeInteger(carga)) throw new Error('Carga excedeu o limite numérico.');
+  return { cargaSegundos: referenciasPendentes > 0 ? null : carga / 10000, referenciasPendentes };
 }

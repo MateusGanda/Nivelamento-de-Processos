@@ -1,145 +1,161 @@
 // Dados fictícios. Testes das fórmulas, sem banco, API ou tela.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calcularTempos, descontarPausasProgramadas, calcularTempoMedioPorPar } from '../../../../modules/indicators/domain/tempos.ts';
-import type { Intervalo } from '../../../../modules/indicators/domain/tempos.ts';
-import { calcularCarga } from '../../../../modules/indicators/domain/carga.ts';
-import { calcularSaldo, calcularCumprimento, calcularProducaoFinal } from '../../../../modules/indicators/domain/producao.ts';
+import { derivarIntervalos, calcularTempos, calcularTempoMedioPorUnidade } from '../../../../modules/indicators/domain/tempos.ts';
+import type { EventoTempo } from '../../../../modules/indicators/domain/tempos.ts';
+import { calcularCargaPendente } from '../../../../modules/indicators/domain/carga.ts';
+import { somarResultados, conferirResultado, identificarBaixa, calcularPosicao, calcularProducaoFinal } from '../../../../modules/indicators/domain/producao.ts';
 
-const instante = (hora: string) => Date.parse(`2026-09-29T${hora}:00-03:00`);
+const instante = (hora: string) => Date.parse(`2026-10-06T${hora}:00-03:00`);
 const janela = (inicio: string, fim: string) => ({ inicioMs: instante(inicio), fimMs: instante(fim) });
-const registros: Intervalo[] = [
-  { ...janela('08:00', '08:40'), categoria: 'PRODUTIVO' },
-  { ...janela('08:40', '08:50'), categoria: 'INTERRUPCAO' },
-  { ...janela('08:50', '09:30'), categoria: 'PRODUTIVO' },
+const evento = (tipo: EventoTempo['tipo'], hora: string, motivoPausaId: string | null = null): EventoTempo => ({ tipo, instanteMs: instante(hora), motivoPausaId });
+const FALTA_MATERIAL = 'motivo-falta-material';
+const AJUSTE = 'motivo-ajuste';
+const execucao: EventoTempo[] = [
+  evento('INICIO', '08:00'),
+  evento('PAUSA', '08:40', FALTA_MATERIAL),
+  evento('RETOMADA', '08:50'),
+  evento('FINALIZACAO', '09:30'),
 ];
 
-test('TEMPO-01: 80 min produtivos, 10 de interrupção e 120 s/par', () => {
-  const r = calcularTempos(registros, janela('08:00', '09:30'), null);
-  assert.equal(r.porCategoria.PRODUTIVO, 4800);
-  assert.equal(r.porCategoria.INTERRUPCAO, 600);
-  assert.equal(calcularTempoMedioPorPar([{ produtivoSegundos: 4800, paresBons: 40 }]), 120);
-});
-test('TEMPO-01: sem janela, só a cobertura fica indisponível', () => {
-  const r = calcularTempos(registros, janela('08:00', '09:30'), null);
-  assert.equal(r.cobertura, null);
-  assert.equal(r.classificadoSegundos, 5400);
-  assert.equal(r.naoProdutivoApontadoSegundos, 600);
+test('TEMPO-01: eventos geram 80 min produtivos, 10 de pausa e 120 s por unidade', () => {
+  const { intervalos, aberta } = derivarIntervalos(execucao);
+  assert.equal(aberta, false);
+  assert.equal(intervalos.length, 3);
+  const r = calcularTempos(intervalos, janela('08:00', '09:30'));
+  assert.equal(r.produtivoSegundos, 4800);
+  assert.equal(r.pausaSegundos, 600);
+  assert.deepEqual(r.pausasPorMotivo, [{ motivoPausaId: FALTA_MATERIAL, segundos: 600, ocorrencias: 1 }]);
+  assert.equal(calcularTempoMedioPorUnidade([{ produtivoSegundos: 4800, quantidadeBoa: 40 }]), 120);
 });
 test('TEMPO-02: recorte 08:30–09:00', () => {
-  const r = calcularTempos(registros, janela('08:30', '09:00'), null);
-  assert.equal(r.porCategoria.PRODUTIVO, 1200);
-  assert.equal(r.porCategoria.INTERRUPCAO, 600);
+  const r = calcularTempos(derivarIntervalos(execucao).intervalos, janela('08:30', '09:00'));
+  assert.equal(r.produtivoSegundos, 1200);
+  assert.equal(r.pausaSegundos, 600);
 });
-test('TEMPO-03: 30 min sem informação e 75% de cobertura', () => {
-  const r = calcularTempos(registros, janela('08:00', '10:00'), [janela('08:00', '10:00')]);
-  assert.equal(r.cobertura!.janelaSegundos, 7200);
-  assert.equal(r.cobertura!.semInformacaoSegundos, 1800);
-  assert.equal(r.cobertura!.coberturaPercentual, 75);
-  assert.equal(r.naoProdutivoApontadoSegundos, 600);
-});
-test('cobertura recorta a janela ao período consultado', () => {
-  const r = calcularTempos(registros, janela('08:30', '09:00'), [janela('08:00', '10:00')]);
-  assert.equal(r.cobertura!.janelaSegundos, 1800);
-  assert.equal(r.cobertura!.coberturaPercentual, 100);
-});
-test('retira pausa programada do numerador e denominador da cobertura', () => {
-  const liquida = descontarPausasProgramadas([janela('08:00', '10:00')], [janela('09:00', '09:15')]);
-  const r = calcularTempos([{ ...janela('08:00', '10:00'), categoria: 'PRODUTIVO' }], janela('08:00', '10:00'), liquida.janelas);
-  assert.equal(liquida.excluidoSegundos, 900);
-  assert.equal(r.cobertura!.janelaSegundos, 6300);
-  assert.equal(r.cobertura!.classificadoSegundos, 6300);
-  assert.equal(r.cobertura!.coberturaPercentual, 100);
-  assert.equal(r.porCategoria.PRODUTIVO, 7200);
-});
-test('rejeita sobreposição de intervalos e janelas', () => {
-  const periodo = janela('08:00', '10:00');
-  assert.throws(() => calcularTempos([...registros, registros[0]], periodo, null), /sobrepostos/);
-  assert.throws(() => calcularTempos([], periodo, [janela('08:00', '10:00'), janela('09:00', '11:00')]), /sobrepostos/);
-});
-test('aceita limites adjacentes e não altera entrada', () => {
-  const entrada = [...registros].reverse();
+test('eventos fora de ordem são ordenados e a entrada não é alterada', () => {
+  const entrada = [...execucao].reverse();
   const copia = structuredClone(entrada);
-  assert.equal(calcularTempos(entrada, janela('08:00', '10:00'), null).classificadoSegundos, 5400);
+  assert.deepEqual(derivarIntervalos(entrada), derivarIntervalos(execucao));
   assert.deepEqual(entrada, copia);
 });
-test('período sem registros: zeros nos tempos e tudo sem informação na janela', () => {
-  const r = calcularTempos([], janela('08:00', '10:00'), [janela('08:00', '10:00')]);
-  assert.equal(r.classificadoSegundos, 0);
-  assert.equal(r.naoProdutivoApontadoSegundos, 0);
-  assert.equal(r.cobertura!.semInformacaoSegundos, 7200);
-  assert.equal(r.cobertura!.coberturaPercentual, 0);
+test('execução aberta não recebe término presumido', () => {
+  const emExecucao = derivarIntervalos(execucao.slice(0, 3));
+  assert.equal(emExecucao.aberta, true);
+  const r1 = calcularTempos(emExecucao.intervalos, janela('08:00', '12:00'));
+  assert.equal(r1.produtivoSegundos, 2400);
+  assert.equal(r1.pausaSegundos, 600);
+  const pausada = derivarIntervalos(execucao.slice(0, 2));
+  assert.equal(pausada.aberta, true);
+  const r2 = calcularTempos(pausada.intervalos, janela('08:00', '12:00'));
+  assert.equal(r2.produtivoSegundos, 2400);
+  assert.equal(r2.pausaSegundos, 0);
+  assert.deepEqual(derivarIntervalos([evento('INICIO', '08:00')]), { intervalos: [], aberta: true });
 });
-test('janela vazia ou fora do período não gera percentual inventado', () => {
-  assert.equal(calcularTempos(registros, janela('08:00', '10:00'), [])!.cobertura!.coberturaPercentual, null);
-  assert.equal(calcularTempos(registros, janela('08:00', '10:00'), [janela('11:00', '12:00')]).cobertura!.coberturaPercentual, null);
+test('sequência de eventos fora das transições do modelo é rejeitada', () => {
+  assert.throws(() => derivarIntervalos([]), /começa por INICIO/);
+  assert.throws(() => derivarIntervalos([evento('PAUSA', '08:00', AJUSTE)]), /começa por INICIO/);
+  assert.throws(() => derivarIntervalos([evento('INICIO', '08:00'), evento('INICIO', '08:10')]), /INICIO depois de INICIO/);
+  assert.throws(() => derivarIntervalos([evento('INICIO', '08:00'), evento('RETOMADA', '08:10')]), /RETOMADA depois de INICIO/);
+  assert.throws(() => derivarIntervalos([evento('INICIO', '08:00'), evento('PAUSA', '08:10', AJUSTE), evento('FINALIZACAO', '08:20')]), /FINALIZACAO depois de PAUSA/);
+  assert.throws(() => derivarIntervalos([...execucao, evento('PAUSA', '09:40', AJUSTE)]), /PAUSA depois de FINALIZACAO/);
+  assert.throws(() => derivarIntervalos([{ tipo: 'INICIO', instanteMs: NaN, motivoPausaId: null }]), /Instante inválido/);
 });
-test('intervalos fora do período não entram nos totais', () => {
-  assert.equal(calcularTempos(registros, janela('11:00', '12:00'), null).classificadoSegundos, 0);
+test('pausa e retomada no mesmo instante não geram intervalo de duração zero', () => {
+  const { intervalos } = derivarIntervalos([evento('INICIO', '08:00'), evento('PAUSA', '08:30', AJUSTE), evento('RETOMADA', '08:30'), evento('FINALIZACAO', '09:00')]);
+  assert.equal(intervalos.length, 2);
+  assert.equal(calcularTempos(intervalos, janela('08:00', '09:00')).produtivoSegundos, 3600);
 });
-test('rejeita fim anterior ao início, duração zero e instantes inválidos', () => {
-  const periodo = janela('08:00', '10:00');
-  assert.throws(() => calcularTempos([], janela('10:00', '08:00'), null), /Janela inválida/);
-  assert.throws(() => calcularTempos([], periodo, [{ inicioMs: NaN, fimMs: 10 }]), /Janela inválida/);
-  assert.throws(() => calcularTempos([{ ...janela('08:00', '08:00'), categoria: 'PRODUTIVO' }], periodo, null), /Janela inválida/);
+test('pausas são agrupadas por motivo, e pausa sem motivo fica identificada', () => {
+  const { intervalos } = derivarIntervalos([
+    evento('INICIO', '08:00'), evento('PAUSA', '08:10', AJUSTE), evento('RETOMADA', '08:15'),
+    evento('PAUSA', '08:30', FALTA_MATERIAL), evento('RETOMADA', '08:50'),
+    evento('PAUSA', '09:00', AJUSTE), evento('RETOMADA', '09:05'),
+    evento('PAUSA', '09:10'), evento('RETOMADA', '09:12'), evento('FINALIZACAO', '09:30'),
+  ]);
+  const r = calcularTempos(intervalos, janela('08:00', '09:30'));
+  assert.equal(r.pausaSegundos, 1920);
+  assert.equal(r.produtivoSegundos, 3480);
+  assert.deepEqual(r.pausasPorMotivo, [
+    { motivoPausaId: FALTA_MATERIAL, segundos: 1200, ocorrencias: 1 },
+    { motivoPausaId: AJUSTE, segundos: 600, ocorrencias: 2 },
+    { motivoPausaId: null, segundos: 120, ocorrencias: 1 },
+  ]);
 });
-test('média ponderada pelos pares, não média simples', () => {
-  assert.equal(calcularTempoMedioPorPar([{ produtivoSegundos: 600, paresBons: 10 }, { produtivoSegundos: 600, paresBons: 30 }]), 30);
-  assert.equal(calcularTempoMedioPorPar([{ produtivoSegundos: 600, paresBons: 0 }]), null);
-  assert.equal(calcularTempoMedioPorPar([]), null);
+test('execuções simultâneas no mesmo posto somam tempo de execução', () => {
+  const a = derivarIntervalos([evento('INICIO', '08:00'), evento('FINALIZACAO', '09:00')]).intervalos;
+  const b = derivarIntervalos([evento('INICIO', '08:30'), evento('FINALIZACAO', '09:30')]).intervalos;
+  assert.equal(calcularTempos([...a, ...b], janela('08:00', '10:00')).produtivoSegundos, 7200);
+});
+test('período sem registros dá zero, e período inválido é rejeitado', () => {
+  assert.deepEqual(calcularTempos([], janela('08:00', '10:00')), { produtivoSegundos: 0, pausaSegundos: 0, pausasPorMotivo: [] });
+  assert.equal(calcularTempos(derivarIntervalos(execucao).intervalos, janela('11:00', '12:00')).produtivoSegundos, 0);
+  assert.throws(() => calcularTempos([], janela('10:00', '08:00')), /Janela inválida/);
+});
+test('tempo médio é ponderado pela quantidade e aceita decimais', () => {
+  assert.equal(calcularTempoMedioPorUnidade([{ produtivoSegundos: 600, quantidadeBoa: 10 }, { produtivoSegundos: 600, quantidadeBoa: 30 }]), 30);
+  assert.equal(calcularTempoMedioPorUnidade([{ produtivoSegundos: 250, quantidadeBoa: 12.5 }]), 20);
+  assert.equal(calcularTempoMedioPorUnidade([{ produtivoSegundos: 600, quantidadeBoa: 0 }]), null);
+  assert.equal(calcularTempoMedioPorUnidade([]), null);
 });
 
-test('CARGA-01: 480 min previstos para 420 min disponíveis', () => {
-  const r = calcularCarga([{ quantidadePlanejada: 240, tempoReferenciaSegundosPorPar: 120 }], 25200);
-  assert.equal(r.cargaSegundos, 28800);
-  assert.equal(r.ocupacaoPlanejadaPercentual!.toFixed(2), '114.29');
+test('resultado da baixa: soma exata em duas casas e conferência com a ordem', () => {
+  assert.deepEqual(somarResultados([{ quantidadeBoa: 0.1, quantidadeRetrabalho: 0, quantidadeRefugo: 0 }, { quantidadeBoa: 0.2, quantidadeRetrabalho: 0, quantidadeRefugo: 0 }]),
+    { quantidadeBoa: 0.3, quantidadeRetrabalho: 0, quantidadeRefugo: 0, total: 0.3 });
+  assert.deepEqual(conferirResultado(40, { quantidadeBoa: 38, quantidadeRetrabalho: 1, quantidadeRefugo: 1 }), { total: 40, diferenca: 0, confere: true });
+  assert.deepEqual(conferirResultado(40, { quantidadeBoa: 38, quantidadeRetrabalho: 1, quantidadeRefugo: 0 }), { total: 39, diferenca: 1, confere: false });
+  assert.deepEqual(conferirResultado(12.5, { quantidadeBoa: 12.25, quantidadeRetrabalho: 0.25, quantidadeRefugo: 0 }), { total: 12.5, diferenca: 0, confere: true });
+  assert.deepEqual(conferirResultado(40, { quantidadeBoa: 0, quantidadeRetrabalho: 0, quantidadeRefugo: 0 }), { total: 0, diferenca: 40, confere: false });
 });
-test('carga soma várias etapas do mesmo posto sobre uma única disponibilidade', () => {
-  const r = calcularCarga([
-    { quantidadePlanejada: 240, tempoReferenciaSegundosPorPar: 120 },
-    { quantidadePlanejada: 100, tempoReferenciaSegundosPorPar: 30 },
-  ], 25200);
-  assert.equal(r.cargaSegundos, 31800);
-  assert.equal(r.ocupacaoPlanejadaPercentual!.toFixed(2), '126.19');
-});
-test('disponibilidade ausente ou zero não gera ocupação inventada', () => {
-  assert.equal(calcularCarga([], 0).ocupacaoPlanejadaPercentual, null);
-  assert.equal(calcularCarga([], null).ocupacaoPlanejadaPercentual, null);
-});
-test('referência ausente torna carga indisponível, não zero', () => {
-  const r = calcularCarga([{ quantidadePlanejada: 40, tempoReferenciaSegundosPorPar: null }], 3600);
-  assert.equal(r.cargaSegundos, null);
-  assert.equal(r.referenciasPendentes, 1);
-  assert.equal(r.ocupacaoPlanejadaPercentual, null);
-});
-
-test('PROD-01: previsto 100, baixas de 30 e 20 geram realizado 50 e saldo 50', () => {
-  const realizado = [30, 20].reduce((s, q) => s + q, 0);
-  assert.equal(realizado, 50);
-  assert.equal(calcularSaldo(100, realizado).saldo, 50);
-  assert.equal(calcularCumprimento(100, realizado), 50);
-});
-test('baixa parcial: 30 de 100 deixa saldo 70 e cumprimento 30%', () => {
-  assert.equal(calcularSaldo(100, 30).saldo, 70);
-  assert.equal(calcularCumprimento(100, 30), 30);
-});
-test('PROD-02: 100 pares no corte e na costura não viram 200 finais', () => {
-  assert.equal(calcularProducaoFinal([{ sequencia: 1, paresBons: 100 }, { sequencia: 2, paresBons: 100 }]), 100);
-  assert.equal(calcularProducaoFinal([{ sequencia: 2, paresBons: 40 }, { sequencia: 1, paresBons: 100 }]), 40);
+test('PROD-02: o mesmo lote em duas etapas não é somado na produção final', () => {
+  assert.equal(calcularProducaoFinal([{ ordem: 1, quantidadeBoa: 40 }, { ordem: 2, quantidadeBoa: 40 }]), 40);
+  assert.equal(calcularProducaoFinal([{ ordem: 2, quantidadeBoa: 38 }, { ordem: 1, quantidadeBoa: 40 }]), 38);
   assert.equal(calcularProducaoFinal([]), null);
+  assert.throws(() => calcularProducaoFinal([{ ordem: 1, quantidadeBoa: 10 }, { ordem: 1, quantidadeBoa: 20 }]), /repetida/);
 });
-test('previsto ausente ou zero é indisponível; excesso fica visível', () => {
-  assert.equal(calcularSaldo(null, 50).saldo, null);
-  assert.equal(calcularCumprimento(null, 50), null);
-  assert.equal(calcularCumprimento(0, 0), null);
-  assert.equal(calcularSaldo(100, 110).excedePrevisto, true);
-  assert.equal(calcularSaldo(100, 110).saldo, -10);
+
+test('baixa é a execução finalizada que informa as quantidades', () => {
+  const semQuantidade = { quantidadeBoa: 0, quantidadeRetrabalho: 0, quantidadeRefugo: 0 };
+  const completa = { quantidadeBoa: 38, quantidadeRetrabalho: 1, quantidadeRefugo: 1 };
+  assert.deepEqual(identificarBaixa(40, []), { situacao: 'SEM_BAIXA', resultado: null });
+  assert.equal(identificarBaixa(40, [{ status: 'EM_EXECUCAO', ...semQuantidade }]).situacao, 'SEM_BAIXA');
+  // troca de operação: finalizada sem quantidade não é baixa
+  assert.equal(identificarBaixa(40, [{ status: 'FINALIZADA', ...semQuantidade }]).situacao, 'SEM_BAIXA');
+  assert.deepEqual(identificarBaixa(40, [{ status: 'FINALIZADA', ...semQuantidade }, { status: 'FINALIZADA', ...completa }]), { situacao: 'BAIXADA', resultado: completa });
 });
-test('rejeita negativos, frações de pares e valores não finitos', () => {
-  assert.throws(() => calcularSaldo(100, -1));
-  assert.throws(() => calcularCumprimento(100, 1.5));
-  assert.throws(() => calcularProducaoFinal([{ sequencia: 1, paresBons: 10 }, { sequencia: 1, paresBons: 20 }]), /repetida/);
-  assert.throws(() => calcularCarga([{ quantidadePlanejada: 1, tempoReferenciaSegundosPorPar: 0 }], 100));
-  assert.throws(() => calcularCarga([], Infinity));
-  assert.throws(() => calcularTempoMedioPorPar([{ produtivoSegundos: NaN, paresBons: 1 }]));
+test('baixa em duplicidade, incompleta ou em execução aberta é inconsistência', () => {
+  const completa = { quantidadeBoa: 40, quantidadeRetrabalho: 0, quantidadeRefugo: 0 };
+  assert.equal(identificarBaixa(40, [{ status: 'FINALIZADA', ...completa }, { status: 'FINALIZADA', ...completa }]).situacao, 'INCONSISTENTE');
+  assert.equal(identificarBaixa(40, [{ status: 'FINALIZADA', quantidadeBoa: 30, quantidadeRetrabalho: 0, quantidadeRefugo: 0 }]).situacao, 'INCONSISTENTE');
+  assert.equal(identificarBaixa(40, [{ status: 'PAUSADA', ...completa }]).situacao, 'INCONSISTENTE');
+  assert.throws(() => identificarBaixa(0, []), /positiva/);
+});
+test('posição da ordem: etapa atual é a primeira sem baixa', () => {
+  assert.deepEqual(calcularPosicao([{ ordem: 1, situacao: 'BAIXADA' }, { ordem: 2, situacao: 'SEM_BAIXA' }, { ordem: 3, situacao: 'SEM_BAIXA' }]),
+    { etapasTotal: 3, etapasBaixadas: 1, etapasInconsistentes: 0, etapaAtual: 2 });
+  assert.deepEqual(calcularPosicao([{ ordem: 2, situacao: 'BAIXADA' }, { ordem: 1, situacao: 'BAIXADA' }]),
+    { etapasTotal: 2, etapasBaixadas: 2, etapasInconsistentes: 0, etapaAtual: null });
+  // sequência nominal: etapa posterior pode ter baixa antes da anterior
+  assert.deepEqual(calcularPosicao([{ ordem: 1, situacao: 'INCONSISTENTE' }, { ordem: 2, situacao: 'BAIXADA' }]),
+    { etapasTotal: 2, etapasBaixadas: 1, etapasInconsistentes: 1, etapaAtual: 1 });
+  assert.throws(() => calcularPosicao([{ ordem: 1, situacao: 'BAIXADA' }, { ordem: 1, situacao: 'SEM_BAIXA' }]), /repetida/);
+});
+
+test('carga pendente em segundos: quantidade sem baixa × tempo padrão por unidade', () => {
+  assert.deepEqual(calcularCargaPendente([{ quantidade: 24, tempoPadraoSegundos: 100 }, { quantidade: 40, tempoPadraoSegundos: 100 }]), { cargaSegundos: 6400, referenciasPendentes: 0 });
+  assert.deepEqual(calcularCargaPendente([{ quantidade: 12.5, tempoPadraoSegundos: 1.25 }]), { cargaSegundos: 15.625, referenciasPendentes: 0 });
+  assert.deepEqual(calcularCargaPendente([]), { cargaSegundos: 0, referenciasPendentes: 0 });
+});
+test('tempo padrão ausente torna a carga indisponível, não zero', () => {
+  assert.deepEqual(calcularCargaPendente([{ quantidade: 24, tempoPadraoSegundos: 100 }, { quantidade: 12, tempoPadraoSegundos: null }]), { cargaSegundos: null, referenciasPendentes: 1 });
+  assert.deepEqual(calcularCargaPendente([{ quantidade: 0, tempoPadraoSegundos: null }]), { cargaSegundos: 0, referenciasPendentes: 0 });
+});
+test('rejeita negativos, mais de duas casas e valores não finitos', () => {
+  const r = (q: number) => ({ quantidadeBoa: q, quantidadeRetrabalho: 0, quantidadeRefugo: 0 });
+  assert.throws(() => somarResultados([r(-1)]));
+  assert.throws(() => somarResultados([r(1.005)]), /duas casas/);
+  assert.throws(() => conferirResultado(NaN, r(1)));
+  assert.throws(() => calcularCargaPendente([{ quantidade: 1, tempoPadraoSegundos: 0 }]), /positivo/);
+  assert.throws(() => calcularCargaPendente([{ quantidade: Infinity, tempoPadraoSegundos: 1 }]));
+  assert.throws(() => calcularTempoMedioPorUnidade([{ produtivoSegundos: NaN, quantidadeBoa: 1 }]));
 });
