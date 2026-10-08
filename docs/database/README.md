@@ -7,12 +7,39 @@ Material de apoio da etapa de banco de dados (06/10/2026). O modelo oficial é o
 | `schema.sql` | Script SQL de criação do banco: 15 tabelas, chaves primárias, restrições de unicidade, índices e 18 chaves estrangeiras. |
 | `diagrama-er.png` | Diagrama entidade-relacionamento em imagem. |
 
+## Banco local com Docker
+
+O arquivo `compose.yaml`, na raiz do projeto, sobe um PostgreSQL 17 igual para toda a equipe.
+
+1. Copie `.env.example` para `.env` e troque a senha nos dois lugares em que ela aparece.
+2. Suba o banco:
+
+```bash
+docker compose up -d
+```
+
+3. Confira se está pronto (a coluna STATUS deve mostrar `healthy`):
+
+```bash
+docker compose ps
+```
+
+O banco fica em `localhost:55432`. Os dados ficam guardados em um volume do Docker e continuam lá depois de parar o container. Para parar, use `docker compose down`; para apagar também os dados, `docker compose down -v`.
+
+O banco sobe vazio. As tabelas são criadas pela migração do Prisma ou pelo script abaixo.
+
 ## Como criar o banco pelo script
 
 Em um banco PostgreSQL vazio:
 
 ```bash
 psql "$DATABASE_URL" -f docs/database/schema.sql
+```
+
+Sem o `psql` instalado, dá para rodar o script por dentro do container:
+
+```bash
+docker compose exec -T db psql -U gunp -d gunp < docs/database/schema.sql
 ```
 
 O script reúne os mesmos comandos da migração `migrations/app/20261006T1821_init`, na mesma ordem. No dia a dia, o banco é criado pela migração do Prisma; o script serve para consulta e para criar o banco manualmente.
