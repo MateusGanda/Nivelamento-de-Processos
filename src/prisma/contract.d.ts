@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'19b624abd11aec698991afc8a69ddd614dd7df0f5684e31a4a669d5ee40353ce'>;
+  StorageHashBase<'b88199d5c182ccd303fcf495e7d223401d7695642a802ebbd1ed1cac8b7c4125'>;
 export type ExecutionHash =
   ExecutionHashBase<'bcf732fc48f30b5958e0ef47e462bc3c4b78c57d7fe3b7e04b71995da1754eea'>;
 export type ProfileHash =
@@ -271,17 +271,17 @@ export type FieldOutputTypes = {
       readonly tipo: 'INICIO' | 'PAUSA' | 'RETOMADA' | 'FINALIZACAO';
     };
     readonly Execucao: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly criadoEm: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly etapaRoteiroId: CodecTypes['pg/uuid@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly operadorId: CodecTypes['pg/uuid@1']['output'];
       readonly ordemProducaoId: CodecTypes['pg/uuid@1']['output'];
       readonly postoId: CodecTypes['pg/uuid@1']['output'];
-      readonly quantidadeBoa: Numeric<12, 2>;
-      readonly quantidadeRefugo: Numeric<12, 2>;
-      readonly quantidadeRetrabalho: Numeric<12, 2>;
+      readonly quantidadeBoa: Numeric<12, 2> | null;
+      readonly quantidadeRefugo: Numeric<12, 2> | null;
+      readonly quantidadeRetrabalho: Numeric<12, 2> | null;
       readonly status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
     };
     readonly MotivoPausa: {
       readonly ativo: CodecTypes['pg/bool@1']['output'];
@@ -398,17 +398,17 @@ export type FieldInputTypes = {
       readonly tipo: 'INICIO' | 'PAUSA' | 'RETOMADA' | 'FINALIZACAO';
     };
     readonly Execucao: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly criadoEm: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly etapaRoteiroId: CodecTypes['pg/uuid@1']['input'];
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly operadorId: CodecTypes['pg/uuid@1']['input'];
       readonly ordemProducaoId: CodecTypes['pg/uuid@1']['input'];
       readonly postoId: CodecTypes['pg/uuid@1']['input'];
-      readonly quantidadeBoa: CodecTypes['pg/numeric@1']['input'];
-      readonly quantidadeRefugo: CodecTypes['pg/numeric@1']['input'];
-      readonly quantidadeRetrabalho: CodecTypes['pg/numeric@1']['input'];
+      readonly quantidadeBoa: CodecTypes['pg/numeric@1']['input'] | null;
+      readonly quantidadeRefugo: CodecTypes['pg/numeric@1']['input'] | null;
+      readonly quantidadeRetrabalho: CodecTypes['pg/numeric@1']['input'] | null;
       readonly status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
     };
     readonly MotivoPausa: {
       readonly ativo: CodecTypes['pg/bool@1']['input'];
@@ -525,17 +525,17 @@ export type StorageColumnTypes = {
       readonly tipo: 'INICIO' | 'PAUSA' | 'RETOMADA' | 'FINALIZACAO';
     };
     readonly Execucao: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly criadoEm: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly etapaRoteiroId: CodecTypes['pg/uuid@1']['output'];
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly operadorId: CodecTypes['pg/uuid@1']['output'];
       readonly ordemProducaoId: CodecTypes['pg/uuid@1']['output'];
       readonly postoId: CodecTypes['pg/uuid@1']['output'];
-      readonly quantidadeBoa: Numeric<12, 2>;
-      readonly quantidadeRefugo: Numeric<12, 2>;
-      readonly quantidadeRetrabalho: Numeric<12, 2>;
+      readonly quantidadeBoa: Numeric<12, 2> | null;
+      readonly quantidadeRefugo: Numeric<12, 2> | null;
+      readonly quantidadeRetrabalho: Numeric<12, 2> | null;
       readonly status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
     };
     readonly MotivoPausa: {
       readonly ativo: CodecTypes['pg/bool@1']['output'];
@@ -652,17 +652,17 @@ export type StorageColumnInputTypes = {
       readonly tipo: 'INICIO' | 'PAUSA' | 'RETOMADA' | 'FINALIZACAO';
     };
     readonly Execucao: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly criadoEm: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly etapaRoteiroId: CodecTypes['pg/uuid@1']['input'];
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly operadorId: CodecTypes['pg/uuid@1']['input'];
       readonly ordemProducaoId: CodecTypes['pg/uuid@1']['input'];
       readonly postoId: CodecTypes['pg/uuid@1']['input'];
-      readonly quantidadeBoa: CodecTypes['pg/numeric@1']['input'];
-      readonly quantidadeRefugo: CodecTypes['pg/numeric@1']['input'];
-      readonly quantidadeRetrabalho: CodecTypes['pg/numeric@1']['input'];
+      readonly quantidadeBoa: CodecTypes['pg/numeric@1']['input'] | null;
+      readonly quantidadeRefugo: CodecTypes['pg/numeric@1']['input'] | null;
+      readonly quantidadeRetrabalho: CodecTypes['pg/numeric@1']['input'] | null;
       readonly status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
     };
     readonly MotivoPausa: {
       readonly ativo: CodecTypes['pg/bool@1']['input'];
@@ -791,17 +791,17 @@ export namespace Models {
     readonly [RelationKeys]?: 'execucao' | 'motivoPausa';
   };
   export type public_Execucao = {
-    createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    criadoEm: CodecTypes['pg/timestamptz-string@1']['output'];
     etapaRoteiroId: CodecTypes['pg/uuid@1']['output'];
     id: CodecTypes['pg/uuid@1']['output'];
     operadorId: CodecTypes['pg/uuid@1']['output'];
     ordemProducaoId: CodecTypes['pg/uuid@1']['output'];
     postoId: CodecTypes['pg/uuid@1']['output'];
-    quantidadeBoa: Numeric<12, 2>;
-    quantidadeRefugo: Numeric<12, 2>;
-    quantidadeRetrabalho: Numeric<12, 2>;
+    quantidadeBoa: Numeric<12, 2> | null;
+    quantidadeRefugo: Numeric<12, 2> | null;
+    quantidadeRetrabalho: Numeric<12, 2> | null;
     status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-    updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
     etapaRoteiro: public_EtapaRoteiro;
     eventosTempo: public_EventoTempo[];
     operador: public_Operador;
@@ -1192,7 +1192,7 @@ type ContractBase = Omit<
             };
             readonly Execucao: {
               columns: {
-                readonly createdAt: {
+                readonly criadoEm: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
@@ -1226,31 +1226,19 @@ type ContractBase = Omit<
                 readonly quantidadeBoa: {
                   readonly nativeType: 'numeric';
                   readonly codecId: 'pg/numeric@1';
-                  readonly nullable: false;
-                  readonly default: {
-                    readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/numeric@1', '0'>;
-                  };
+                  readonly nullable: true;
                   readonly typeParams: { readonly precision: 12; readonly scale: 2 };
                 };
                 readonly quantidadeRefugo: {
                   readonly nativeType: 'numeric';
                   readonly codecId: 'pg/numeric@1';
-                  readonly nullable: false;
-                  readonly default: {
-                    readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/numeric@1', '0'>;
-                  };
+                  readonly nullable: true;
                   readonly typeParams: { readonly precision: 12; readonly scale: 2 };
                 };
                 readonly quantidadeRetrabalho: {
                   readonly nativeType: 'numeric';
                   readonly codecId: 'pg/numeric@1';
-                  readonly nullable: false;
-                  readonly default: {
-                    readonly kind: 'literal';
-                    readonly value: DefaultLiteralValue<'pg/numeric@1', '0'>;
-                  };
+                  readonly nullable: true;
                   readonly typeParams: { readonly precision: 12; readonly scale: 2 };
                 };
                 readonly status: {
@@ -1258,16 +1246,22 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
-                readonly updatedAt: {
-                  readonly nativeType: 'timestamptz';
-                  readonly codecId: 'pg/timestamptz-string@1';
-                  readonly nullable: false;
-                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                readonly tipoFinalizacao: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [];
               indexes: readonly [
+                {
+                  readonly name: 'Execucao_baixa_unica_d8d722ee';
+                  readonly prefix: 'Execucao_baixa_unica';
+                  readonly columns: readonly ['ordemProducaoId', 'etapaRoteiroId'];
+                  readonly where: '("tipoFinalizacao" = \'BAIXA\')';
+                  readonly unique: true;
+                },
                 {
                   readonly name: 'Execucao_etapaRoteiroId_idx_17d641ff';
                   readonly prefix: 'Execucao_etapaRoteiroId_idx';
@@ -1290,12 +1284,6 @@ type ContractBase = Omit<
                   readonly name: 'Execucao_postoId_idx_13be8f3c';
                   readonly prefix: 'Execucao_postoId_idx';
                   readonly columns: readonly ['postoId'];
-                  readonly unique: false;
-                },
-                {
-                  readonly name: 'Execucao_status_idx_e98638ab';
-                  readonly prefix: 'Execucao_status_idx';
-                  readonly columns: readonly ['status'];
                   readonly unique: false;
                 },
               ];
@@ -1867,6 +1855,13 @@ type ContractBase = Omit<
                   readonly columns: readonly ['roteiroId'];
                   readonly unique: false;
                 },
+                {
+                  readonly name: 'ProdutoRoteiro_vigente_unica_c7c5c582';
+                  readonly prefix: 'ProdutoRoteiro_vigente_unica';
+                  readonly columns: readonly ['produtoId'];
+                  readonly where: '("vigente" = true)';
+                  readonly unique: true;
+                },
               ];
               foreignKeys: readonly [
                 {
@@ -1983,6 +1978,10 @@ type ContractBase = Omit<
             readonly TipoEventoTempo: {
               readonly kind: 'valueSet';
               readonly values: readonly ['INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO'];
+            };
+            readonly TipoFinalizacao: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['TROCA_OPERACAO', 'BAIXA'];
             };
           };
         };
@@ -2264,7 +2263,7 @@ type ContractBase = Omit<
           };
           readonly Execucao: {
             readonly fields: {
-              readonly createdAt: {
+              readonly criadoEm: {
                 readonly nullable: false;
                 readonly type: {
                   readonly kind: 'scalar';
@@ -2292,7 +2291,7 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
               };
               readonly quantidadeBoa: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: {
                   readonly kind: 'scalar';
                   readonly codecId: 'pg/numeric@1';
@@ -2300,7 +2299,7 @@ type ContractBase = Omit<
                 };
               };
               readonly quantidadeRefugo: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: {
                   readonly kind: 'scalar';
                   readonly codecId: 'pg/numeric@1';
@@ -2308,7 +2307,7 @@ type ContractBase = Omit<
                 };
               };
               readonly quantidadeRetrabalho: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: {
                   readonly kind: 'scalar';
                   readonly codecId: 'pg/numeric@1';
@@ -2319,12 +2318,9 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly updatedAt: {
-                readonly nullable: false;
-                readonly type: {
-                  readonly kind: 'scalar';
-                  readonly codecId: 'pg/timestamptz-string@1';
-                };
+              readonly tipoFinalizacao: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
             };
             readonly relations: {
@@ -2392,7 +2388,7 @@ type ContractBase = Omit<
               readonly table: 'Execucao';
               readonly namespaceId: 'public';
               readonly fields: {
-                readonly createdAt: { readonly column: 'createdAt' };
+                readonly criadoEm: { readonly column: 'criadoEm' };
                 readonly etapaRoteiroId: { readonly column: 'etapaRoteiroId' };
                 readonly id: { readonly column: 'id' };
                 readonly operadorId: { readonly column: 'operadorId' };
@@ -2402,7 +2398,7 @@ type ContractBase = Omit<
                 readonly quantidadeRefugo: { readonly column: 'quantidadeRefugo' };
                 readonly quantidadeRetrabalho: { readonly column: 'quantidadeRetrabalho' };
                 readonly status: { readonly column: 'status' };
-                readonly updatedAt: { readonly column: 'updatedAt' };
+                readonly tipoFinalizacao: { readonly column: 'tipoFinalizacao' };
               };
             };
           };
@@ -3219,6 +3215,13 @@ type ContractBase = Omit<
               { readonly name: 'PAUSA'; readonly value: 'PAUSA' },
               { readonly name: 'RETOMADA'; readonly value: 'RETOMADA' },
               { readonly name: 'FINALIZACAO'; readonly value: 'FINALIZACAO' },
+            ];
+          };
+          readonly TipoFinalizacao: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'TROCA_OPERACAO'; readonly value: 'TROCA_OPERACAO' },
+              { readonly name: 'BAIXA'; readonly value: 'BAIXA' },
             ];
           };
         };

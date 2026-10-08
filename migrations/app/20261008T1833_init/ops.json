@@ -119,7 +119,7 @@
     "execute": [
       {
         "description": "create table \"EventoTempo\"",
-        "sql": "CREATE TABLE \"public\".\"EventoTempo\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"dataHora\" timestamptz NOT NULL,\n  \"execucaoId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"motivoPausaId\" uuid,\n  \"tipo\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"EventoTempo_tipo_check_c655f9d0\" CHECK (\"tipo\" IN ('INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO'))\n)",
+        "sql": "CREATE TABLE \"public\".\"EventoTempo\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"dataHora\" timestamptz NOT NULL,\n  \"execucaoId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"motivoPausaId\" uuid,\n  \"tipo\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"EventoTempo_pausa_motivo_check_f24c7449\" CHECK ((\"tipo\" <> 'PAUSA' OR \"motivoPausaId\" IS NOT NULL)),\n  CONSTRAINT \"EventoTempo_tipo_check_c655f9d0\" CHECK (\"tipo\" IN ('INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO'))\n)",
         "params": []
       }
     ],
@@ -158,7 +158,7 @@
     "execute": [
       {
         "description": "create table \"Execucao\"",
-        "sql": "CREATE TABLE \"public\".\"Execucao\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"etapaRoteiroId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"operadorId\" uuid NOT NULL,\n  \"ordemProducaoId\" uuid NOT NULL,\n  \"postoId\" uuid NOT NULL,\n  \"quantidadeBoa\" numeric(12,2) DEFAULT '0'::numeric(12,2) NOT NULL,\n  \"quantidadeRefugo\" numeric(12,2) DEFAULT '0'::numeric(12,2) NOT NULL,\n  \"quantidadeRetrabalho\" numeric(12,2) DEFAULT '0'::numeric(12,2) NOT NULL,\n  \"status\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Execucao_status_check_03bbbb48\" CHECK (\"status\" IN ('EM_EXECUCAO', 'PAUSADA', 'FINALIZADA'))\n)",
+        "sql": "CREATE TABLE \"public\".\"Execucao\" (\n  \"criadoEm\" timestamptz DEFAULT (now()) NOT NULL,\n  \"etapaRoteiroId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"operadorId\" uuid NOT NULL,\n  \"ordemProducaoId\" uuid NOT NULL,\n  \"postoId\" uuid NOT NULL,\n  \"quantidadeBoa\" numeric(12,2),\n  \"quantidadeRefugo\" numeric(12,2),\n  \"quantidadeRetrabalho\" numeric(12,2),\n  \"status\" text NOT NULL,\n  \"tipoFinalizacao\" text,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Execucao_quantidades_finalizacao_check_1fc31576\" CHECK ((\"tipoFinalizacao\" = 'BAIXA' AND \"quantidadeBoa\" IS NOT NULL AND \"quantidadeRetrabalho\" IS NOT NULL AND \"quantidadeRefugo\" IS NOT NULL) OR (\"tipoFinalizacao\" = 'TROCA_OPERACAO' AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL) OR (\"tipoFinalizacao\" IS NULL AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL)),\n  CONSTRAINT \"Execucao_status_check_03bbbb48\" CHECK (\"status\" IN ('EM_EXECUCAO', 'PAUSADA', 'FINALIZADA')),\n  CONSTRAINT \"Execucao_status_finalizacao_check_491cacf7\" CHECK ((\"status\" = 'FINALIZADA' AND \"tipoFinalizacao\" IS NOT NULL) OR (\"status\" IN ('EM_EXECUCAO', 'PAUSADA') AND \"tipoFinalizacao\" IS NULL)),\n  CONSTRAINT \"Execucao_tipoFinalizacao_check_874252b2\" CHECK (\"tipoFinalizacao\" IN ('TROCA_OPERACAO', 'BAIXA'))\n)",
         "params": []
       }
     ],
@@ -1379,6 +1379,45 @@
     ]
   },
   {
+    "id": "index.Execucao.Execucao_baixa_unica_d8d722ee",
+    "label": "Create index \"Execucao_baixa_unica_d8d722ee\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Execucao_baixa_unica_d8d722ee",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Execucao_baixa_unica_d8d722ee\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_baixa_unica_d8d722ee\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Execucao_baixa_unica_d8d722ee\"",
+        "sql": "CREATE UNIQUE INDEX \"Execucao_baixa_unica_d8d722ee\" ON \"public\".\"Execucao\" (\"ordemProducaoId\", \"etapaRoteiroId\") WHERE ((\"tipoFinalizacao\" = 'BAIXA'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Execucao_baixa_unica_d8d722ee\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_baixa_unica_d8d722ee\""
+        ]
+      }
+    ]
+  },
+  {
     "id": "index.Execucao.Execucao_etapaRoteiroId_idx_17d641ff",
     "label": "Create index \"Execucao_etapaRoteiroId_idx_17d641ff\" on \"Execucao\"",
     "operationClass": "additive",
@@ -1530,45 +1569,6 @@
         "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
         "params": [
           "\"public\".\"Execucao_postoId_idx_13be8f3c\""
-        ]
-      }
-    ]
-  },
-  {
-    "id": "index.Execucao.Execucao_status_idx_e98638ab",
-    "label": "Create index \"Execucao_status_idx_e98638ab\" on \"Execucao\"",
-    "operationClass": "additive",
-    "target": {
-      "id": "postgres",
-      "details": {
-        "schema": "public",
-        "objectType": "index",
-        "name": "Execucao_status_idx_e98638ab",
-        "table": "Execucao"
-      }
-    },
-    "precheck": [
-      {
-        "description": "ensure index \"Execucao_status_idx_e98638ab\" does not exist",
-        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
-        "params": [
-          "\"public\".\"Execucao_status_idx_e98638ab\""
-        ]
-      }
-    ],
-    "execute": [
-      {
-        "description": "create index \"Execucao_status_idx_e98638ab\"",
-        "sql": "CREATE INDEX \"Execucao_status_idx_e98638ab\" ON \"public\".\"Execucao\" (\"status\")",
-        "params": []
-      }
-    ],
-    "postcheck": [
-      {
-        "description": "verify index \"Execucao_status_idx_e98638ab\" exists",
-        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
-        "params": [
-          "\"public\".\"Execucao_status_idx_e98638ab\""
         ]
       }
     ]
@@ -1881,6 +1881,45 @@
         "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
         "params": [
           "\"public\".\"ProdutoRoteiro_roteiroId_idx_1cd14ed6\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ProdutoRoteiro.ProdutoRoteiro_vigente_unica_c7c5c582",
+    "label": "Create index \"ProdutoRoteiro_vigente_unica_c7c5c582\" on \"ProdutoRoteiro\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ProdutoRoteiro_vigente_unica_c7c5c582",
+        "table": "ProdutoRoteiro"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ProdutoRoteiro_vigente_unica_c7c5c582\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoRoteiro_vigente_unica_c7c5c582\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ProdutoRoteiro_vigente_unica_c7c5c582\"",
+        "sql": "CREATE UNIQUE INDEX \"ProdutoRoteiro_vigente_unica_c7c5c582\" ON \"public\".\"ProdutoRoteiro\" (\"produtoId\") WHERE ((\"vigente\" = true))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ProdutoRoteiro_vigente_unica_c7c5c582\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ProdutoRoteiro_vigente_unica_c7c5c582\""
         ]
       }
     ]
