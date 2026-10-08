@@ -1,10 +1,5 @@
 // use prisma-8
 
-
-// =========================
-// ENUMS
-// =========================
-
 enum StatusExecucao {
   EM_EXECUCAO
   PAUSADA
@@ -18,12 +13,17 @@ enum TipoEventoTempo {
   FINALIZACAO
 }
 
+enum TipoFinalizacao {
+  TROCA_OPERACAO
+  BAIXA
+}
+
 model Produto {
-  id        Uuid      @id @default(uuid())
-  codigo    String    @unique
+  id        Uuid                 @id @default(uuid())
+  codigo    String               @unique
   nome      String
-  createdAt TimestamptzString @default(now())
-  updatedAt TimestamptzString @default(now())
+  createdAt TimestamptzString    @default(now())
+  updatedAt TimestamptzString    @default(now())
 
   roteiros       ProdutoRoteiro[]
   temposPadrao   ProdutoEtapa[]
@@ -31,8 +31,8 @@ model Produto {
 }
 
 model Operacao {
-  id        Uuid      @id @default(uuid())
-  nome      String    @unique
+  id        Uuid              @id @default(uuid())
+  nome      String            @unique
   descricao String?
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
@@ -41,10 +41,10 @@ model Operacao {
 }
 
 model Roteiro {
-  id        Uuid      @id @default(uuid())
+  id        Uuid              @id @default(uuid())
   nome      String
   versao    Int
-  ativo     Boolean   @default(true)
+  ativo     Boolean           @default(true)
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
 
@@ -56,7 +56,7 @@ model Roteiro {
 }
 
 model EtapaRoteiro {
-  id         Uuid      @id @default(uuid())
+  id         Uuid              @id @default(uuid())
   roteiroId  Uuid
   operacaoId Uuid
   ordem      Int
@@ -75,34 +75,32 @@ model EtapaRoteiro {
   @@index([operacaoId])
 }
 
-// =========================
-// PRODUTO ↔ ROTEIRO
-// =========================
-
 model ProdutoRoteiro {
-  id        Uuid      @id @default(uuid())
+  id        Uuid              @id @default(uuid())
   produtoId Uuid
   roteiroId Uuid
-  vigente   Boolean   @default(false)
+  vigente   Boolean           @default(false)
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
 
   produto Produto @relation(fields: [produtoId], references: [id])
   roteiro Roteiro @relation(fields: [roteiroId], references: [id])
 
-  @@unique([produtoId, roteiroId])
+    @@unique([produtoId, roteiroId])
+
+  @@index(
+    [produtoId],
+    unique: true,
+    where: "(\"vigente\" = true)",
+    name: "ProdutoRoteiro_vigente_unica"
+  )
+
   @@index([produtoId])
   @@index([roteiroId])
 }
 
-
-// =========================
-// PRODUTO + ETAPA
-// TEMPO PADRÃO
-// =========================
-
 model ProdutoEtapa {
-  id             Uuid      @id @default(uuid())
+  id             Uuid              @id @default(uuid())
   produtoId      Uuid
   etapaRoteiroId Uuid
   tempoPadrao    Numeric(10, 2)
@@ -118,8 +116,8 @@ model ProdutoEtapa {
 }
 
 model PlanoProducao {
-  id         Uuid      @id @default(uuid())
-  codigo     String    @unique
+  id         Uuid              @id @default(uuid())
+  codigo     String            @unique
   descricao  String?
   dataInicio Date?
   dataFim    Date?
@@ -130,8 +128,8 @@ model PlanoProducao {
 }
 
 model OrdemProducao {
-  id              Uuid      @id @default(uuid())
-  numero          String    @unique
+  id              Uuid              @id @default(uuid())
+  numero          String            @unique
   planoProducaoId Uuid
   produtoId       Uuid
   roteiroId       Uuid
@@ -140,20 +138,9 @@ model OrdemProducao {
   createdAt       TimestamptzString @default(now())
   updatedAt       TimestamptzString @default(now())
 
-  planoProducao PlanoProducao @relation(
-    fields: [planoProducaoId],
-    references: [id]
-  )
-
-  produto Produto @relation(
-    fields: [produtoId],
-    references: [id]
-  )
-
-  roteiro Roteiro @relation(
-    fields: [roteiroId],
-    references: [id]
-  )
+  planoProducao PlanoProducao @relation(fields: [planoProducaoId], references: [id])
+  produto       Produto       @relation(fields: [produtoId], references: [id])
+  roteiro       Roteiro       @relation(fields: [roteiroId], references: [id])
 
   execucoes Execucao[]
 
@@ -163,10 +150,10 @@ model OrdemProducao {
 }
 
 model Operador {
-  id        Uuid      @id @default(uuid())
-  matricula String    @unique
+  id        Uuid              @id @default(uuid())
+  matricula String            @unique
   nome      String
-  ativo     Boolean   @default(true)
+  ativo     Boolean           @default(true)
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
 
@@ -174,8 +161,8 @@ model Operador {
 }
 
 model Setor {
-  id        Uuid      @id @default(uuid())
-  nome      String    @unique
+  id        Uuid              @id @default(uuid())
+  nome      String            @unique
   descricao String?
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
@@ -184,18 +171,15 @@ model Setor {
 }
 
 model Posto {
-  id        Uuid      @id @default(uuid())
+  id        Uuid              @id @default(uuid())
   setorId   Uuid
-  codigo    String    @unique
+  codigo    String            @unique
   nome      String
-  ativo     Boolean   @default(true)
+  ativo     Boolean           @default(true)
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
 
-  setor Setor @relation(
-    fields: [setorId],
-    references: [id]
-  )
+  setor Setor @relation(fields: [setorId], references: [id])
 
   etapas    EtapaPosto[]
   execucoes Execucao[]
@@ -203,89 +187,87 @@ model Posto {
   @@index([setorId])
 }
 
-
-// =========================
-// ETAPA ↔ POSTO
-// =========================
-
 model EtapaPosto {
   etapaRoteiroId Uuid
   postoId        Uuid
 
-  etapaRoteiro EtapaRoteiro @relation(
-    fields: [etapaRoteiroId],
-    references: [id]
-  )
-
-  posto Posto @relation(
-    fields: [postoId],
-    references: [id]
-  )
+  etapaRoteiro EtapaRoteiro @relation(fields: [etapaRoteiroId], references: [id])
+  posto        Posto        @relation(fields: [postoId], references: [id])
 
   @@id([etapaRoteiroId, postoId])
   @@index([postoId])
 }
 
 model Execucao {
-  id                   Uuid            @id @default(uuid())
+  id                   Uuid              @id @default(uuid())
   ordemProducaoId      Uuid
   etapaRoteiroId       Uuid
   operadorId           Uuid
   postoId              Uuid
   status               StatusExecucao
+  tipoFinalizacao      TipoFinalizacao?
 
-  quantidadeBoa        Numeric(12, 2) @default(0)
-  quantidadeRetrabalho Numeric(12, 2) @default(0)
-  quantidadeRefugo     Numeric(12, 2) @default(0)
+  quantidadeBoa        Numeric(12, 2)?
+  quantidadeRetrabalho Numeric(12, 2)?
+  quantidadeRefugo     Numeric(12, 2)?
 
-  createdAt TimestamptzString @default(now())
-  updatedAt TimestamptzString @default(now())
+  criadoEm TimestamptzString @default(now())
 
-  ordemProducao OrdemProducao @relation(
-    fields: [ordemProducaoId],
-    references: [id]
-  )
-
-  etapaRoteiro EtapaRoteiro @relation(
-    fields: [etapaRoteiroId],
-    references: [id]
-  )
-
-  operador Operador @relation(
-    fields: [operadorId],
-    references: [id]
-  )
-
-  posto Posto @relation(
-    fields: [postoId],
-    references: [id]
-  )
+  ordemProducao OrdemProducao @relation(fields: [ordemProducaoId], references: [id])
+  etapaRoteiro EtapaRoteiro  @relation(fields: [etapaRoteiroId], references: [id])
+  operador     Operador      @relation(fields: [operadorId], references: [id])
+  posto        Posto         @relation(fields: [postoId], references: [id])
 
   eventosTempo EventoTempo[]
+
+  // Uma ordem só pode ter uma BAIXA efetiva
+  // para cada etapa.
+  @@index(
+    [ordemProducaoId, etapaRoteiroId],
+    unique: true,
+    where: "(\"tipoFinalizacao\" = 'BAIXA')",
+    name: "Execucao_baixa_unica"
+  )
+
+  // Consistência entre status e tipo de finalização:
+  //
+  // FINALIZADA  -> tipoFinalizacao obrigatório
+  // EM_EXECUCAO -> tipoFinalizacao nulo
+  // PAUSADA     -> tipoFinalizacao nulo
+  @@check(
+    expression: "(\"status\" = 'FINALIZADA' AND \"tipoFinalizacao\" IS NOT NULL) OR (\"status\" IN ('EM_EXECUCAO', 'PAUSADA') AND \"tipoFinalizacao\" IS NULL)",
+    name: "Execucao_status_finalizacao_check"
+  )
+
+  // Quantidades só existem quando a execução é finalizada por BAIXA.
+  // TROCA_OPERACAO não possui resultado.
+
+  @@check(
+    expression: "(\"tipoFinalizacao\" = 'BAIXA' AND \"quantidadeBoa\" IS NOT NULL AND \"quantidadeRetrabalho\" IS NOT NULL AND \"quantidadeRefugo\" IS NOT NULL) OR (\"tipoFinalizacao\" = 'TROCA_OPERACAO' AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL) OR (\"tipoFinalizacao\" IS NULL AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL)",
+    name: "Execucao_quantidades_finalizacao_check"
+  )
 
   @@index([ordemProducaoId])
   @@index([etapaRoteiroId])
   @@index([operadorId])
   @@index([postoId])
-  @@index([status])
 }
 
 model EventoTempo {
-  id            Uuid             @id @default(uuid())
+  id            Uuid              @id @default(uuid())
   execucaoId    Uuid
   tipo          TipoEventoTempo
   motivoPausaId Uuid?
   dataHora      TimestamptzString
   createdAt     TimestamptzString @default(now())
 
-  execucao Execucao @relation(
-    fields: [execucaoId],
-    references: [id]
-  )
+  execucao    Execucao     @relation(fields: [execucaoId], references: [id])
+  motivoPausa MotivoPausa? @relation(fields: [motivoPausaId], references: [id])
 
-  motivoPausa MotivoPausa? @relation(
-    fields: [motivoPausaId],
-    references: [id]
+  // Todo evento PAUSA precisa informar o motivo da pausa.
+  @@check(
+    expression: "(\"tipo\" <> 'PAUSA' OR \"motivoPausaId\" IS NOT NULL)",
+    name: "EventoTempo_pausa_motivo_check"
   )
 
   @@index([execucaoId, dataHora])
@@ -293,10 +275,10 @@ model EventoTempo {
 }
 
 model MotivoPausa {
-  id        Uuid      @id @default(uuid())
-  nome      String    @unique
+  id        Uuid              @id @default(uuid())
+  nome      String            @unique
   descricao String?
-  ativo     Boolean   @default(true)
+  ativo     Boolean           @default(true)
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
 

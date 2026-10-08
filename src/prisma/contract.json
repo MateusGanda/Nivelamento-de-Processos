@@ -106,6 +106,19 @@
                 "value": "FINALIZACAO"
               }
             ]
+          },
+          "TipoFinalizacao": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "TROCA_OPERACAO",
+                "value": "TROCA_OPERACAO"
+              },
+              {
+                "name": "BAIXA",
+                "value": "BAIXA"
+              }
+            ]
           }
         },
         "models": {
@@ -434,7 +447,7 @@
           },
           "Execucao": {
             "fields": {
-              "createdAt": {
+              "criadoEm": {
                 "nullable": false,
                 "type": {
                   "codecId": "pg/timestamptz-string@1",
@@ -477,7 +490,7 @@
                 }
               },
               "quantidadeBoa": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/numeric@1",
                   "kind": "scalar",
@@ -488,7 +501,7 @@
                 }
               },
               "quantidadeRefugo": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/numeric@1",
                   "kind": "scalar",
@@ -499,7 +512,7 @@
                 }
               },
               "quantidadeRetrabalho": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/numeric@1",
                   "kind": "scalar",
@@ -522,11 +535,17 @@
                   "plane": "domain"
                 }
               },
-              "updatedAt": {
-                "nullable": false,
+              "tipoFinalizacao": {
+                "nullable": true,
                 "type": {
-                  "codecId": "pg/timestamptz-string@1",
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "TipoFinalizacao",
+                  "namespaceId": "public",
+                  "plane": "domain"
                 }
               }
             },
@@ -613,8 +632,8 @@
             },
             "storage": {
               "fields": {
-                "createdAt": {
-                  "column": "createdAt"
+                "criadoEm": {
+                  "column": "criadoEm"
                 },
                 "etapaRoteiroId": {
                   "column": "etapaRoteiroId"
@@ -643,8 +662,8 @@
                 "status": {
                   "column": "status"
                 },
-                "updatedAt": {
-                  "column": "updatedAt"
+                "tipoFinalizacao": {
+                  "column": "tipoFinalizacao"
                 }
               },
               "namespaceId": "public",
@@ -2001,6 +2020,11 @@
             "EventoTempo": {
               "checks": [
                 {
+                  "expression": "(\"tipo\" <> 'PAUSA' OR \"motivoPausaId\" IS NOT NULL)",
+                  "name": "EventoTempo_pausa_motivo_check_f24c7449",
+                  "prefix": "EventoTempo_pausa_motivo_check"
+                },
+                {
                   "expression": "\"tipo\" IN ('INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO')",
                   "name": "EventoTempo_tipo_check_c655f9d0",
                   "prefix": "EventoTempo_tipo_check"
@@ -2119,13 +2143,28 @@
             "Execucao": {
               "checks": [
                 {
+                  "expression": "(\"tipoFinalizacao\" = 'BAIXA' AND \"quantidadeBoa\" IS NOT NULL AND \"quantidadeRetrabalho\" IS NOT NULL AND \"quantidadeRefugo\" IS NOT NULL) OR (\"tipoFinalizacao\" = 'TROCA_OPERACAO' AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL) OR (\"tipoFinalizacao\" IS NULL AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL)",
+                  "name": "Execucao_quantidades_finalizacao_check_1fc31576",
+                  "prefix": "Execucao_quantidades_finalizacao_check"
+                },
+                {
                   "expression": "\"status\" IN ('EM_EXECUCAO', 'PAUSADA', 'FINALIZADA')",
                   "name": "Execucao_status_check_03bbbb48",
                   "prefix": "Execucao_status_check"
+                },
+                {
+                  "expression": "(\"status\" = 'FINALIZADA' AND \"tipoFinalizacao\" IS NOT NULL) OR (\"status\" IN ('EM_EXECUCAO', 'PAUSADA') AND \"tipoFinalizacao\" IS NULL)",
+                  "name": "Execucao_status_finalizacao_check_491cacf7",
+                  "prefix": "Execucao_status_finalizacao_check"
+                },
+                {
+                  "expression": "\"tipoFinalizacao\" IN ('TROCA_OPERACAO', 'BAIXA')",
+                  "name": "Execucao_tipoFinalizacao_check_874252b2",
+                  "prefix": "Execucao_tipoFinalizacao_check"
                 }
               ],
               "columns": {
-                "createdAt": {
+                "criadoEm": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
                     "expression": "now()",
@@ -2161,12 +2200,8 @@
                 },
                 "quantidadeBoa": {
                   "codecId": "pg/numeric@1",
-                  "default": {
-                    "kind": "literal",
-                    "value": "0"
-                  },
                   "nativeType": "numeric",
-                  "nullable": false,
+                  "nullable": true,
                   "typeParams": {
                     "precision": 12,
                     "scale": 2
@@ -2174,12 +2209,8 @@
                 },
                 "quantidadeRefugo": {
                   "codecId": "pg/numeric@1",
-                  "default": {
-                    "kind": "literal",
-                    "value": "0"
-                  },
                   "nativeType": "numeric",
-                  "nullable": false,
+                  "nullable": true,
                   "typeParams": {
                     "precision": 12,
                     "scale": 2
@@ -2187,12 +2218,8 @@
                 },
                 "quantidadeRetrabalho": {
                   "codecId": "pg/numeric@1",
-                  "default": {
-                    "kind": "literal",
-                    "value": "0"
-                  },
                   "nativeType": "numeric",
-                  "nullable": false,
+                  "nullable": true,
                   "typeParams": {
                     "precision": 12,
                     "scale": 2
@@ -2209,14 +2236,16 @@
                     "plane": "storage"
                   }
                 },
-                "updatedAt": {
-                  "codecId": "pg/timestamptz-string@1",
-                  "default": {
-                    "expression": "now()",
-                    "kind": "function"
-                  },
-                  "nativeType": "timestamptz",
-                  "nullable": false
+                "tipoFinalizacao": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "TipoFinalizacao",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
                 }
               },
               "foreignKeys": [
@@ -2288,6 +2317,16 @@
               "indexes": [
                 {
                   "columns": [
+                    "ordemProducaoId",
+                    "etapaRoteiroId"
+                  ],
+                  "name": "Execucao_baixa_unica_d8d722ee",
+                  "prefix": "Execucao_baixa_unica",
+                  "unique": true,
+                  "where": "(\"tipoFinalizacao\" = 'BAIXA')"
+                },
+                {
+                  "columns": [
                     "etapaRoteiroId"
                   ],
                   "name": "Execucao_etapaRoteiroId_idx_17d641ff",
@@ -2316,14 +2355,6 @@
                   ],
                   "name": "Execucao_postoId_idx_13be8f3c",
                   "prefix": "Execucao_postoId_idx",
-                  "unique": false
-                },
-                {
-                  "columns": [
-                    "status"
-                  ],
-                  "name": "Execucao_status_idx_e98638ab",
-                  "prefix": "Execucao_status_idx",
                   "unique": false
                 }
               ],
@@ -3063,6 +3094,15 @@
                   "name": "ProdutoRoteiro_roteiroId_idx_1cd14ed6",
                   "prefix": "ProdutoRoteiro_roteiroId_idx",
                   "unique": false
+                },
+                {
+                  "columns": [
+                    "produtoId"
+                  ],
+                  "name": "ProdutoRoteiro_vigente_unica_c7c5c582",
+                  "prefix": "ProdutoRoteiro_vigente_unica",
+                  "unique": true,
+                  "where": "(\"vigente\" = true)"
                 }
               ],
               "primaryKey": {
@@ -3209,6 +3249,13 @@
                 "RETOMADA",
                 "FINALIZACAO"
               ]
+            },
+            "TipoFinalizacao": {
+              "kind": "valueSet",
+              "values": [
+                "TROCA_OPERACAO",
+                "BAIXA"
+              ]
             }
           }
         },
@@ -3216,7 +3263,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "19b624abd11aec698991afc8a69ddd614dd7df0f5684e31a4a669d5ee40353ce"
+    "storageHash": "b88199d5c182ccd303fcf495e7d223401d7695642a802ebbd1ed1cac8b7c4125"
   },
   "execution": {
     "executionHash": "bcf732fc48f30b5958e0ef47e462bc3c4b78c57d7fe3b7e04b71995da1754eea",

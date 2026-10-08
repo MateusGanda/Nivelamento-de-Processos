@@ -1,6 +1,6 @@
 #!/usr/bin/env -S node
-import type { Contract as End } from '../../snapshots/19b624abd11aec698991afc8a69ddd614dd7df0f5684e31a4a669d5ee40353ce/contract';
-import endContract from '../../snapshots/19b624abd11aec698991afc8a69ddd614dd7df0f5684e31a4a669d5ee40353ce/contract.json' with { type: 'json' };
+import type { Contract as End } from '../../snapshots/b88199d5c182ccd303fcf495e7d223401d7695642a802ebbd1ed1cac8b7c4125/contract';
+import endContract from '../../snapshots/b88199d5c182ccd303fcf495e7d223401d7695642a802ebbd1ed1cac8b7c4125/contract.json' with { type: 'json' };
 import {
   Migration,
   MigrationCLI,
@@ -68,6 +68,10 @@ export default class M extends Migration<never, End> {
         constraints: [
           primaryKey(['id']),
           checkExpression(
+            'EventoTempo_pausa_motivo_check_f24c7449',
+            '("tipo" <> \'PAUSA\' OR "motivoPausaId" IS NOT NULL)',
+          ),
+          checkExpression(
             'EventoTempo_tipo_check_c655f9d0',
             "\"tipo\" IN ('INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO')",
           ),
@@ -77,7 +81,7 @@ export default class M extends Migration<never, End> {
         schema: 'public',
         table: 'Execucao',
         columns: [
-          col('createdAt', 'timestamptz', {
+          col('criadoEm', 'timestamptz', {
             notNull: true,
             default: fn('now()'),
             codecRef: { codecId: 'pg/timestamptz-string@1' },
@@ -88,32 +92,34 @@ export default class M extends Migration<never, End> {
           col('ordemProducaoId', 'uuid', { notNull: true, codecRef: { codecId: 'pg/uuid@1' } }),
           col('postoId', 'uuid', { notNull: true, codecRef: { codecId: 'pg/uuid@1' } }),
           col('quantidadeBoa', 'numeric(12,2)', {
-            notNull: true,
-            default: lit('0'),
             codecRef: { codecId: 'pg/numeric@1', typeParams: { precision: 12, scale: 2 } },
           }),
           col('quantidadeRefugo', 'numeric(12,2)', {
-            notNull: true,
-            default: lit('0'),
             codecRef: { codecId: 'pg/numeric@1', typeParams: { precision: 12, scale: 2 } },
           }),
           col('quantidadeRetrabalho', 'numeric(12,2)', {
-            notNull: true,
-            default: lit('0'),
             codecRef: { codecId: 'pg/numeric@1', typeParams: { precision: 12, scale: 2 } },
           }),
           col('status', 'text', { notNull: true, codecRef: { codecId: 'pg/text@1' } }),
-          col('updatedAt', 'timestamptz', {
-            notNull: true,
-            default: fn('now()'),
-            codecRef: { codecId: 'pg/timestamptz-string@1' },
-          }),
+          col('tipoFinalizacao', 'text', { codecRef: { codecId: 'pg/text@1' } }),
         ],
         constraints: [
           primaryKey(['id']),
           checkExpression(
+            'Execucao_quantidades_finalizacao_check_1fc31576',
+            '("tipoFinalizacao" = \'BAIXA\' AND "quantidadeBoa" IS NOT NULL AND "quantidadeRetrabalho" IS NOT NULL AND "quantidadeRefugo" IS NOT NULL) OR ("tipoFinalizacao" = \'TROCA_OPERACAO\' AND "quantidadeBoa" IS NULL AND "quantidadeRetrabalho" IS NULL AND "quantidadeRefugo" IS NULL) OR ("tipoFinalizacao" IS NULL AND "quantidadeBoa" IS NULL AND "quantidadeRetrabalho" IS NULL AND "quantidadeRefugo" IS NULL)',
+          ),
+          checkExpression(
             'Execucao_status_check_03bbbb48',
             "\"status\" IN ('EM_EXECUCAO', 'PAUSADA', 'FINALIZADA')",
+          ),
+          checkExpression(
+            'Execucao_status_finalizacao_check_491cacf7',
+            '("status" = \'FINALIZADA\' AND "tipoFinalizacao" IS NOT NULL) OR ("status" IN (\'EM_EXECUCAO\', \'PAUSADA\') AND "tipoFinalizacao" IS NULL)',
+          ),
+          checkExpression(
+            'Execucao_tipoFinalizacao_check_874252b2',
+            "\"tipoFinalizacao\" IN ('TROCA_OPERACAO', 'BAIXA')",
           ),
         ],
       }),
@@ -493,6 +499,13 @@ export default class M extends Migration<never, End> {
       this.createIndex({
         schema: 'public',
         table: 'Execucao',
+        index: 'Execucao_baixa_unica_d8d722ee',
+        columns: ['ordemProducaoId', 'etapaRoteiroId'],
+        extras: { where: '("tipoFinalizacao" = \'BAIXA\')', unique: true },
+      }),
+      this.createIndex({
+        schema: 'public',
+        table: 'Execucao',
         index: 'Execucao_etapaRoteiroId_idx_17d641ff',
         columns: ['etapaRoteiroId'],
       }),
@@ -513,12 +526,6 @@ export default class M extends Migration<never, End> {
         table: 'Execucao',
         index: 'Execucao_postoId_idx_13be8f3c',
         columns: ['postoId'],
-      }),
-      this.createIndex({
-        schema: 'public',
-        table: 'Execucao',
-        index: 'Execucao_status_idx_e98638ab',
-        columns: ['status'],
       }),
       this.createIndex({
         schema: 'public',
@@ -567,6 +574,13 @@ export default class M extends Migration<never, End> {
         table: 'ProdutoRoteiro',
         index: 'ProdutoRoteiro_roteiroId_idx_1cd14ed6',
         columns: ['roteiroId'],
+      }),
+      this.createIndex({
+        schema: 'public',
+        table: 'ProdutoRoteiro',
+        index: 'ProdutoRoteiro_vigente_unica_c7c5c582',
+        columns: ['produtoId'],
+        extras: { where: '("vigente" = true)', unique: true },
       }),
       this.addForeignKey({
         schema: 'public',
