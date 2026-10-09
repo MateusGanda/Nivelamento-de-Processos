@@ -29,29 +29,34 @@ export function conferirResultado(quantidadeOrdem: number, resultado: Resultado)
   return { total: total / 100, diferenca: (esperado - total) / 100, confere: esperado === total };
 }
 
-/** Mesmos valores de StatusExecucao no contrato do banco. */
-export type StatusExecucao = 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-export type ExecucaoDaEtapa = Resultado & { status: StatusExecucao };
+/** Mesmos valores de TipoFinalizacao no contrato do banco. Nulo: execução ainda aberta. */
+export type TipoFinalizacao = 'TROCA_OPERACAO' | 'BAIXA';
+/** Execução como está no banco: as quantidades só existem na finalização por BAIXA. */
+export type ExecucaoDaEtapa = {
+  tipoFinalizacao: TipoFinalizacao | null;
+  quantidadeBoa: number | null;
+  quantidadeRetrabalho: number | null;
+  quantidadeRefugo: number | null;
+};
 export type SituacaoBaixa = 'SEM_BAIXA' | 'BAIXADA' | 'INCONSISTENTE';
 
-/** Baixa de UMA etapa de UMA ordem. Regra adotada nos cálculos: a baixa é a
- * execução FINALIZADA que informa quantidades. Execução finalizada por troca de
- * operação fica com as três quantidades em zero e não conta como baixa.
- * A baixa vale quando é única e soma a quantidade da ordem; qualquer outra
- * combinação com quantidade informada é inconsistência, não baixa.
+/** Baixa de UMA etapa de UMA ordem: a execução com tipoFinalizacao BAIXA.
+ * Execução aberta ou finalizada por TROCA_OPERACAO não é baixa.
+ * O banco garante baixa única por ordem e etapa, com as três quantidades. Ele
+ * não confere a soma com a quantidade da ordem: baixa com soma diferente é
+ * inconsistência, e a etapa não conta como baixada.
  */
 export function identificarBaixa(quantidadeOrdem: number, execucoes: readonly ExecucaoDaEtapa[]): { situacao: SituacaoBaixa; resultado: Resultado | null } {
   if (centesimos(quantidadeOrdem, 'Quantidade da ordem') === 0) throw new Error('Quantidade da ordem deve ser positiva.');
-  const comQuantidade = execucoes.filter(e => somarResultados([e]).total > 0);
-  if (comQuantidade.length === 0) return { situacao: 'SEM_BAIXA', resultado: null };
-  const [unica] = comQuantidade;
-  if (comQuantidade.length > 1 || unica.status !== 'FINALIZADA' || !conferirResultado(quantidadeOrdem, unica).confere) {
+  const baixas = execucoes.filter(e => e.tipoFinalizacao === 'BAIXA');
+  if (baixas.length === 0) return { situacao: 'SEM_BAIXA', resultado: null };
+  const [{ quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo }] = baixas;
+  if (baixas.length > 1 || quantidadeBoa === null || quantidadeRetrabalho === null || quantidadeRefugo === null) {
     return { situacao: 'INCONSISTENTE', resultado: null };
   }
-  return {
-    situacao: 'BAIXADA',
-    resultado: { quantidadeBoa: unica.quantidadeBoa, quantidadeRetrabalho: unica.quantidadeRetrabalho, quantidadeRefugo: unica.quantidadeRefugo },
-  };
+  const resultado = { quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo };
+  if (!conferirResultado(quantidadeOrdem, resultado).confere) return { situacao: 'INCONSISTENTE', resultado: null };
+  return { situacao: 'BAIXADA', resultado };
 }
 
 /** Posição de UMA ordem no seu roteiro. A sequência das etapas é só nominal:
