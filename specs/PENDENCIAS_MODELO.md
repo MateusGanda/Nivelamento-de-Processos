@@ -1,6 +1,6 @@
 # Pendências e fundamentos do modelo de dados
 
-Atualizado em 07/10/2026. Responsável: Mateus.
+Atualizado em 08/10/2026. Responsável: Mateus.
 
 O modelo de dados está em `src/prisma/contract.prisma` e as regras consolidadas em `docs/AI_CONTEXT.md`; este documento não os repete. Ele guarda duas coisas que não estão em outro lugar do repositório: as respostas da empresa que fundamentaram o modelo e a lista de decisões ainda abertas.
 
@@ -19,8 +19,8 @@ Nada aqui é decisão tomada. As recomendações são sugestões para a equipe a
 
 | # | Pendência | Por que importa | Recomendação | Quem decide |
 | --- | --- | --- | --- | --- |
-| 1 | **Baixa efetiva.** Uma execução `FINALIZADA` é sempre a baixa da etapa? Como distinguir a finalização por troca de operação da finalização com baixa? | Sem isso não dá para dizer em qual etapa a ordem está, nem calcular produção e carga pendente. | Os cálculos de indicadores já adotam: a baixa é a execução finalizada que informa as quantidades (ver `contratos/indicadores.md`). Falta a equipe confirmar e registrar no `AI_CONTEXT.md`. | Equipe |
-| 2 | **Quantidades com padrão zero.** `quantidadeBoa`, `quantidadeRetrabalho` e `quantidadeRefugo` nascem com 0. | Zero produzido e "ainda não informado" ficam iguais no banco. | Não bloqueia os cálculos: uma baixa válida soma a quantidade da ordem, que é maior que zero. Campos nulos deixariam o banco mais claro, mas é opcional. | Equipe (altera o contrato) |
+| 1 | **Soma e sinal das quantidades.** O banco aceita baixa com soma diferente da quantidade da ordem e com quantidade negativa. | A regra `boa + retrabalho + refugo = quantidade da ordem` fica sem proteção se o comando de baixa não validar. | Validar na transação da baixa. Avaliar uma restrição de verificação para quantidade negativa. | Equipe |
+| 2 | **Execuções abertas por operador.** O banco aceita duas execuções abertas ou pausadas do mesmo operador. | A regra existe no `AI_CONTEXT.md` e precisa valer também com dois comandos ao mesmo tempo. | Avaliar um índice único em `Execucao (operadorId)` para execuções sem `tipoFinalizacao`, como o que já existe para a baixa. | Equipe (altera o contrato) |
 | 3 | **Entrada do tempo padrão.** O sistema trabalha com segundos por unidade produzida (decisão de 07/10). | Se a empresa registra em minutos ou centésimos de minuto, o valor precisa ser convertido ao cadastrar. | Perguntar à empresa em que unidade ela registra e converter no cadastro ou na importação. | Empresa informa |
 | 4 | **Proteção contra reenvio.** Não há identificador de solicitação em `Execucao` nem em `EventoTempo`. | O `ARCHITECTURE.md` exige que duplo clique ou reenvio não dupliquem evento nem baixa. | Definir junto com os comandos de apontamento. | Equipe |
 | 5 | **Correção de apontamento.** Não há histórico de correção. | Uma baixa errada precisa ser corrigida sem perder o registro original. | Definir antes do piloto. | Equipe |
@@ -34,6 +34,9 @@ Nada aqui é decisão tomada. As recomendações são sugestões para a equipe a
 
 ## Já resolvido pelo contrato
 
+- **Baixa efetiva (08/10).** `Execucao.tipoFinalizacao` distingue `BAIXA` de `TROCA_OPERACAO`. O banco garante uma única baixa por ordem e etapa, com as três quantidades; troca de operação e execução aberta ficam sem quantidades.
+- **Quantidades sem padrão zero (08/10).** As três quantidades passaram a aceitar nulo, então "não informado" e "zero produzido" não se confundem mais.
+- Pausa exige motivo, e cada produto tem um único roteiro vigente.
 - Toda ordem pertence a um plano de produção (`planoProducaoId` obrigatório).
 - `status` da execução e `tipo` do evento são enumerações.
 - `Roteiro(nome, versao)`, `EtapaRoteiro(roteiroId, ordem)`, `ProdutoRoteiro(produtoId, roteiroId)` e `ProdutoEtapa(produtoId, etapaRoteiroId)` são únicos.

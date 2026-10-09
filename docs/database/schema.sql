@@ -1,6 +1,6 @@
 -- Script de criação do banco de dados do GUNP (PostgreSQL)
 --
--- Gerado a partir da migração migrations/app/20261006T1821_init (2026-10-06).
+-- Gerado a partir da migração migrations/app/20261008T1833_init (2026-10-08).
 -- A migração do Prisma continua sendo a fonte oficial; este arquivo reúne os
 -- mesmos comandos SQL, na mesma ordem, para consulta e para criar o banco
 -- manualmente em um PostgreSQL vazio.
@@ -41,23 +41,27 @@ CREATE TABLE "public"."EventoTempo" (
   "motivoPausaId" uuid,
   "tipo" text NOT NULL,
   PRIMARY KEY ("id"),
+  CONSTRAINT "EventoTempo_pausa_motivo_check_f24c7449" CHECK (("tipo" <> 'PAUSA' OR "motivoPausaId" IS NOT NULL)),
   CONSTRAINT "EventoTempo_tipo_check_c655f9d0" CHECK ("tipo" IN ('INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO'))
 );
 
 CREATE TABLE "public"."Execucao" (
-  "createdAt" timestamptz DEFAULT (now()) NOT NULL,
+  "criadoEm" timestamptz DEFAULT (now()) NOT NULL,
   "etapaRoteiroId" uuid NOT NULL,
   "id" uuid NOT NULL,
   "operadorId" uuid NOT NULL,
   "ordemProducaoId" uuid NOT NULL,
   "postoId" uuid NOT NULL,
-  "quantidadeBoa" numeric(12,2) DEFAULT '0'::numeric(12,2) NOT NULL,
-  "quantidadeRefugo" numeric(12,2) DEFAULT '0'::numeric(12,2) NOT NULL,
-  "quantidadeRetrabalho" numeric(12,2) DEFAULT '0'::numeric(12,2) NOT NULL,
+  "quantidadeBoa" numeric(12,2),
+  "quantidadeRefugo" numeric(12,2),
+  "quantidadeRetrabalho" numeric(12,2),
   "status" text NOT NULL,
-  "updatedAt" timestamptz DEFAULT (now()) NOT NULL,
+  "tipoFinalizacao" text,
   PRIMARY KEY ("id"),
-  CONSTRAINT "Execucao_status_check_03bbbb48" CHECK ("status" IN ('EM_EXECUCAO', 'PAUSADA', 'FINALIZADA'))
+  CONSTRAINT "Execucao_quantidades_finalizacao_check_1fc31576" CHECK (("tipoFinalizacao" = 'BAIXA' AND "quantidadeBoa" IS NOT NULL AND "quantidadeRetrabalho" IS NOT NULL AND "quantidadeRefugo" IS NOT NULL) OR ("tipoFinalizacao" = 'TROCA_OPERACAO' AND "quantidadeBoa" IS NULL AND "quantidadeRetrabalho" IS NULL AND "quantidadeRefugo" IS NULL) OR ("tipoFinalizacao" IS NULL AND "quantidadeBoa" IS NULL AND "quantidadeRetrabalho" IS NULL AND "quantidadeRefugo" IS NULL)),
+  CONSTRAINT "Execucao_status_check_03bbbb48" CHECK ("status" IN ('EM_EXECUCAO', 'PAUSADA', 'FINALIZADA')),
+  CONSTRAINT "Execucao_status_finalizacao_check_491cacf7" CHECK (("status" = 'FINALIZADA' AND "tipoFinalizacao" IS NOT NULL) OR ("status" IN ('EM_EXECUCAO', 'PAUSADA') AND "tipoFinalizacao" IS NULL)),
+  CONSTRAINT "Execucao_tipoFinalizacao_check_874252b2" CHECK ("tipoFinalizacao" IN ('TROCA_OPERACAO', 'BAIXA'))
 );
 
 CREATE TABLE "public"."MotivoPausa" (
@@ -218,6 +222,8 @@ CREATE INDEX "EventoTempo_execucaoId_idx_a797c763" ON "public"."EventoTempo" ("e
 
 CREATE INDEX "EventoTempo_motivoPausaId_idx_82c69795" ON "public"."EventoTempo" ("motivoPausaId");
 
+CREATE UNIQUE INDEX "Execucao_baixa_unica_d8d722ee" ON "public"."Execucao" ("ordemProducaoId", "etapaRoteiroId") WHERE (("tipoFinalizacao" = 'BAIXA'));
+
 CREATE INDEX "Execucao_etapaRoteiroId_idx_17d641ff" ON "public"."Execucao" ("etapaRoteiroId");
 
 CREATE INDEX "Execucao_operadorId_idx_b7d31568" ON "public"."Execucao" ("operadorId");
@@ -225,8 +231,6 @@ CREATE INDEX "Execucao_operadorId_idx_b7d31568" ON "public"."Execucao" ("operado
 CREATE INDEX "Execucao_ordemProducaoId_idx_422138c7" ON "public"."Execucao" ("ordemProducaoId");
 
 CREATE INDEX "Execucao_postoId_idx_13be8f3c" ON "public"."Execucao" ("postoId");
-
-CREATE INDEX "Execucao_status_idx_e98638ab" ON "public"."Execucao" ("status");
 
 CREATE INDEX "OrdemProducao_planoProducaoId_idx_d14976d3" ON "public"."OrdemProducao" ("planoProducaoId");
 
@@ -243,6 +247,8 @@ CREATE INDEX "ProdutoEtapa_produtoId_idx_eb62fdb9" ON "public"."ProdutoEtapa" ("
 CREATE INDEX "ProdutoRoteiro_produtoId_idx_eb62fdb9" ON "public"."ProdutoRoteiro" ("produtoId");
 
 CREATE INDEX "ProdutoRoteiro_roteiroId_idx_1cd14ed6" ON "public"."ProdutoRoteiro" ("roteiroId");
+
+CREATE UNIQUE INDEX "ProdutoRoteiro_vigente_unica_c7c5c582" ON "public"."ProdutoRoteiro" ("produtoId") WHERE (("vigente" = true));
 
 -- ============================================================
 -- Chaves estrangeiras

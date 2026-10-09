@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Arquivos gerados pelo Prisma:
+    "src/prisma/contract.d.ts",
+    "migrations/**",
+    // Instruções para IA copiadas pelo "prisma skills sync":
+    ".agents/**",
+    ".claude/**",
+    ".cursor/**",
+    ".devin/**",
   ]),
 ]);
 
