@@ -1,0 +1,49 @@
+# Roda em todo pull request para a develop e a main, e a cada push nelas.
+# Se algum passo falhar, o PR aparece com um X vermelho antes do merge.
+name: Verificação
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verificacao-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Lint, tipos, testes e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Valor fictício: nenhum passo se conecta ao banco.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      DO_NOT_TRACK: 1
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tipos
+        run: npm run typecheck
+
+      - name: Testes
+        run: npm test
+
+      - name: Build
+        run: npm run build
