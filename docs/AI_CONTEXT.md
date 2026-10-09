@@ -45,7 +45,7 @@ O projeto usa o fluxo de contratos do Prisma 8, não o fluxo legado de `schema.p
 | `src/prisma/contract.prisma` | Contrato do modelo de dados; deve começar com `// use prisma-8`. |
 | `src/prisma/db.ts` | Camada de acesso/conexão usada pela Infrastructure. |
 
-O estado informado no histórico de desenvolvimento é: o contrato foi escrito, o `prisma.config.ts` usa `@prisma/cli-engine` e `@prisma/orm-postgres/config`, e `npx prisma contract emit` foi executado com sucesso. A próxima etapa prevista era revisar o contrato/modelo e gerar uma primeira migration, mas a aplicação da migration não foi confirmada neste contexto.
+Estado em 08/10/2026: o contrato foi revisado, o `prisma.config.ts` usa `@prisma/cli-engine` e `@prisma/orm-postgres/config`, `npx prisma contract emit` foi executado e a migration inicial `migrations/app/20261008T1833_init` foi aplicada no PostgreSQL da equipe. `npx prisma db verify` confere o banco contra o contrato sem alterar nada; `npx prisma db migrate` aplica migrations pendentes.
 
 Não reintroduzir `schema.prisma`, blocos `generator client` ou `datasource` no contrato. Não trocar o fluxo por comandos, sintaxe ou configuração de versões antigas do Prisma. Tipos PostgreSQL do contrato seguem a sintaxe do Prisma 8, como `Uuid`, `Numeric(12, 2)`, `Date` e `TimestamptzString`, conforme a necessidade já modelada.
 
@@ -120,17 +120,16 @@ Uma Ordem mantém o roteiro explicitamente referenciado, mesmo se a versão vige
 - Não tratar um conjunto de máquinas como um único posto sem que seja realmente um recurso identificável.
 - A posição da etapa no roteiro não bloqueia ou libera outras etapas no MVP.
 
-## Pendência crítica: `FINALIZADA`, troca e baixa efetiva
+## Finalização, troca de operação e baixa efetiva
 
-Há uma tensão ainda **não resolvida** que deve permanecer explícita:
+A tensão entre `FINALIZADA`, troca de operação e baixa efetiva foi resolvida no contrato em 08/10/2026 com o campo `Execucao.tipoFinalizacao`:
 
-1. `FINALIZADA` é terminal e a troca de operação manda finalizar a execução atual antes de criar outra.
-2. Uma Ordem pode ter várias Execuções para a mesma etapa.
-3. A baixa efetiva dessa etapa só pode ocorrer uma vez e envolve a quantidade integral da Ordem.
+- `tipoFinalizacao` é `TROCA_OPERACAO` ou `BAIXA` e só existe em execução `FINALIZADA`; execução `EM_EXECUCAO` ou `PAUSADA` fica com o campo nulo.
+- A baixa efetiva de uma etapa é a Execução finalizada com `tipoFinalizacao = BAIXA`. `FINALIZADA` sozinha não equivale à baixa.
+- As quantidades `boa`, `retrabalho` e `refugo` são gravadas no momento da baixa e são obrigatórias nela. Troca de operação e execução aberta não têm quantidades.
+- Só pode existir uma baixa por `(ordemProducaoId, etapaRoteiroId)`. As demais Execuções da mesma etapa continuam permitidas como histórico.
 
-O material disponível não define se toda `FINALIZADA` representa a baixa efetiva, como identificar a execução que realizou a baixa, em qual momento as quantidades são gravadas, nem como distinguir uma finalização por troca de operação de uma baixa efetiva. Portanto, **não** criar campo, status, entidade, restrição única parcial, automação ou interpretação para resolver essa tensão. Em especial, não assumir que `FINALIZADA` sozinha equivale à baixa efetiva.
-
-Até decisão explícita, manter múltiplas Execuções históricas para `(ordemProducaoId, etapaRoteiroId)` e tratar a unicidade da baixa como uma regra pendente de modelagem, não como unicidade simples de execução.
+O banco garante essas quatro regras com restrições de verificação e um índice único parcial. Ele **não** garante que `boa + retrabalho + refugo` seja igual à quantidade da Ordem, nem que as quantidades sejam não negativas: essas validações pertencem à transação da baixa.
 
 ## Modelo relacional atual reportado
 
@@ -143,7 +142,9 @@ As relações principais e identificadores relatados são:
 - `EtapaPosto` usa chave primária composta `(etapaRoteiroId, postoId)`.
 - Códigos de Produto, PlanoProducao, OrdemProducao, Posto e matrículas de Operador são únicos; Operacao, Setor e MotivoPausa usam nome único.
 - `OrdemProducao` referencia PlanoProducao, Produto e Roteiro; `Execucao` referencia OrdemProducao, EtapaRoteiro, Operador e Posto; `EventoTempo` referencia Execucao e, opcionalmente, MotivoPausa.
-- O contrato reportado contém em `Execucao` os campos de resultado `quantidadeBoa`, `quantidadeRetrabalho` e `quantidadeRefugo`, e índices para suas chaves de consulta. Esses campos não eliminam a pendência crítica acima.
+- `Execucao` contém `tipoFinalizacao` e os campos de resultado `quantidadeBoa`, `quantidadeRetrabalho` e `quantidadeRefugo`, todos opcionais, além de índices para suas chaves de consulta.
+- Índices únicos parciais: uma baixa por `Execucao(ordemProducaoId, etapaRoteiroId)` e um roteiro vigente por `ProdutoRoteiro(produtoId)`.
+- Restrições de verificação: coerência entre `status` e `tipoFinalizacao`, quantidades presentes só na baixa e MotivoPausa obrigatório em evento `PAUSA`.
 
 Este é o modelo atual de trabalho, não autorização para acrescentar colunas ou relações. Compare qualquer alteração ao `contract.prisma` real antes de editar, pois esta cópia de contexto não substitui o arquivo versionado.
 
@@ -153,11 +154,11 @@ Aplicar PKs, FKs, obrigatoriedade, unicidades e índices que o contrato consolid
 
 Em particular:
 
-- não impor unicidade simples em `(ordemProducaoId, etapaRoteiroId)`: múltiplas execuções legítimas são permitidas;
+- não impor unicidade simples em `(ordemProducaoId, etapaRoteiroId)`: múltiplas execuções legítimas são permitidas, e a unicidade vale só para a baixa;
 - impedir duas execuções abertas para o mesmo operador, incluindo `PAUSADA`, também sob concorrência;
 - validar que a etapa de uma Execução pertence ao Roteiro referenciado pela Ordem; isso pode exigir validação transacional se não estiver expresso por FK;
 - validar compatibilidade entre EtapaRoteiro e Posto por `EtapaPosto`;
-- validar sequência e coerência de EventoTempo, MotivoPausa em pausa, execução terminal sem novos eventos e a igualdade das quantidades quando a baixa efetiva estiver definida;
+- validar sequência e coerência de EventoTempo, MotivoPausa em pausa, execução terminal sem novos eventos e a igualdade das quantidades com a quantidade da Ordem na baixa;
 - tratar troca de operação como alteração atômica: fechar a execução anterior e abrir a nova na mesma transação;
 - tornar comandos críticos idempotentes para que reenvios não dupliquem eventos, execuções ou produção.
 
@@ -165,12 +166,10 @@ Não escolher unilateralmente a técnica de constraint parcial, lock, controle o
 
 ## Próximos passos
 
-1. Revisar o `src/prisma/contract.prisma` contra este contexto e contra a fonte conceitual atualizada.
-2. Resolver explicitamente a pendência entre finalização, troca e baixa efetiva antes de codificar sua persistência definitiva.
-3. Produzir e revisar a primeira migration e seu SQL somente após essa validação.
-4. Aplicar a migration no PostgreSQL e verificar `src/prisma/db.ts`.
-5. Implementar repositories/adapters na Infrastructure, casos de uso e validações transacionais.
-6. Cobrir transições, integridade, idempotência e concorrência com testes quando o framework de testes for decidido.
+A revisão do contrato, a definição da baixa efetiva e a aplicação da migration inicial foram concluídas em 08/10/2026. Seguem:
+
+1. Implementar repositories/adapters na Infrastructure, casos de uso e validações transacionais.
+2. Cobrir transições, integridade, idempotência e concorrência com testes.
 
 ## Instruções diretas à IA
 
