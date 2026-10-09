@@ -1,8 +1,8 @@
-# Banco de dados local do GUNP. Todos usam a mesma versão do PostgreSQL.
+# Banco de dados local do GUNP, na mesma versão do PostgreSQL do banco da equipe.
 # Uso: copie .env.example para .env, troque a senha e rode "docker compose up -d".
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     container_name: gunp-db
     restart: unless-stopped
     environment:
@@ -12,7 +12,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-55432}:5432"
     volumes:
-      - gunp-db-data:/var/lib/postgresql/data
+      - gunp-db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
