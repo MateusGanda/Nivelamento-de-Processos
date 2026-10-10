@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GUNP — Nivelamento de processos
 
-## Getting Started
+Sistema web acadêmico com Next.js, React, TypeScript, API REST interna, Prisma 8 e PostgreSQL. A entrega atual inclui apresentação, login, menu e painel com consulta de produtos no banco.
 
-First, run the development server:
+## Executar localmente
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+# Somente se ainda não existir .env:
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Configure `DATABASE_URL` no `.env` com a conexão do Neon ou com o PostgreSQL local. Preserve a conexão que já funciona. Para banco local, consulte [docs/database/README.md](docs/database/README.md).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run access:setup
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+O primeiro comando solicita o e-mail e gera uma senha de acesso. Guarde a senha exibida. O `.env` recebe o hash scrypt e o segredo da sessão; não envie esse arquivo ao Git. Abra http://localhost:3000, entre na sua conta e consulte o painel.
 
-## Learn More
+O acesso inicial usa uma conta configurada no servidor. O banco atual não possui contas de usuário; Operador continua sendo uma entidade da produção. Não foram criadas migrations nesta entrega.
 
-To learn more about Next.js, take a look at the following resources:
+## Guia da entrega
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Veja [docs/TELA_INICIAL_E_LOGIN.md](docs/TELA_INICIAL_E_LOGIN.md) para aplicar o ZIP à branch `feat/tela-login`, entender o fluxo da API, testar a conexão e enviar o Pull Request para `develop`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/` — apresentação e menu.
+- `/login` — entrada no sistema.
+- `/painel` — consulta autenticada e somente leitura dos produtos.
+- `GET /api/produtos` — até 100 produtos ordenados por código; exige sessão.
+- `POST /api/auth/login` e `POST /api/auth/logout` — entrada e saída.
 
-## Deploy on Vercel
+O painel mostra carregamento, busca, tabela vazia e erro de conexão. Uma falha nunca é substituída por dados de exemplo.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Verificações
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+Para executar um build de produção: `npm start`. Em produção, use HTTPS para o cookie Secure.
+
+## Documentação
+
+- [Arquitetura](docs/ARCHITECTURE.md)
+- [Contexto para desenvolvimento](docs/AI_CONTEXT.md)
+- [Banco de dados](docs/database/README.md)
+- [Especificação da entrega](specs/tela-inicial-login.md)
+
+Sempre comece tarefas novas a partir de `develop` atualizada. Esta entrega foi preparada para a branch `feat/tela-login` que Arthur já criou; não publica nem integra mudanças automaticamente.

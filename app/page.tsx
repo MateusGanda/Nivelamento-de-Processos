@@ -1,69 +1,17 @@
-import Image from "next/image";
-
+import Link from 'next/link';
+const features = [
+  ['01', 'Organize a produção', 'Reúna produtos, roteiros, operações e postos em uma estrutura consistente.'],
+  ['02', 'Entenda os processos', 'Use os registros e tempos de produção para apoiar a análise da carga de trabalho.'],
+  ['03', 'Apoie suas decisões', 'Construa uma visão clara dos processos para avaliar oportunidades de nivelamento.'],
+];
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+  return <>
+    <header className="public-header wrap"><Link href="/" className="brand"><span className="brand-symbol" aria-hidden="true">≋</span>GUNP<span className="brand-caption">Nivelamento de processos</span></Link><nav aria-label="Menu principal"><a href="#sobre">O projeto</a><a href="#recursos">Recursos</a><Link href="/login" className="button small">Entrar no sistema <span aria-hidden="true">↗</span></Link></nav></header>
+    <main>
+      <section className="hero wrap"><div><span className="eyebrow"><span className="dot"/> GESTÃO E ANÁLISE DA PRODUÇÃO</span><h1>Processos claros.<br/>Decisões <em>melhores.</em></h1><p className="hero-copy">Uma visão organizada da sua produção, do roteiro ao posto de trabalho. Conheça o GUNP e dê o primeiro passo para o nivelamento de processos.</p><div className="hero-actions"><Link className="button" href="/login">Acessar minha conta <span aria-hidden="true">→</span></Link><a className="text-link" href="#sobre">Conhecer o projeto ↓</a></div><div className="hero-note"><span aria-hidden="true">◈</span> Projeto acadêmico · Gestão industrial · Apoio à decisão</div></div>
+      <div className="process-art" aria-label="Ilustração do fluxo de análise de processos"><div className="art-top"><span>UMA VISÃO DO PROCESSO</span><span className="art-badge">GUNP</span></div><h2>Da informação<br/>à melhoria contínua.</h2><div className="art-chart" aria-hidden="true"><div style={{height:'48%'}}/><div style={{height:'82%'}}/><div style={{height:'64%'}}/><div style={{height:'56%'}}/><div style={{height:'71%'}}/><span className="art-line"/></div><div className="art-labels"><span>Organizar</span><span>Analisar</span><span>Nivelar</span></div><div className="art-bottom"><span className="dot"/> Representação ilustrativa do projeto</div></div></section>
+      <section id="recursos" className="feature-section"><div className="wrap"><div className="section-heading"><div><span className="eyebrow">INFORMAÇÃO QUE FAZ SENTIDO</span><h2>Uma base para evoluir.</h2></div><p>Conectando a estrutura da produção<br/>à análise dos processos.</p></div><div className="feature-grid">{features.map(([number, title, description]) => <article key={number}><span className="feature-number">{number}</span><h3>{title}</h3><p>{description}</p></article>)}</div></div></section>
+      <section id="sobre" className="about wrap"><div><span className="eyebrow">SOBRE O PROJETO</span><h2>Construído para entender<br/>a produção de perto.</h2></div><div><p>O GUNP é um sistema web acadêmico para gerenciamento e análise do nivelamento de processos em linhas de produção. A proposta é organizar informações e apoiar o gestor na compreensão da distribuição do trabalho.</p><p>Nesta primeira entrega, o acesso ao painel permite consultar produtos reais do banco de dados. As próximas etapas ampliarão os cadastros e as análises.</p><Link href="/login" className="text-link">Começar pelo painel →</Link></div></section>
+    </main><footer className="footer wrap"><span><strong>GUNP</strong> · Nivelamento de processos</span><span>Informação para apoiar decisões.</span></footer>
+  </>;
 }

@@ -181,3 +181,7 @@ A revisão do contrato, a definição da baixa efetiva e a aplicação da migrat
 - Não permita que a sequência nominal do roteiro vire dependência ou bloqueio automático.
 - Mantenha Prisma na Infrastructure; não acesse o banco diretamente de componentes React, handlers ou regras de domínio.
 - Se um requisito entrar em conflito com este documento ou estiver ambíguo, pare, descreva o conflito e solicite a decisão necessária antes de implementar.
+
+## Entrega de apresentação e acesso — 09/10/2026
+
+Arthur solicitou tela de apresentação, login, menu e primeira consulta de API ligada ao banco. A task `specs/tela-inicial-login.md` registra o escopo: apresentação pública, conta inicial via `.env`, painel protegido e `GET /api/produtos` somente leitura. Não tratar a conta como Operador. Usuários persistidos e perfis continuam pendentes. O contrato e migrations permanecem iguais; consultar `docs/TELA_INICIAL_E_LOGIN.md` para configuração e limites.

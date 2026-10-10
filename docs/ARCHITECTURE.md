@@ -239,3 +239,9 @@ A IA não deve:
 - afirmar ganho de produtividade real a partir de cálculo ou simulação.
 
 Uma task está pronta quando funciona com persistência quando aplicável, trata os erros relevantes, possui testes proporcionais ao risco e pode ser demonstrada no fluxo definido.
+
+## 13. Acesso inicial — task de 09/10/2026
+
+A solicitação de tela de apresentação com login autoriza o módulo `access` nesta entrega. A conta inicial é configurada no servidor (e-mail, hash scrypt, segredo) e a sessão usa cookie assinado. Não se acrescenta entidade de usuários ao contrato, nem se usa Operador como identidade de autenticação. Trata-se de um acesso inicial para demonstração; gestão de contas e perfis continua pendente. Detalhes e limites em `TELA_INICIAL_E_LOGIN.md` e `../specs/tela-inicial-login.md`.
+
+A consulta somente leitura de produtos fica em `modules/catalog/infrastructure`; sua rota autentica a requisição antes de chamar a consulta. Não há regra/orquestração que justifique use case adicional para esta leitura. O frontend usa a API interna e não acessa Prisma.
