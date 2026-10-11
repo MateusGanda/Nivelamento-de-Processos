@@ -53,3 +53,9 @@ next-env.d.ts
 node_modules/
 dist/
 .env
+
+# pastas geradas pelo "prisma skills sync" no npm install
+.agents/skills/
+.claude/skills/
+.cursor/skills/
+.devin/skills/

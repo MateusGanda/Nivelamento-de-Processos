@@ -114,20 +114,25 @@ test('PROD-02: o mesmo lote em duas etapas não é somado na produção final', 
   assert.throws(() => calcularProducaoFinal([{ ordem: 1, quantidadeBoa: 10 }, { ordem: 1, quantidadeBoa: 20 }]), /repetida/);
 });
 
-test('baixa é a execução finalizada que informa as quantidades', () => {
-  const semQuantidade = { quantidadeBoa: 0, quantidadeRetrabalho: 0, quantidadeRefugo: 0 };
+test('baixa é a execução com tipo de finalização BAIXA', () => {
+  const semQuantidade = { quantidadeBoa: null, quantidadeRetrabalho: null, quantidadeRefugo: null };
+  const aberta = { tipoFinalizacao: null, ...semQuantidade };
+  const troca = { tipoFinalizacao: 'TROCA_OPERACAO' as const, ...semQuantidade };
   const completa = { quantidadeBoa: 38, quantidadeRetrabalho: 1, quantidadeRefugo: 1 };
   assert.deepEqual(identificarBaixa(40, []), { situacao: 'SEM_BAIXA', resultado: null });
-  assert.equal(identificarBaixa(40, [{ status: 'EM_EXECUCAO', ...semQuantidade }]).situacao, 'SEM_BAIXA');
-  // troca de operação: finalizada sem quantidade não é baixa
-  assert.equal(identificarBaixa(40, [{ status: 'FINALIZADA', ...semQuantidade }]).situacao, 'SEM_BAIXA');
-  assert.deepEqual(identificarBaixa(40, [{ status: 'FINALIZADA', ...semQuantidade }, { status: 'FINALIZADA', ...completa }]), { situacao: 'BAIXADA', resultado: completa });
+  assert.equal(identificarBaixa(40, [aberta]).situacao, 'SEM_BAIXA');
+  assert.equal(identificarBaixa(40, [troca, troca]).situacao, 'SEM_BAIXA');
+  assert.deepEqual(identificarBaixa(40, [troca, { tipoFinalizacao: 'BAIXA', ...completa }]), { situacao: 'BAIXADA', resultado: completa });
+  // lote inteiro refugado continua sendo baixa
+  assert.equal(identificarBaixa(40, [{ tipoFinalizacao: 'BAIXA', quantidadeBoa: 0, quantidadeRetrabalho: 0, quantidadeRefugo: 40 }]).situacao, 'BAIXADA');
 });
-test('baixa em duplicidade, incompleta ou em execução aberta é inconsistência', () => {
-  const completa = { quantidadeBoa: 40, quantidadeRetrabalho: 0, quantidadeRefugo: 0 };
-  assert.equal(identificarBaixa(40, [{ status: 'FINALIZADA', ...completa }, { status: 'FINALIZADA', ...completa }]).situacao, 'INCONSISTENTE');
-  assert.equal(identificarBaixa(40, [{ status: 'FINALIZADA', quantidadeBoa: 30, quantidadeRetrabalho: 0, quantidadeRefugo: 0 }]).situacao, 'INCONSISTENTE');
-  assert.equal(identificarBaixa(40, [{ status: 'PAUSADA', ...completa }]).situacao, 'INCONSISTENTE');
+test('baixa com soma diferente da ordem, em duplicidade ou sem quantidade é inconsistência', () => {
+  const completa = { tipoFinalizacao: 'BAIXA' as const, quantidadeBoa: 40, quantidadeRetrabalho: 0, quantidadeRefugo: 0 };
+  assert.equal(identificarBaixa(40, [{ ...completa, quantidadeBoa: 30 }]).situacao, 'INCONSISTENTE');
+  assert.equal(identificarBaixa(40, [{ ...completa, quantidadeBoa: 41 }]).situacao, 'INCONSISTENTE');
+  // o banco impede estes dois casos; a função não os aceita se chegarem
+  assert.equal(identificarBaixa(40, [completa, completa]).situacao, 'INCONSISTENTE');
+  assert.equal(identificarBaixa(40, [{ ...completa, quantidadeRefugo: null }]).situacao, 'INCONSISTENTE');
   assert.throws(() => identificarBaixa(0, []), /positiva/);
 });
 test('posição da ordem: etapa atual é a primeira sem baixa', () => {

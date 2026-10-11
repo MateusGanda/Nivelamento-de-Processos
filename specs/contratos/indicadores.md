@@ -1,8 +1,12 @@
 # Contrato de consulta dos indicadores
 
-Versão de trabalho 0.3 — 07/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
+Versão de trabalho 0.4 — 08/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
 
 **Status: proposta para revisão.** A rota não está implementada. Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/AI_CONTEXT.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+
+## O que mudou na versão 0.4
+
+- **Baixa explícita.** O contrato do banco passou a ter `Execucao.tipoFinalizacao` (`BAIXA` ou `TROCA_OPERACAO`). A baixa deixou de ser deduzida pelas quantidades; ver a regra de baixa no fim do documento.
 
 ## O que mudou em relação à versão 0.1
 
@@ -72,7 +76,7 @@ Uma linha por ordem de produção que ainda tem etapa sem baixa ou que teve baix
 | `quantidade`, `unidade` | decimal, texto | Tamanho do lote. |
 | `planoCodigo` | texto \| `null` | Plano de produção que agrupa a ordem. |
 | `etapasTotal`, `etapasBaixadas` | inteiro | Etapas do roteiro da ordem e quantas já têm baixa. |
-| `etapasInconsistentes` | inteiro | Etapas com quantidade informada que não forma uma baixa válida. |
+| `etapasInconsistentes` | inteiro | Etapas com baixa cuja soma das quantidades difere da quantidade da ordem. |
 | `etapaAtual` | objeto \| `null` | Primeira etapa sem baixa, pela ordem do roteiro: `etapaRoteiroId`, `ordem`, `operacaoNome`. `null` quando todas têm baixa. |
 | `emExecucao` | booleano | Se há execução aberta na etapa atual. |
 | `ultimaBaixaEm` | instante \| `null` | Momento da baixa mais recente. |
@@ -146,7 +150,7 @@ Cada item de `meta.pendencias` tem `codigo` e os identificadores a que se refere
 | `SEM_TEMPO_PADRAO` | Produto e etapa sem registro em `ProdutoEtapa`. | `tempoPadraoSegundos` e `cargaPendenteSegundos` ficam `null`. |
 | `EXECUCAO_ABERTA` | Execução não finalizada no período. | O intervalo aberto fica fora dos totais. |
 | `ETAPA_SEM_POSTO` | Etapa sem nenhum posto em `EtapaPosto`. | `postosCompativeis` vazio. |
-| `BAIXA_INCONSISTENTE` | Etapa com quantidade informada que não forma uma baixa válida (ver regra de baixa). | A etapa conta como sem baixa e entra em `etapasInconsistentes`. |
+| `BAIXA_INCONSISTENTE` | Baixa cuja soma das quantidades difere da quantidade da ordem (ver regra de baixa). | A etapa conta como sem baixa e entra em `etapasInconsistentes`. |
 
 ## Dados que a consulta precisa do banco
 
@@ -154,7 +158,7 @@ Cada item de `meta.pendencias` tem `codigo` e os identificadores a que se refere
 | --- | --- | --- |
 | Ordens | `OrdemProducao`, `Produto`, `PlanoProducao` | `numero`, `quantidade`, `unidade`, `roteiroId`, `Produto.codigo`, `Produto.nome`, `PlanoProducao.codigo` |
 | Roteiro | `EtapaRoteiro`, `Operacao` | `roteiroId`, `ordem`, `Operacao.nome` |
-| Baixas | `Execucao` | `ordemProducaoId`, `etapaRoteiroId`, `postoId`, `status`, `quantidadeBoa`, `quantidadeRetrabalho`, `quantidadeRefugo` |
+| Baixas | `Execucao` | `ordemProducaoId`, `etapaRoteiroId`, `postoId`, `status`, `tipoFinalizacao`, `quantidadeBoa`, `quantidadeRetrabalho`, `quantidadeRefugo` |
 | Tempos | `EventoTempo`, `MotivoPausa` | `execucaoId`, `tipo`, `dataHora`, `MotivoPausa.nome` |
 | Postos | `Posto`, `Setor`, `EtapaPosto` | `codigo`, `nome`, `setorId`, `Setor.nome` |
 | Tempo padrão | `ProdutoEtapa` | `produtoId`, `etapaRoteiroId`, `tempoPadrao` |
@@ -176,18 +180,18 @@ As quantidades são somadas em centésimos, porque o banco guarda duas casas dec
 
 ## Regra de baixa usada nos cálculos
 
-O `docs/AI_CONTEXT.md` registra como pendência que uma execução `FINALIZADA` não equivale, sozinha, à baixa efetiva da etapa. Os cálculos adotam a regra abaixo, proposta por Mateus em 07/10/2026 e **ainda não confirmada pela equipe**:
+Desde a migração de 08/10/2026 a baixa está no contrato do banco, em `Execucao.tipoFinalizacao`:
 
-- A baixa de uma etapa é a execução `FINALIZADA` que informa quantidades.
-- Uma execução finalizada por troca de operação fica com as três quantidades em zero e não é baixa.
-- A baixa vale quando é única para a ordem e a etapa e quando `boa + retrabalho + refugo` é igual à quantidade da ordem.
-- Qualquer outra combinação com quantidade informada (duas execuções com quantidade, soma diferente da ordem, quantidade em execução aberta) é inconsistência: a etapa conta como sem baixa e é sinalizada.
+- A baixa de uma etapa é a execução com `tipoFinalizacao = BAIXA`.
+- Execução aberta, pausada ou finalizada por `TROCA_OPERACAO` não é baixa e não tem quantidades.
+- O banco garante uma única baixa por ordem e etapa e exige as três quantidades nela.
+- O banco não confere a soma. Os cálculos conferem: a baixa vale quando `boa + retrabalho + refugo` é igual à quantidade da ordem. Com soma diferente, a etapa conta como sem baixa e é sinalizada como inconsistência.
 
-A regra funciona com o contrato atual, em que as quantidades nascem com zero, porque uma baixa válida sempre soma a quantidade da ordem, que é maior que zero. Os blocos `ordens`, `producao`, `producaoFinal` e `cargaPendente` dependem dela; `tempos` não. Se a equipe decidir de outra forma, só `identificarBaixa` muda.
+Os blocos `ordens`, `producao`, `producaoFinal` e `cargaPendente` dependem dessa regra; `tempos` não. A mesma regra está registrada no `docs/AI_CONTEXT.md`.
 
 ## Pontos em aberto
 
-- **Confirmação da regra de baixa** pela equipe, com registro no `docs/AI_CONTEXT.md`.
+- **Soma das quantidades na baixa.** O comando de baixa deve recusar soma diferente da quantidade da ordem; os indicadores só sinalizam o que já estiver gravado.
 - **Tempo médio.** O tempo de execuções sem baixa (troca de operação) entra no tempo médio da etapa?
 - **Entrada do tempo padrão.** O sistema guarda segundos por unidade. Se a empresa registra em outra unidade, a conversão acontece no cadastro ou na importação.
 - **Categoria de pausa.** Sem categoria em `MotivoPausa`, o painel não separa pausa prevista de interrupção.

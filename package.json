@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "node --experimental-strip-types --test \"tests/**/*.test.ts\"",
     "postinstall": "prisma skills sync || exit 0",
     "contract:emit": "prisma contract emit"
