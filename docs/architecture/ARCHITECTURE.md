@@ -34,7 +34,7 @@ Não introduzir sem justificativa aprovada: microserviços, mensageria, Redis, G
 
 Um **módulo** responde a “de qual capacidade do negócio este código faz parte?”. Ele não é uma etapa da execução de uma requisição.
 
-**Convenção:** organizar módulos por capacidades tais como cadastro e estrutura da produção, fichas e operações, execuções e apontamentos, cenários de nivelamento, indicadores e acesso. Os nomes finais e as fronteiras exatas devem seguir as especificações aprovadas; não criar módulos, entidades ou fluxos novos por conveniência.
+**Convenção:** organizar módulos por capacidades tais como cadastro e estrutura da produção, roteiros e operações, ordens de produção, execuções e apontamentos, indicadores e acesso. Os nomes finais e as fronteiras exatas devem seguir as especificações aprovadas; não criar módulos, entidades ou fluxos novos por conveniência. A referência de domínio atual inclui, entre outros, `Setor`, `Posto`/`Recurso`, `Operacao`, `Roteiro`, `EtapaRoteiro`, `ProdutoRoteiro`, `ProdutoEtapa`, `PlanoProducao`, `OrdemProducao`, `Execucao`, `Operador`, `EventoTempo` e `MotivoPausa`. Use o modelo conceitual vigente como fonte para relações e regras; não trate `linhas`, `estacoes`, `precedencias` ou `cenarios` como parte do modelo atual sem requisito aprovado.
 
 Um módulo pode conter as seguintes responsabilidades:
 
@@ -61,10 +61,10 @@ Exemplos do GUNP:
 - uma execução pode estar em `EM_EXECUCAO`, `PAUSADA` ou `FINALIZADA`;
 - uma execução finalizada não pode ser retomada;
 - um operador não pode ter duas execuções abertas, inclusive se uma estiver pausada;
-- uma operação de um cenário deve ser alocada exatamente uma vez;
-- a alocação deve respeitar linha, roteiro e precedência;
-- demanda, tempo disponível e tempo padrão precisam ser positivos;
-- cálculos de takt, carga, ciclo estimado, capacidade e eficiência devem ser funções puras e reproduzíveis.
+- uma baixa deve respeitar as regras de quantidade definidas no modelo conceitual;
+- uma ordem deve manter a versão de roteiro selecionada quando foi criada;
+- demanda/quantidade e tempo padrão devem respeitar as restrições definidas pelo domínio;
+- cálculos de carga por posto e demais indicadores devem ser funções reproduzíveis, independentes da interface e da persistência.
 
 **Obrigatório:** o Domain não importa nem conhece Next.js, React, HTTP, Prisma, PostgreSQL ou objetos específicos de request/response. Regras que precisam sobreviver a uma troca de interface ou banco não podem ficar em componentes, handlers ou queries.
 
@@ -72,7 +72,7 @@ Exemplos do GUNP:
 
 A camada **Application** responde a “qual ação o sistema executa e quais passos ela coordena?”. Cada use case representa uma intenção do sistema, não apenas uma chamada ao banco.
 
-Exemplos: iniciar, pausar, retomar, finalizar ou trocar uma execução; registrar baixa; duplicar cenário; mover uma operação; importar dados; consultar indicadores.
+Exemplos: iniciar, pausar, retomar, finalizar ou trocar uma execução; registrar baixa; importar dados; consultar indicadores. Funcionalidades adicionais de nivelamento só devem ser incluídas quando estiverem previstas no escopo aprovado.
 
 Um use case pode:
 
@@ -93,6 +93,8 @@ A camada **Presentation** responde a “como o sistema recebe ou apresenta esta 
 - parsing e validação de formato de entrada;
 - autenticação e autorização no limite da requisição;
 - mapeamento entre resultado da aplicação, erros e resposta HTTP.
+
+**Regra de acesso do GUNP:** `Usuario` representa a conta individual de acesso administrativo; `Operador` é uma entidade de produção separada e não equivale a uma conta de login. A ilha é um terminal compartilhado com acesso restrito às ações operacionais autorizadas. QR Code ou código funcional identifica o operador para o apontamento, mas não autentica o usuário nem concede permissões administrativas. Os mecanismos concretos de autenticação, os papéis administrativos e o registro/configuração do terminal permanecem pendentes de especificação; não presumir biblioteca, campos ou papéis sem decisão aprovada.
 
 **Obrigatório:** a rota é o ponto que escolhe explicitamente o use case. Não há descoberta automática da ação. Por exemplo, uma rota de criação chama o use case de criação e uma rota de pausa chama o use case de pausa definido na task.
 
@@ -157,11 +159,11 @@ Um **repository** é um contrato que expressa a necessidade de leitura ou persis
 
 **Obrigatório quando houver regra ou orquestração relevante:** Application usa contracts/repositories para acessar persistência; Infrastructure fornece a implementação Prisma.
 
-**Convenção:** métodos de repository devem expressar a necessidade do negócio, como buscar execução aberta de um operador, salvar uma execução ou consultar alocações de um cenário. Não transformar um repository em um espelho genérico de toda a API do ORM.
+**Convenção:** métodos de repository devem expressar a necessidade do negócio, como buscar execução aberta de um operador, salvar uma execução ou consultar carga por posto. Não transformar um repository em um espelho genérico de toda a API do ORM.
 
 Restrições que o banco consegue garantir devem existir também no banco: chaves únicas, chaves estrangeiras, obrigatoriedade e demais invariantes relacionais aplicáveis. A validação da API e do Domain complementa essas restrições; ela não as substitui.
 
-Para histórico reproduzível, alterações em tempos padrão, roteiros ou cenários não podem mudar silenciosamente resultados já usados. A estratégia concreta entre snapshot e versionamento imutável é **A definir** quando a task afetar esse comportamento.
+Para histórico reproduzível, alterações em tempos padrão ou roteiros não podem modificar silenciosamente ordens existentes nem resultados históricos já registrados. A estratégia concreta entre snapshot e versionamento imutável é **A definir** quando a task afetar esse comportamento.
 
 ## 9. Transações, idempotência e concorrência
 
@@ -201,6 +203,8 @@ Usuário na ilha
 ```
 
 Esse é um mapa de responsabilidades, não uma sequência rígida para qualquer leitura simples. Consultas e CRUDs sem regra relevante podem ser menores, mas não devem quebrar as fronteiras obrigatórias acima.
+
+Na ilha, limpar a identificação temporária do operador na interface não deve, por si só, alterar o estado persistido de uma execução. Inatividade pode limpar o contexto visual conforme o fluxo aprovado, mas não deve pausar nem finalizar automaticamente uma execução sem regra explícita.
 
 ## 11. Simplicidade proporcional ao MVP
 
