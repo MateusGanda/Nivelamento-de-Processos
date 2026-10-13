@@ -2,7 +2,7 @@
 
 **Projeto:** Desenvolvimento de um Sistema Web para Gerenciamento de Nivelamento de Processos em Linhas de Produção (GUNP)  
 **Equipe:** Mateus, Gustavo e Arthur  
-**Atualizado em:** 12/10/2026
+**Atualizado em:** 13/10/2026
 **Finalidade:** servir como contexto de referência para a equipe e para ferramentas de IA usadas no desenvolvimento. Este documento deve ser lido junto de `MODELO_CONCEITUAL_GUNP_atualizado.md`, `ARCHITECTURE.md`, `TECHNOLOGY.md` e `ROADMAP_GUNP.md`. Em caso de divergência, não inventar uma regra: identificar o conflito e pedir confirmação.
 
 > **Estado das informações:** as decisões de domínio e tecnologia descritas como definidas refletem o entendimento atual da equipe. O esquema Prisma e as migrações iniciais já foram gerados e aplicados ao banco. O acesso administrativo de `Usuario` possui modelo, rotas e migration versionada; a representação e o acesso operacional do terminal/ilha continuam pendentes. Isso não implica que os demais CRUDs ou fluxos de produção estejam implementados.
@@ -110,7 +110,7 @@ O QR/código é um meio de identificar operador ou ordem no fluxo de apontamento
 - Existem restrições de banco para algumas invariantes, incluindo unicidade de baixa efetiva, vigência de roteiro por produto e consistência entre estado de execução/finalização, conforme o schema atual.
 - Nem todas as invariantes de negócio podem ser garantidas apenas por constraints; as validações de serviço e transações continuam necessárias.
 - A autenticação administrativa, o modelo `Usuario` e suas rotas devem ser verificados no código e schema atuais; a representação/registro do terminal e o acesso operacional continuam **pendentes**.
-- A interface administrativa possui `/login` personalizado e `/painel` mínimo com identificação e logout. A raiz redireciona conforme a sessão e a condição de ADMIN ativo. O painel ainda não contém dashboards, menus de cadastros ou funcionalidades operacionais.
+- A interface administrativa possui `/login` personalizado e `/painel` com boas-vindas, menu lateral, cartões de módulos, identificação e logout. A raiz redireciona conforme a sessão e a condição de ADMIN ativo. Os destinos `/painel/[modulo]` são páginas provisórias protegidas; ainda não existem dashboards, listagens ou operações de cadastro e produção nessas telas.
 - Não inferir que uma tarefa está concluída só porque aparece em um plano ou roadmap. Atualizar o status apenas após inspecionar o repositório ou receber confirmação da equipe.
 
 ## 9. Diretrizes para a IA no VS Code/Codex

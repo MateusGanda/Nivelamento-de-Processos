@@ -1,6 +1,15 @@
 import { Cog } from 'lucide-react';
 
-export function BrandGunp({ compacta = false, variante = 'padrao' }: { compacta?: boolean; variante?: 'padrao' | 'login' }) {
+export function BrandGunp({ compacta = false, variante = 'padrao' }: { compacta?: boolean; variante?: 'padrao' | 'login' | 'painel' }) {
+  if (variante === 'painel') {
+    return (
+      <div className="flex items-center gap-3 whitespace-nowrap">
+        <Cog aria-hidden="true" size={36} strokeWidth={2} className="shrink-0 text-accent" />
+        <span className={compacta ? 'sr-only' : 'text-2xl font-bold tracking-[0.08em]'}>GUNP</span>
+      </div>
+    );
+  }
+
   const tamanhoIcone = compacta
     ? 'mb-2 size-9 text-accent'
     : variante === 'login'

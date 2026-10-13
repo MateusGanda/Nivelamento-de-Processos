@@ -56,7 +56,7 @@ Bibliotecas de componentes, gerenciamento de estado global, formulários, gráfi
 
 O padrão de ícones do GUNP é `lucide-react`: imports individuais dos ícones utilizados, traço de espessura 2 e tamanho habitual de 20–24px. A marca provisória usa `Cog` acima de “GUNP”. Ícones decorativos usam `aria-hidden`; controles compostos somente por ícone devem ter nome acessível. Não adicionar outra biblioteca de ícones sem decisão aprovada.
 
-A apresentação administrativa usa `/login` com formulário de matrícula e senha integrado ao NextAuth v4 e `/painel` com identificação e logout. As páginas verificam sessão e ADMIN ativo no servidor. O fundo industrial é um asset local gerado, sem credenciais nem textos embutidos. No mobile, a coluna institucional fica oculta. Essas telas não definem o mecanismo de acesso da ilha.
+A apresentação administrativa usa `/login` com formulário de matrícula e senha integrado ao NextAuth v4 e `/painel` com menu lateral, cartões de módulos, identificação e logout. O layout e cada página do painel verificam sessão e ADMIN ativo no servidor; a proteção não depende somente do layout reutilizado nas navegações. Os destinos dos módulos são páginas provisórias, sem consultas de negócio ou cadastros. A configuração de navegação e os componentes ficam na Presentation do módulo de acesso. O menu mobile usa um dialog nativo, sem nova biblioteca de UI. O fundo industrial do login é um asset local gerado, sem credenciais nem textos embutidos. No mobile, sua coluna institucional fica oculta. Essas telas não definem o mecanismo de acesso da ilha.
 
 ## 4. TypeScript
 
