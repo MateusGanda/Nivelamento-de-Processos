@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'b88199d5c182ccd303fcf495e7d223401d7695642a802ebbd1ed1cac8b7c4125'>;
+  StorageHashBase<'5fde7334195dc549b10382e9f435e10755efc5ea2f95c99ec17771f9bbe59d9d'>;
 export type ExecutionHash =
-  ExecutionHashBase<'bcf732fc48f30b5958e0ef47e462bc3c4b78c57d7fe3b7e04b71995da1754eea'>;
+  ExecutionHashBase<'d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -373,6 +373,17 @@ export type FieldOutputTypes = {
       readonly nome: CodecTypes['pg/text@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
+    readonly Usuario: {
+      readonly ativo: CodecTypes['pg/bool@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly email: CodecTypes['pg/text@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly matricula: CodecTypes['pg/text@1']['output'];
+      readonly nome: CodecTypes['pg/text@1']['output'];
+      readonly papel: 'ADMIN';
+      readonly senhaHash: CodecTypes['pg/text@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
   };
 };
 export type FieldInputTypes = {
@@ -498,6 +509,17 @@ export type FieldInputTypes = {
       readonly descricao: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly nome: CodecTypes['pg/text@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
+    readonly Usuario: {
+      readonly ativo: CodecTypes['pg/bool@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly email: CodecTypes['pg/text@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly matricula: CodecTypes['pg/text@1']['input'];
+      readonly nome: CodecTypes['pg/text@1']['input'];
+      readonly papel: 'ADMIN';
+      readonly senhaHash: CodecTypes['pg/text@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
   };
@@ -627,6 +649,17 @@ export type StorageColumnTypes = {
       readonly nome: CodecTypes['pg/text@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
+    readonly Usuario: {
+      readonly ativo: CodecTypes['pg/bool@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly email: CodecTypes['pg/text@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly matricula: CodecTypes['pg/text@1']['output'];
+      readonly nome: CodecTypes['pg/text@1']['output'];
+      readonly papel: 'ADMIN';
+      readonly senhaHash: CodecTypes['pg/text@1']['output'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
   };
 };
 export type StorageColumnInputTypes = {
@@ -752,6 +785,17 @@ export type StorageColumnInputTypes = {
       readonly descricao: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly nome: CodecTypes['pg/text@1']['input'];
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
+    readonly Usuario: {
+      readonly ativo: CodecTypes['pg/bool@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly email: CodecTypes['pg/text@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly matricula: CodecTypes['pg/text@1']['input'];
+      readonly nome: CodecTypes['pg/text@1']['input'];
+      readonly papel: 'ADMIN';
+      readonly senhaHash: CodecTypes['pg/text@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
   };
@@ -933,6 +977,18 @@ export namespace Models {
     postos: public_Posto[];
     readonly [RelationKeys]?: 'postos';
   };
+  export type public_Usuario = {
+    ativo: CodecTypes['pg/bool@1']['output'];
+    createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    email: CodecTypes['pg/text@1']['output'];
+    id: CodecTypes['pg/uuid@1']['output'];
+    matricula: CodecTypes['pg/text@1']['output'];
+    nome: CodecTypes['pg/text@1']['output'];
+    papel: 'ADMIN';
+    senhaHash: CodecTypes['pg/text@1']['output'];
+    updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    readonly [RelationKeys]?: never;
+  };
 }
 
 export declare const models: {
@@ -952,6 +1008,7 @@ export declare const models: {
     ProdutoRoteiro: Models.public_ProdutoRoteiro;
     Roteiro: Models.public_Roteiro;
     Setor: Models.public_Setor;
+    Usuario: Models.public_Usuario;
   };
 };
 
@@ -1969,8 +2026,78 @@ type ContractBase = Omit<
               indexes: readonly [];
               foreignKeys: readonly [];
             };
+            readonly Usuario: {
+              columns: {
+                readonly ativo: {
+                  readonly nativeType: 'bool';
+                  readonly codecId: 'pg/bool@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/bool@1', true>;
+                  };
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly email: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+                readonly matricula: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly nome: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly papel: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'ADMIN'>;
+                  };
+                };
+                readonly senhaHash: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [
+                { readonly columns: readonly ['email'] },
+                { readonly columns: readonly ['matricula'] },
+              ];
+              indexes: readonly [];
+              foreignKeys: readonly [];
+            };
           };
           readonly valueSet: {
+            readonly PapelUsuario: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['ADMIN'];
+            };
             readonly StatusExecucao: {
               readonly kind: 'valueSet';
               readonly values: readonly ['EM_EXECUCAO', 'PAUSADA', 'FINALIZADA'];
@@ -2033,6 +2160,7 @@ type ContractBase = Omit<
     };
     readonly Roteiro: { readonly namespace: 'public' & NamespaceId; readonly model: 'Roteiro' };
     readonly Setor: { readonly namespace: 'public' & NamespaceId; readonly model: 'Setor' };
+    readonly Usuario: { readonly namespace: 'public' & NamespaceId; readonly model: 'Usuario' };
   };
   readonly domain: {
     readonly namespaces: {
@@ -3198,8 +3326,74 @@ type ContractBase = Omit<
               };
             };
           };
+          readonly Usuario: {
+            readonly fields: {
+              readonly ativo: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly email: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly matricula: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly nome: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly papel: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly senhaHash: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'Usuario';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly ativo: { readonly column: 'ativo' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly email: { readonly column: 'email' };
+                readonly id: { readonly column: 'id' };
+                readonly matricula: { readonly column: 'matricula' };
+                readonly nome: { readonly column: 'nome' };
+                readonly papel: { readonly column: 'papel' };
+                readonly senhaHash: { readonly column: 'senhaHash' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+              };
+            };
+          };
         };
         readonly enum: {
+          readonly PapelUsuario: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [{ readonly name: 'ADMIN'; readonly value: 'ADMIN' }];
+          };
           readonly StatusExecucao: {
             readonly codecId: 'pg/text@1';
             readonly members: readonly [
@@ -3361,6 +3555,14 @@ type ContractBase = Omit<
           readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
           readonly ref: {
             readonly entry: 'Setor';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'Usuario';
             readonly field: 'id';
             readonly namespace: 'public';
           };

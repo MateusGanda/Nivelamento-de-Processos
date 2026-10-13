@@ -63,12 +63,25 @@
     "Setor": {
       "model": "Setor",
       "namespace": "public"
+    },
+    "Usuario": {
+      "model": "Usuario",
+      "namespace": "public"
     }
   },
   "domain": {
     "namespaces": {
       "public": {
         "enum": {
+          "PapelUsuario": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "ADMIN",
+                "value": "ADMIN"
+              }
+            ]
+          },
           "StatusExecucao": {
             "codecId": "pg/text@1",
             "members": [
@@ -1827,6 +1840,113 @@
               "namespaceId": "public",
               "table": "Setor"
             }
+          },
+          "Usuario": {
+            "fields": {
+              "ativo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "email": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "matricula": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "nome": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "papel": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "PapelUsuario",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "senhaHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {},
+            "storage": {
+              "fields": {
+                "ativo": {
+                  "column": "ativo"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "email": {
+                  "column": "email"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "matricula": {
+                  "column": "matricula"
+                },
+                "nome": {
+                  "column": "nome"
+                },
+                "papel": {
+                  "column": "papel"
+                },
+                "senhaHash": {
+                  "column": "senhaHash"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "Usuario"
+            }
           }
         }
       }
@@ -3230,9 +3350,112 @@
                   ]
                 }
               ]
+            },
+            "Usuario": {
+              "checks": [
+                {
+                  "expression": "\"papel\" IN ('ADMIN')",
+                  "name": "Usuario_papel_check_fd4d17a3",
+                  "prefix": "Usuario_papel_check"
+                }
+              ],
+              "columns": {
+                "ativo": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "email": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "matricula": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "nome": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "papel": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "ADMIN"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "PapelUsuario",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "senhaHash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [],
+              "indexes": [],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "email"
+                  ]
+                },
+                {
+                  "columns": [
+                    "matricula"
+                  ]
+                }
+              ]
             }
           },
           "valueSet": {
+            "PapelUsuario": {
+              "kind": "valueSet",
+              "values": [
+                "ADMIN"
+              ]
+            },
             "StatusExecucao": {
               "kind": "valueSet",
               "values": [
@@ -3263,10 +3486,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "b88199d5c182ccd303fcf495e7d223401d7695642a802ebbd1ed1cac8b7c4125"
+    "storageHash": "5fde7334195dc549b10382e9f435e10755efc5ea2f95c99ec17771f9bbe59d9d"
   },
   "execution": {
-    "executionHash": "bcf732fc48f30b5958e0ef47e462bc3c4b78c57d7fe3b7e04b71995da1754eea",
+    "executionHash": "d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33",
     "mutations": {
       "defaults": [
         {
@@ -3419,6 +3642,17 @@
           },
           "ref": {
             "entry": "Setor",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Usuario",
             "field": "id",
             "namespace": "public"
           }

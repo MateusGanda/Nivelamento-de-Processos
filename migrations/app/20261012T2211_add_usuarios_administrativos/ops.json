@@ -1,0 +1,125 @@
+[
+  {
+    "id": "table.Usuario",
+    "label": "Create table \"Usuario\"",
+    "summary": "Creates table \"Usuario\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Usuario"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Usuario\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Usuario\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Usuario\"",
+        "sql": "CREATE TABLE \"public\".\"Usuario\" (\n  \"ativo\" bool DEFAULT true NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"matricula\" text NOT NULL,\n  \"nome\" text NOT NULL,\n  \"papel\" text DEFAULT 'ADMIN' NOT NULL,\n  \"senhaHash\" text NOT NULL,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Usuario_papel_check_fd4d17a3\" CHECK (\"papel\" IN ('ADMIN'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Usuario\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Usuario\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Usuario.Usuario_email_key",
+    "label": "Add unique constraint on \"Usuario\" (email)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Usuario_email_key",
+        "table": "Usuario"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Usuario_email_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Usuario_email_key",
+          "public",
+          "\"public\".\"Usuario\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Usuario_email_key\"",
+        "sql": "ALTER TABLE \"public\".\"Usuario\" ADD CONSTRAINT \"Usuario_email_key\" UNIQUE (\"email\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Usuario_email_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Usuario_email_key",
+          "public",
+          "\"public\".\"Usuario\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Usuario.Usuario_matricula_key",
+    "label": "Add unique constraint on \"Usuario\" (matricula)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Usuario_matricula_key",
+        "table": "Usuario"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Usuario_matricula_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Usuario_matricula_key",
+          "public",
+          "\"public\".\"Usuario\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Usuario_matricula_key\"",
+        "sql": "ALTER TABLE \"public\".\"Usuario\" ADD CONSTRAINT \"Usuario_matricula_key\" UNIQUE (\"matricula\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Usuario_matricula_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Usuario_matricula_key",
+          "public",
+          "\"public\".\"Usuario\""
+        ]
+      }
+    ]
+  }
+]

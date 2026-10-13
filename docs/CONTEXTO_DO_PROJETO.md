@@ -2,10 +2,10 @@
 
 **Projeto:** Desenvolvimento de um Sistema Web para Gerenciamento de Nivelamento de Processos em Linhas de Produção (GUNP)  
 **Equipe:** Mateus, Gustavo e Arthur  
-**Atualizado em:** 11/10/2026  
+**Atualizado em:** 12/10/2026
 **Finalidade:** servir como contexto de referência para a equipe e para ferramentas de IA usadas no desenvolvimento. Este documento deve ser lido junto de `MODELO_CONCEITUAL_GUNP_atualizado.md`, `ARCHITECTURE.md`, `TECHNOLOGY.md` e `ROADMAP_GUNP.md`. Em caso de divergência, não inventar uma regra: identificar o conflito e pedir confirmação.
 
-> **Estado das informações:** as decisões de domínio e tecnologia descritas como definidas refletem o entendimento atual da equipe. O esquema Prisma e as migrações iniciais já foram gerados e aplicados ao banco. Isso não significa que autenticação, rotas CRUD ou fluxos de produção estejam implementados. Modelos de usuário/terminal descritos como pendentes ainda precisam ser avaliados e incorporados explicitamente ao schema antes de serem tratados como existentes.
+> **Estado das informações:** as decisões de domínio e tecnologia descritas como definidas refletem o entendimento atual da equipe. O esquema Prisma e as migrações iniciais já foram gerados e aplicados ao banco. O acesso administrativo de `Usuario` possui modelo, rotas e migration versionada; a representação e o acesso operacional do terminal/ilha continuam pendentes. Isso não implica que os demais CRUDs ou fluxos de produção estejam implementados.
 
 ## 1. Resumo do sistema
 
@@ -42,7 +42,7 @@ O GUNP não deve ser descrito como um otimizador automático de produção. Recu
 | `EtapaPosto` | Associação que representa quais etapas podem ser executadas em quais postos. |
 | `EventoTempo` | Evento de tempo associado a uma execução, usado para registrar pausas/retomadas e derivar intervalos. |
 | `MotivoPausa` | Motivo cadastrado para uma pausa. |
-| `Usuario` | **Modelo de acesso ainda pendente de inclusão/validação no schema**: conta individual de acesso administrativo. Não substituir nem reutilizar `Operador` como conta de login. |
+| `Usuario` | Conta individual de acesso administrativo. Não substituir nem reutilizar `Operador` como conta de login. |
 | Terminal/ilha de produção | **Conceito de acesso operacional ainda pendente de representação no schema, se necessária**: terminal compartilhado com permissões restritas aos fluxos de apontamento. Não é um usuário humano individual. |
 
 Consultar `MODELO_CONCEITUAL_GUNP_atualizado.md` para relações e regras detalhadas. Não criar entidades alternativas ou duplicadas sem antes comparar com esse modelo.
@@ -70,14 +70,14 @@ Antes de alterar regras ou schema, explicar a necessidade e aguardar autorizaç�
 
 A solução de acesso discutida separa autenticação de apontamento operacional:
 
-1. **Usuário administrativo (`Usuario`, pendente no schema):** conta individual com autenticação e autorização no servidor para acessar funções administrativas, como cadastros e gestão, conforme os perfis que forem definidos.
+1. **Usuário administrativo (`Usuario`):** conta individual com autenticação e autorização no servidor para acessar funções administrativas. No MVP atual, o único papel é `ADMIN`.
 2. **Operador:** registro de domínio usado para identificar quem está realizando o apontamento. Não precisa ter senha ou login individual no MVP.
 3. **Ilha/terminal compartilhado:** interface em modo operacional controlado, com acesso limitado aos endpoints e ações necessários para apontamentos. Não deve ser uma sessão administrativa aberta nem um usuário humano compartilhado com privilégios amplos.
 4. **Identificação do operador:** QR Code ou código funcional pode identificar o operador para associar os registros. O código é identificação, não autenticação nem concessão de privilégios administrativos.
 5. **Identificação temporária na interface:** deve ser limpa ao concluir o fluxo operacional apropriado ou conforme a política de sessão definida. Uma inatividade da interface, por si só, não pode alterar o estado persistido de uma execução; em especial, não deve pausar ou finalizar automaticamente uma execução sem regra explícita.
 6. **Autorização real:** não confiar apenas em esconder botões no frontend. A API deve verificar as permissões de cada ação. O desenho de cadastro/identidade do terminal e a forma de autorizar o modo ilha ainda precisam ser formalizados antes da implementação.
 
-Não afirmar que `Usuario`, cadastro de terminais, login, perfis ou autorização já existem no banco ou na aplicação sem verificar o schema e o código atual. A equipe concordou em adicionar o suporte de banco necessário antes de iniciar as rotas de cadastro; isso permanece uma tarefa pendente até ser implementada e revisada.
+O modelo, login e rotas administrativas de `Usuario` devem ser confirmados no schema e código antes de uma mudança. Cadastro de terminais, acesso operacional da ilha e papéis além de `ADMIN` permanecem pendentes de decisão e implementação.
 
 ## 6. QR Code e leitor USB
 
@@ -109,7 +109,8 @@ O QR/código é um meio de identificar operador ou ordem no fluxo de apontamento
 - A migração inicial foi gerada e aplicada ao banco PostgreSQL/Neon.
 - Existem restrições de banco para algumas invariantes, incluindo unicidade de baixa efetiva, vigência de roteiro por produto e consistência entre estado de execução/finalização, conforme o schema atual.
 - Nem todas as invariantes de negócio podem ser garantidas apenas por constraints; as validações de serviço e transações continuam necessárias.
-- A autenticação, o modelo `Usuario`, a representação/registro do terminal e as rotas de cadastro devem ser considerados **pendentes até verificação do código atual**.
+- A autenticação administrativa, o modelo `Usuario` e suas rotas devem ser verificados no código e schema atuais; a representação/registro do terminal e o acesso operacional continuam **pendentes**.
+- A interface administrativa possui `/login` personalizado e `/painel` mínimo com identificação e logout. A raiz redireciona conforme a sessão e a condição de ADMIN ativo. O painel ainda não contém dashboards, menus de cadastros ou funcionalidades operacionais.
 - Não inferir que uma tarefa está concluída só porque aparece em um plano ou roadmap. Atualizar o status apenas após inspecionar o repositório ou receber confirmação da equipe.
 
 ## 9. Diretrizes para a IA no VS Code/Codex

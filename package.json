@@ -11,13 +11,17 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --experimental-strip-types --test \"tests/**/*.test.ts\"",
     "postinstall": "prisma skills sync || exit 0",
-    "contract:emit": "prisma contract emit"
+    "contract:emit": "prisma contract emit",
+    "bootstrap:admin": "node --experimental-strip-types scripts/criar-primeiro-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "^7.10.0",
     "@prisma/orm-postgres": "^8.0.0-rc.14",
+    "argon2": "^0.45.1",
     "dotenv": "^18.0.5",
+    "lucide-react": "^1.55.0",
     "next": "16.3.6",
+    "next-auth": "^4.24.15",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -32,5 +36,8 @@
     "prisma": "^8.0.0-rc.20",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "allowScripts": {
+    "argon2@0.45.1": true
   }
 }

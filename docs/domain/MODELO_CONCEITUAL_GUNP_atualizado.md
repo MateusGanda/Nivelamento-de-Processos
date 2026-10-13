@@ -103,4 +103,4 @@ Uma Ordem referencia explicitamente a versão do roteiro usada. Mudanças poster
 
 ## Estado do modelo e próximo passo
 
-O schema Prisma inicial e as migrações já foram gerados e aplicados. Portanto, não reconstruir o modelo relacional do zero nem assumir que essa etapa está pendente. O próximo passo é comparar este modelo conceitual com o schema existente, identificar divergências e planejar as alterações necessárias — especialmente `Usuario` e a representação do terminal/ilha — antes de modificar o banco. Qualquer alteração de schema deve ser explicitada, revisada e versionada em migração; não marcar os modelos de acesso como implementados até que isso seja confirmado no código e no banco.
+O schema Prisma inicial e suas migrações já foram gerados e aplicados. O modelo administrativo `Usuario` foi adicionado em migration versionada, separado de `Operador`, com o único papel `ADMIN`; sua efetiva aplicação ao banco deve seguir o processo de deployment. Não reconstruir o modelo relacional do zero. A representação e o mecanismo de acesso do terminal/ilha continuam pendentes. Qualquer alteração de schema deve ser explicitada, revisada e versionada em migration.

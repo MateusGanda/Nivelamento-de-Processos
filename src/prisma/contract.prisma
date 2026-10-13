@@ -18,6 +18,22 @@ enum TipoFinalizacao {
   BAIXA
 }
 
+enum PapelUsuario {
+  ADMIN
+}
+
+model Usuario {
+  id        Uuid              @id @default(uuid())
+  nome      String
+  email     String            @unique
+  matricula String            @unique
+  senhaHash String
+  papel     PapelUsuario      @default(ADMIN)
+  ativo     Boolean           @default(true)
+  createdAt TimestamptzString @default(now())
+  updatedAt TimestamptzString @default(now())
+}
+
 model Produto {
   id        Uuid                 @id @default(uuid())
   codigo    String               @unique

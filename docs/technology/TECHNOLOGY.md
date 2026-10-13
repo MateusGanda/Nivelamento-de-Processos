@@ -14,10 +14,11 @@ Classificação usada:
 | --- | --- | --- |
 | Framework web e servidor | Obrigatório | Next.js (App Router) |
 | Interface | Obrigatório | React |
+| Ícones | Padrão adotado | Lucide React (`lucide-react`), com imports individuais |
 | Linguagem | Obrigatório | TypeScript |
 | Comunicação UI-servidor | Obrigatório | API REST interna |
 | Persistência | Obrigatório | Prisma 8 e PostgreSQL (Neon no ambiente atual) |
-| Autenticação | Obrigatório como capacidade | Solução mantida; biblioteca/provedor **A definir** |
+| Autenticação administrativa | Obrigatório como capacidade | Auth.js (Credentials Provider), JWT de 12 horas e Argon2id |
 | Testes automatizados | Obrigatório | Framework e comandos **A definir** |
 | Qualidade estática | Necessária | Ferramentas e configuração **A definir** |
 
@@ -52,6 +53,10 @@ Papel no projeto:
 A interface deve exibir unidades de medida e diferenciar valores apontados de estimativas. Para o leitor USB, ela mantém um campo de leitura/digitação e confirma a ação solicitada; a leitura isolada não executa uma operação automaticamente.
 
 Bibliotecas de componentes, gerenciamento de estado global, formulários, gráficos e notificações devem ser verificadas nas dependências já instaladas antes de escolher ou adicionar outra. Não adicionar uma por preferência pessoal ou para antecipar funcionalidades.
+
+O padrão de ícones do GUNP é `lucide-react`: imports individuais dos ícones utilizados, traço de espessura 2 e tamanho habitual de 20–24px. A marca provisória usa `Cog` acima de “GUNP”. Ícones decorativos usam `aria-hidden`; controles compostos somente por ícone devem ter nome acessível. Não adicionar outra biblioteca de ícones sem decisão aprovada.
+
+A apresentação administrativa usa `/login` com formulário de matrícula e senha integrado ao NextAuth v4 e `/painel` com identificação e logout. As páginas verificam sessão e ADMIN ativo no servidor. O fundo industrial é um asset local gerado, sem credenciais nem textos embutidos. No mobile, a coluna institucional fica oculta. Essas telas não definem o mecanismo de acesso da ilha.
 
 ## 4. TypeScript
 
@@ -116,7 +121,7 @@ O banco de desenvolvimento atual está hospedado no Neon. A aplicação utiliza 
 
 ## 8. Autenticação e autorização
 
-**Obrigatório:** a aplicação deve ter autenticação administrativa e autorização aplicadas no servidor. A solução técnica de autenticação ainda precisa ser escolhida.
+**Obrigatório:** a aplicação deve ter autenticação administrativa e autorização aplicadas no servidor. O MVP usa Auth.js com Credentials Provider, matrícula e senha, sessões JWT com duração de 12 horas e Argon2id para hash e verificação de senhas.
 
 Modelo de acesso acordado:
 
@@ -127,7 +132,7 @@ Modelo de acesso acordado:
 - a autorização deve ser verificada no servidor, não apenas pela visibilidade dos elementos da interface;
 - limpar a identificação temporária na interface por inatividade não deve pausar nem finalizar uma execução.
 
-A modelagem de `Usuario` e do terminal, a biblioteca/provedor, a estratégia de sessão e os papéis/permissões detalhados continuam pendentes. Não tratar esses componentes como implementados sem verificar o código e o schema. Não implementar criptografia própria de senha nem autenticação customizada sem decisão explícita.
+O modelo de `Usuario`, o papel único `ADMIN`, a estratégia de sessão e a biblioteca de autenticação estão definidos para o MVP administrativo. As rotas administrativas devem consultar o usuário no banco a cada requisição para confirmar que permanece ativo e `ADMIN`. A modelagem e o acesso do terminal/ilha, os papéis adicionais e permissões granulares continuam pendentes. Não implementar criptografia própria de senha nem autenticação customizada sem decisão explícita.
 
 ## 9. Testes automatizados
 
@@ -144,6 +149,10 @@ Testes mínimos esperados conforme a task:
 - migrações, restrições e importação sem duplicação quando aplicável.
 
 Frameworks e comandos de teste devem ser verificados no repositório antes de serem classificados como pendentes. Se ainda não houver ferramenta instalada/configurada, a escolha é **A definir**; não adicionar Jest, Vitest, Playwright, Cypress ou outro framework sem decisão registrada.
+
+Os testes atuais usam `node:test` e são executados com `npm test`. Os testes HTTP do acesso são opt-in: com a aplicação local rodando, definir `GUNP_HTTP_TEST_URL=http://localhost:3000` e executar `npm test`. No PowerShell: `$env:GUNP_HTTP_TEST_URL='http://localhost:3000'; npm test`. Sem essa variável, os testes HTTP são ignorados e não exigem servidor nem conexão ao banco.
+
+O teste de login correto pode reutilizar `INITIAL_ADMIN_MATRICULA` e `INITIAL_ADMIN_SENHA` do ambiente local, sem imprimir seus valores. Se não estiverem disponíveis ou já não corresponderem à conta ativa, esse cenário é ignorado. O cenário de conta inativa exige uma conta já inativa, e os testes não criam nem alteram usuários para prepará-lo. A validação visual e de interação por teclado deve ser feita em navegador nos tamanhos 375px, 768px e 1440px.
 
 ## 10. Ferramentas de qualidade e entrega
 
