@@ -41,6 +41,18 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 
 ## Regras de negócio
 
+### Cadastro de setor
+- Nome obrigatório e único; descrição opcional. Remover espaços nas extremidades, preservando caixa, acentos e espaços internos.
+- Descrição ausente, nula ou vazia após trim é armazenada como `null`. Não há novos limites de tamanho.
+- A unicidade mantém a comparação atual do schema/banco: `Costura` e `costura` são distintos. A busca sem acentos/caixa é apenas de apresentação.
+- Entrega inicial somente de criação/listagem, sem edição, exclusão, código numérico ou status. O vínculo de setor principal ao operador permanece uma adaptação futura; não existe no schema atual.
+
+### Cadastro de operador
+- Nome e matrícula são obrigatórios, com remoção apenas de espaços nas extremidades.
+- A matrícula é única inclusive entre operadores inativos; letras maiúsculas/minúsculas, espaços internos e zeros iniciais são preservados. `OP-01` e `op-01` são distintos, conforme o schema atual e a decisão aprovada para este cadastro.
+- Nomes repetidos são permitidos. O cadastro inicial cria o operador como ativo.
+- Operador não recebe senha, e-mail ou privilégios administrativos neste cadastro. Edição e ativação/inativação permanecem fora da entrega inicial de criação/listagem.
+
 ### Ordem e quantidade
 - Uma Ordem representa uma quantidade de um único produto.
 - Não existe baixa parcial.

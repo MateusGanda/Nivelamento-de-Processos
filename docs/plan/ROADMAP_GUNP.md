@@ -156,10 +156,12 @@ Esta é a **primeira grande frente funcional**, conforme a estratégia da equipe
 
 ## 7.3 Setores
 
-- [ ] Listar
-- [ ] Criar
+Entrega parcial: criação/listagem em `/painel/setores` e GET/POST `/api/setores`, com nome obrigatório e único, descrição opcional, busca e ordenação. Edição continua pendente. Sem alterações de schema, migrations ou vínculo com operadores nesta entrega. Escritas dos testes são limitadas a repositórios de teste.
+
+- [x] Listar
+- [x] Criar
 - [ ] Editar
-- [ ] Validar nome único
+- [x] Validar nome único
 
 ## 7.4 Postos
 
@@ -171,6 +173,8 @@ Esta é a **primeira grande frente funcional**, conforme a estratégia da equipe
 - [ ] Validar código único
 
 ## 7.5 Operadores
+
+Entrega parcial: criação/listagem em `/painel/operadores` e GET/POST `/api/operadores`, com busca, filtro de status e ordenação. Edição e ativação/inativação continuam pendentes; não considerar o cadastro completo por essa entrega. As evidências de validação devem acompanhar cada implementação.
 
 - [ ] Listar
 - [ ] Criar
