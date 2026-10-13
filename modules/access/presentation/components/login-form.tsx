@@ -48,7 +48,8 @@ export function LoginForm() {
   const campoClassName = 'h-12 w-full rounded-lg border border-[#3b454e] bg-white/[0.025] pl-12 pr-4 text-base text-foreground outline-none transition-colors placeholder:text-[#89949f] hover:border-[#59646e] focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60';
 
   return (
-    <form onSubmit={entrar} className="mt-6 space-y-4" aria-busy={enviando}>
+    // method="post": se o envio ocorrer antes da hidratação, a senha não vai para a URL.
+    <form method="post" onSubmit={entrar} className="mt-6 space-y-4" aria-busy={enviando}>
       <div>
         <label htmlFor="matricula" className="mb-1 block text-sm font-medium text-[#ccd2d8]">Matrícula</label>
         <div className="relative">
