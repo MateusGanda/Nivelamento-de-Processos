@@ -12,20 +12,20 @@ const destaques = [
 export function LoginScreen() {
   return (
     <main className="grid min-h-svh flex-1 bg-background lg:grid-cols-2">
-      <section aria-labelledby="login-titulo" className="flex items-center justify-center bg-[radial-gradient(ellipse_at_top,#1b232a_0%,#12171b_65%)] px-6 py-12 sm:px-12 sm:py-16 lg:px-14 xl:px-20">
-        <div className="w-full max-w-[440px]">
-          <BrandGunp />
-          <div className="mt-12 sm:mt-14">
-            <h1 id="login-titulo" className="text-3xl leading-tight font-semibold tracking-tight sm:text-[2rem]">Acesse sua conta</h1>
-            <p className="mt-3 text-base leading-7 text-muted">Entre com sua matrícula e senha para continuar</p>
+      <section aria-labelledby="login-titulo" className="flex items-center justify-center bg-[radial-gradient(ellipse_at_top,#1b232a_0%,#12171b_65%)] px-6 py-6 sm:px-12 lg:px-14 lg:py-8 xl:px-20">
+        <div className="w-full max-w-[400px]">
+          <BrandGunp variante="login" />
+          <div className="mt-8">
+            <h1 id="login-titulo" className="text-center text-2xl leading-tight font-semibold tracking-tight sm:text-[28px]">Acesse sua conta</h1>
+            <p className="mt-2 text-center text-sm leading-5 text-muted">Entre com sua matrícula e senha para continuar</p>
             <LoginForm />
           </div>
         </div>
       </section>
-      <aside aria-labelledby="producao-titulo" className="relative isolate hidden min-h-svh overflow-hidden bg-[#20272d] lg:flex lg:items-center">
+      <aside aria-labelledby="producao-titulo" className="relative isolate hidden overflow-hidden bg-[#20272d] lg:flex lg:items-center">
         <Image src="/images/login-industrial.png" alt="" fill sizes="(min-width: 1024px) 50vw, 0px" className="object-cover object-center" />
         <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(180deg,rgba(24,31,37,0.64)_0%,rgba(24,31,37,0.84)_55%,rgba(24,31,37,0.96)_100%)]" />
-        <div className="relative mx-auto w-full max-w-[600px] px-12 py-20 xl:px-16">
+        <div className="relative mx-auto w-full max-w-[600px] px-12 py-20 xl:px-16 [@media(max-height:760px)]:py-6">
           <div aria-hidden="true" className="mb-7 h-1 w-10 rounded-full bg-accent" />
           <h2 id="producao-titulo" className="text-3xl leading-[1.2] font-semibold tracking-tight xl:text-[2.5rem]">
             Controle e acompanhe<br /><span className="text-accent">sua produção</span>
