@@ -66,16 +66,22 @@ test('HTTP: sem sessão, raiz e painel redirecionam e API nega acesso', { skip: 
     assert.equal(new URL(resposta.headers.get('location')!, base!).pathname, '/login');
   }
   assert.equal((await fetch(url('/api/usuarios'))).status, 401);
+  assert.equal((await fetch(url('/api/operadores'))).status, 401);
+  assert.equal((await fetch(url('/api/operadores'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
+  assert.equal((await fetch(url('/api/setores'))).status, 401);
+  assert.equal((await fetch(url('/api/setores'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
   assert.deepEqual(await (await fetch(url('/api/auth/session'))).json(), {});
 });
 
 test('HTTP: cookie inválido não permite entrar no painel ou na API', { skip: !base }, async () => {
   const headers = { Cookie: 'next-auth.session-token=token-invalido' };
-  for (const caminho of ['/painel', '/painel/produtos', '/painel/indicadores']) {
+  for (const caminho of ['/painel', '/painel/produtos', '/painel/indicadores', '/painel/operadores', '/painel/setores']) {
     const painel = await fetch(url(caminho), { headers, redirect: 'manual' });
     assert.equal(new URL(painel.headers.get('location')!, base!).pathname, '/login');
   }
   assert.equal((await fetch(url('/api/usuarios'), { headers })).status, 401);
+  assert.equal((await fetch(url('/api/operadores'), { headers })).status, 401);
+  assert.equal((await fetch(url('/api/setores'), { headers })).status, 401);
 });
 
 test('HTTP: login inválido rejeita credenciais e não cria sessão', { skip: !base }, async () => {
@@ -91,6 +97,7 @@ test('HTTP: ADMIN inexistente com JWT assinado também perde acesso', { skip: !b
   const painel = await fetch(url('/painel'), { headers, redirect: 'manual' });
   assert.equal(new URL(painel.headers.get('location')!, base!).pathname, '/login');
   assert.equal((await fetch(url('/api/usuarios'), { headers })).status, 404);
+  assert.equal((await fetch(url('/api/setores'), { headers })).status, 404);
 });
 
 test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip: !base }, async (t) => {
@@ -114,18 +121,45 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
   assert.ok(html.includes('aria-current="page"'));
   assert.ok(!html.includes('href="/painel/usuarios"'));
   assert.ok(!html.includes('senhaHash'));
-  await t.test('módulos abrem páginas provisórias protegidas e desconhecido retorna 404', async () => {
+  await t.test('módulos abrem suas páginas funcionais/provisórias protegidas e desconhecido retorna 404', async () => {
     for (const [slug, titulo] of modulosEsperados) {
       assert.ok(html.includes(`href="/painel/${slug}"`));
       const pagina = await fetch(url(`/painel/${slug}`), { headers });
       assert.equal(pagina.status, 200, `Página ${slug} deve estar disponível para ADMIN`);
       const conteudo = await pagina.text();
       assert.ok(conteudo.includes(titulo));
-      assert.ok(conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
-      assert.ok(conteudo.includes('Voltar ao início'));
+      if (slug === 'operadores') {
+        assert.ok(conteudo.includes('Adicionar operador'));
+        assert.ok(conteudo.includes('Buscar operadores'));
+        assert.ok(conteudo.includes('Cadastrar operador'));
+        assert.ok(!conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
+      } else if (slug === 'setores') {
+        for (const trecho of ['Adicionar setor', 'Buscar setores', 'Cadastrar setor', 'setor-nome', 'setor-descricao']) assert.ok(conteudo.includes(trecho));
+        assert.ok(!conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
+      } else {
+        assert.ok(conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
+        assert.ok(conteudo.includes('Voltar ao início'));
+      }
       assert.ok(!conteudo.includes('senhaHash'));
     }
     assert.equal((await fetch(url('/painel/modulo-inexistente'), { headers, redirect: 'manual' })).status, 404);
+  });
+  await t.test('API de operadores autorizada lista registros e rejeita escrita inválida sem gravar', async () => {
+    const respostaOperadores = await fetch(url('/api/operadores'), { headers });
+    assert.equal(respostaOperadores.status, 200);
+    assert.ok(Array.isArray(await respostaOperadores.json()));
+    const invalida = await fetch(url('/api/operadores'), { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ nome: 'Não persistir', matricula: 'TESTE', senha: 'campo-proibido' }) });
+    assert.equal(invalida.status, 400);
+  });
+  await t.test('API de setores autorizada lista registros e rejeita entrada inválida sem gravar', async () => {
+    const respostaSetores = await fetch(url('/api/setores'), { headers });
+    assert.equal(respostaSetores.status, 200);
+    assert.equal(respostaSetores.headers.get('Cache-Control'), 'no-store');
+    const setores = await respostaSetores.json();
+    assert.ok(Array.isArray(setores));
+    for (const setor of setores) assert.deepEqual(Object.keys(setor).sort(), ['createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
+    const invalida = await fetch(url('/api/setores'), { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ nome: 'Não persistir', senha: 'campo-proibido' }) });
+    assert.equal(invalida.status, 400);
   });
   for (const caminho of ['/', '/login']) {
     const redirecionamento = await fetch(url(caminho), { headers, redirect: 'manual' });
@@ -139,11 +173,14 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
     if (!inativo || !process.env.NEXTAUTH_SECRET) return subteste.skip('Não há conta inativa existente para teste sem mutações.');
     const token = await encode({ secret: process.env.NEXTAUTH_SECRET, token: { sub: inativo.id, papel: 'ADMIN' }, maxAge: 60 });
     const headersInativo = { Cookie: `next-auth.session-token=${token}` };
-    for (const caminho of ['/painel', '/painel/produtos', '/painel/indicadores']) {
+    for (const caminho of ['/painel', '/painel/produtos', '/painel/indicadores', '/painel/operadores', '/painel/setores']) {
       const respostaPainel = await fetch(url(caminho), { headers: headersInativo, redirect: 'manual' });
       assert.equal(new URL(respostaPainel.headers.get('location')!, base!).pathname, '/login');
     }
     assert.equal((await fetch(url('/api/usuarios'), { headers: headersInativo })).status, 403);
+    assert.equal((await fetch(url('/api/operadores'), { headers: headersInativo })).status, 403);
+    assert.equal((await fetch(url('/api/setores'), { headers: headersInativo })).status, 403);
+    assert.equal((await fetch(url('/api/setores'), { method: 'POST', headers: { ...headersInativo, 'Content-Type': 'application/json' }, body: '{}' })).status, 403);
   });
 
   const csrf = await fetch(url('/api/auth/csrf'), { headers });
@@ -158,6 +195,7 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
   guardarCookies(saida, cookies);
   assert.equal(new URL((await saida.json() as { url: string }).url).pathname, '/login');
   assert.equal((await fetch(url('/api/usuarios'), { headers: { Cookie: cabecalhoCookies(cookies) } })).status, 401);
+  assert.equal((await fetch(url('/api/setores'), { headers: { Cookie: cabecalhoCookies(cookies) } })).status, 401);
   const aposLogout = await fetch(url('/painel/produtos'), { headers: { Cookie: cabecalhoCookies(cookies) }, redirect: 'manual' });
   assert.equal(new URL(aposLogout.headers.get('location')!, base!).pathname, '/login');
 });
