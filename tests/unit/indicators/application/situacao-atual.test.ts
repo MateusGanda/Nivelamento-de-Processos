@@ -2,61 +2,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { IndicadoresService } from '../../../../modules/indicators/application/indicadores.ts';
-import type { ExecucaoRegistrada, IndicadoresRepository, OrdemRegistrada, RegistrosDeProducao } from '../../../../modules/indicators/application/contracts.ts';
-import type { EventoTempo } from '../../../../modules/indicators/domain/tempos.ts';
+import type { RegistrosDeProducao } from '../../../../modules/indicators/application/contracts.ts';
+import { DIA_06, RepositorioEmMemoria, baixa, base, instante, ordem } from './registros-ficticios.ts';
 
-const instante = (dia: string, hora: string) => Date.parse(`2026-10-${dia}T${hora}:00-03:00`);
-const evento = (tipo: EventoTempo['tipo'], dia: string, hora: string): EventoTempo => ({ tipo, instanteMs: instante(dia, hora), motivoPausaId: null });
-const DIA_06 = { inicioMs: instante('06', '08:00'), fimMs: instante('06', '18:00') };
-
-const ordem = (numero: string, quantidade: number, unidade = 'un'): OrdemRegistrada => ({
-  id: `ordem-${numero}`, numero, quantidade, unidade, roteiroId: 'roteiro-1',
-  produtoId: 'produto-a', produtoCodigo: 'P-100', produtoNome: 'Produto A', planoCodigo: 'PL-01',
-});
-const baixa = (numero: string, etapa: string, boa: number, retrabalho: number, refugo: number, dia: string, hora: string): ExecucaoRegistrada => ({
-  ordemProducaoId: `ordem-${numero}`, etapaRoteiroId: etapa, tipoFinalizacao: 'BAIXA',
-  quantidadeBoa: boa, quantidadeRetrabalho: retrabalho, quantidadeRefugo: refugo,
-  eventos: [evento('INICIO', dia, '08:00'), evento('FINALIZACAO', dia, hora)],
-});
-const semQuantidades = { quantidadeBoa: null, quantidadeRetrabalho: null, quantidadeRefugo: null };
-
-// Roteiro com três etapas. A terceira não tem tempo padrão nem posto cadastrado.
-const base = (): RegistrosDeProducao => ({
-  ordens: [ordem('0002', 24), ordem('0001', 40), ordem('0003', 10), ordem('0004', 12.5)],
-  etapas: [
-    { id: 'etapa-2', roteiroId: 'roteiro-1', ordem: 2, operacaoNome: 'Montagem' },
-    { id: 'etapa-1', roteiroId: 'roteiro-1', ordem: 1, operacaoNome: 'Corte' },
-    { id: 'etapa-3', roteiroId: 'roteiro-1', ordem: 3, operacaoNome: 'Acabamento' },
-  ],
-  execucoes: [
-    // 0001: corte baixado; montagem com uma troca de operação e uma execução aberta.
-    baixa('0001', 'etapa-1', 38, 1, 1, '06', '08:30'),
-    { ordemProducaoId: 'ordem-0001', etapaRoteiroId: 'etapa-2', tipoFinalizacao: 'TROCA_OPERACAO', ...semQuantidades, eventos: [evento('INICIO', '06', '09:00'), evento('FINALIZACAO', '06', '09:20')] },
-    { ordemProducaoId: 'ordem-0001', etapaRoteiroId: 'etapa-2', tipoFinalizacao: null, ...semQuantidades, eventos: [evento('INICIO', '06', '10:00')] },
-    // 0003: as três etapas baixadas no dia 05.
-    baixa('0003', 'etapa-1', 10, 0, 0, '05', '09:00'),
-    baixa('0003', 'etapa-2', 10, 0, 0, '05', '11:00'),
-    baixa('0003', 'etapa-3', 9, 1, 0, '05', '15:00'),
-    // 0004: baixa com soma 12, diferente da quantidade da ordem (12,5).
-    baixa('0004', 'etapa-1', 10, 1, 1, '06', '09:00'),
-  ],
-  temposPadrao: [
-    { produtoId: 'produto-a', etapaRoteiroId: 'etapa-1', tempoPadraoSegundos: 60 },
-    { produtoId: 'produto-a', etapaRoteiroId: 'etapa-2', tempoPadraoSegundos: 100 },
-  ],
-  postosDasEtapas: [
-    { etapaRoteiroId: 'etapa-1', postoId: 'posto-1', codigo: 'P01', nome: 'Corte 1', ativo: true },
-    { etapaRoteiroId: 'etapa-2', postoId: 'posto-3', codigo: 'P03', nome: 'Montagem 2', ativo: true },
-    { etapaRoteiroId: 'etapa-2', postoId: 'posto-2', codigo: 'P02', nome: 'Montagem 1', ativo: true },
-  ],
-});
-
-class RepositorioEmMemoria implements IndicadoresRepository {
-  leituras = 0;
-  private readonly dados: RegistrosDeProducao;
-  constructor(dados: RegistrosDeProducao) { this.dados = dados; }
-  async carregarRegistrosDeProducao() { this.leituras += 1; return this.dados; }
-}
 const consultar = (dados: RegistrosDeProducao, periodo = DIA_06) => new IndicadoresService(new RepositorioEmMemoria(dados)).consultarSituacaoAtual(periodo);
 
 test('SIT-01: posição das ordens — etapa atual, execução aberta e última baixa', async () => {
@@ -126,8 +74,8 @@ test('POSTO-01: carga por posto — a etapa com dois postos divide a carga em pa
 
 test('POSTO-02: posto inativo não recebe carga; etapa só com posto inativo vira pendência', async () => {
   const dados = base();
-  const postosDasEtapas = dados.postosDasEtapas.map((p) => ({ ...p, ativo: p.codigo === 'P02' }));
-  const { cargaPorPosto, cargaPendente, pendencias } = await consultar({ ...dados, postosDasEtapas });
+  const postos = dados.postos.map((p) => ({ ...p, ativo: p.codigo === 'P02' }));
+  const { cargaPorPosto, cargaPendente, pendencias } = await consultar({ ...dados, postos });
   assert.deepEqual(cargaPorPosto, [{ posto: { id: 'posto-2', codigo: 'P02', nome: 'Montagem 1' }, cargaPendenteSegundos: 7650, percentualDaCarga: 100 }]);
   assert.deepEqual(cargaPendente.map((c) => c.postosCompativeis.map((p) => p.codigo)), [[], ['P02'], []]);
   assert.deepEqual(pendencias.filter((p) => p.codigo === 'ETAPA_SEM_POSTO').map((p) => p.etapaRoteiroId).sort(), ['etapa-1', 'etapa-3']);
@@ -135,7 +83,7 @@ test('POSTO-02: posto inativo não recebe carga; etapa só com posto inativo vir
 
 test('POSTO-03: etapa sem tempo padrão deixa a carga do posto e os percentuais indisponíveis', async () => {
   const dados = base();
-  const postosDasEtapas = [...dados.postosDasEtapas, { etapaRoteiroId: 'etapa-3', postoId: 'posto-4', codigo: 'P04', nome: 'Acabamento 1', ativo: true }];
+  const postosDasEtapas = [...dados.postosDasEtapas, { etapaRoteiroId: 'etapa-3', postoId: 'posto-4' }];
   const { cargaPorPosto } = await consultar({ ...dados, postosDasEtapas });
   assert.deepEqual(cargaPorPosto.map((c) => [c.posto.codigo, c.cargaPendenteSegundos, c.percentualDaCarga]), [['P01', 2190, null], ['P02', 3825, null], ['P03', 3825, null], ['P04', null, null]]);
 });

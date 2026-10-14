@@ -20,23 +20,32 @@ export type OrdemRegistrada = {
 export type EtapaRegistrada = { id: string; roteiroId: string; ordem: number; operacaoNome: string };
 
 export type ExecucaoRegistrada = ExecucaoDaEtapa & {
+  id: string;
   ordemProducaoId: string;
   etapaRoteiroId: string;
+  postoId: string;
   eventos: readonly EventoTempo[];
 };
 
 /** Tempo padrão em segundos por unidade produzida (ProdutoEtapa.tempoPadrao). */
 export type TempoPadraoRegistrado = { produtoId: string; etapaRoteiroId: string; tempoPadraoSegundos: number };
 
-/** Posto em que a etapa pode ser feita (EtapaPosto), com a situação do posto (Posto.ativo). */
-export type PostoDaEtapa = { etapaRoteiroId: string; postoId: string; codigo: string; nome: string; ativo: boolean };
+/** Posto com o nome do seu setor. */
+export type PostoRegistrado = { id: string; codigo: string; nome: string; ativo: boolean; setorNome: string };
+
+/** Posto em que a etapa pode ser feita (EtapaPosto). */
+export type PostoDaEtapa = { etapaRoteiroId: string; postoId: string };
+
+export type MotivoPausaRegistrado = { id: string; nome: string };
 
 export type RegistrosDeProducao = {
   ordens: readonly OrdemRegistrada[];
   etapas: readonly EtapaRegistrada[];
   execucoes: readonly ExecucaoRegistrada[];
   temposPadrao: readonly TempoPadraoRegistrado[];
+  postos: readonly PostoRegistrado[];
   postosDasEtapas: readonly PostoDaEtapa[];
+  motivosPausa: readonly MotivoPausaRegistrado[];
 };
 
 export interface IndicadoresRepository {

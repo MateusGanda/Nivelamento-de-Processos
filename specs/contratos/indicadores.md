@@ -1,8 +1,14 @@
 # Contrato de consulta dos indicadores
 
-Versão de trabalho 0.6 — 14/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
+Versão de trabalho 0.7 — 14/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
 
-**Status: proposta para revisão.** A rota não está implementada; os blocos `ordens`, `cargaPendente` e `cargaPorPosto` já têm caso de uso testado, sem leitura do banco (ver "Funções de cálculo"). Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+**Status: proposta para revisão.** A rota não está implementada; todos os blocos da resposta, menos `meta`, já têm caso de uso testado, sem leitura do banco (ver "Funções de cálculo"). Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+
+## O que mudou na versão 0.7
+
+- **Blocos do período** com caso de uso: `producao`, `producaoFinal`, `tempos` e `tempoMedio`.
+- **Contagem de execuções** em `tempos[]` definida: finalizadas no período e abertas no momento da consulta.
+- **Pendência nova** `EVENTOS_INCONSISTENTES`: execução com eventos fora das transições do modelo fica fora dos tempos, em vez de interromper a consulta.
 
 ## O que mudou na versão 0.6
 
@@ -115,7 +121,7 @@ Soma da `quantidadeBoa` das baixas do período na **última etapa** de cada rote
 
 ### `tempos[]` — por posto
 
-Tempos das execuções do posto, recortados ao período.
+Tempos das execuções do posto, recortados ao período. Uma linha por posto com alguma execução no período: iniciada antes do fim dele e não finalizada antes do início. Posto sem execução no período não aparece, porque ausência de apontamento não é ociosidade.
 
 | Campo | Tipo | Significado |
 | --- | --- | --- |
@@ -123,17 +129,18 @@ Tempos das execuções do posto, recortados ao período.
 | `produtivoSegundos` | número | Soma dos intervalos entre `INICIO` ou `RETOMADA` e a `PAUSA` ou `FINALIZACAO` seguinte. |
 | `pausaSegundos` | número | Soma dos intervalos entre `PAUSA` e `RETOMADA`. |
 | `totalSegundos` | número | `produtivoSegundos + pausaSegundos`, no mesmo recorte do período. |
-| `pausasPorMotivo[]` | lista | `motivoNome`, `segundos`, `ocorrencias`. |
-| `execucoesFinalizadas`, `execucoesAbertas` | inteiro | Execuções do posto no período. |
+| `pausasPorMotivo[]` | lista | `motivoNome`, `segundos`, `ocorrencias`, da maior para a menor duração. |
+| `execucoesFinalizadas` | inteiro | Execuções do posto com `FINALIZACAO` dentro do período. |
+| `execucoesAbertas` | inteiro | Execuções do posto sem `FINALIZACAO`, iniciadas antes do fim do período. |
 
-Só entram intervalos fechados. Uma execução aberta gera pendência e não recebe horário de término presumido. Pausa não é automaticamente perda: o motivo é que permite interpretar.
+Só entram intervalos fechados. Uma execução aberta gera pendência e não recebe horário de término presumido. Execuções simultâneas no mesmo posto somam tempo de execução; o total não é tempo de relógio do posto nem esforço de uma pessoa. Pausa não é automaticamente perda: o motivo é que permite interpretar.
 
 ### `tempoMedio[]` — por produto e etapa
 
 | Campo | Tipo | Significado |
 | --- | --- | --- |
 | `produtoCodigo`, `etapaRoteiroId`, `operacaoNome`, `unidade` | texto | Agrupamento. |
-| `execucoesConsideradas` | inteiro | Execuções finalizadas com baixa dentro do período. |
+| `execucoesConsideradas` | inteiro | Execuções que registraram baixa válida com `FINALIZACAO` dentro do período. Troca de operação e baixa inconsistente não entram. |
 | `produtivoSegundos` | número | Tempo produtivo das execuções **inteiras**, sem recorte. |
 | `quantidadeBoa` | decimal | Soma das baixas dessas execuções. |
 | `segundosPorUnidade` | número \| `null` | `produtivoSegundos ÷ quantidadeBoa`. `null` com quantidade boa zero. |
@@ -183,7 +190,8 @@ Cada item de `meta.pendencias` tem `codigo` e os identificadores a que se refere
 | Código | Quando aparece | Efeito |
 | --- | --- | --- |
 | `SEM_TEMPO_PADRAO` | Produto e etapa sem registro em `ProdutoEtapa`. | `tempoPadraoSegundos` e `cargaPendenteSegundos` ficam `null`; em `cargaPorPosto`, a carga dos postos da etapa e todos os percentuais ficam `null`. |
-| `EXECUCAO_ABERTA` | Execução não finalizada no período. | O intervalo aberto fica fora dos totais. |
+| `EXECUCAO_ABERTA` | Execução sem `FINALIZACAO` que conta em `tempos[]`. Traz `execucaoId` e `postoId`. | O intervalo aberto fica fora dos totais. |
+| `EVENTOS_INCONSISTENTES` | Execução cujos eventos não seguem as transições do modelo (por exemplo, sem `INICIO`). Traz `execucaoId`. | A execução fica fora de `tempos` e `tempoMedio`; a baixa dela continua em `producao`. |
 | `ETAPA_SEM_POSTO` | Etapa sem nenhum posto ativo em `EtapaPosto`. | `postosCompativeis` vazio; a carga da etapa não entra em nenhum posto. |
 | `BAIXA_INCONSISTENTE` | Baixa cuja soma das quantidades difere da quantidade da ordem ou que tem quantidade negativa (ver regra de baixa). | A etapa conta como sem baixa e entra em `etapasInconsistentes`. |
 
@@ -193,7 +201,7 @@ Cada item de `meta.pendencias` tem `codigo` e os identificadores a que se refere
 | --- | --- | --- |
 | Ordens | `OrdemProducao`, `Produto`, `PlanoProducao` | `numero`, `quantidade`, `unidade`, `roteiroId`, `Produto.codigo`, `Produto.nome`, `PlanoProducao.codigo` |
 | Roteiro | `EtapaRoteiro`, `Operacao` | `roteiroId`, `ordem`, `Operacao.nome` |
-| Baixas | `Execucao` | `ordemProducaoId`, `etapaRoteiroId`, `postoId`, `status`, `tipoFinalizacao`, `quantidadeBoa`, `quantidadeRetrabalho`, `quantidadeRefugo` |
+| Baixas | `Execucao` | `id`, `ordemProducaoId`, `etapaRoteiroId`, `postoId`, `status`, `tipoFinalizacao`, `quantidadeBoa`, `quantidadeRetrabalho`, `quantidadeRefugo` |
 | Tempos | `EventoTempo`, `MotivoPausa` | `execucaoId`, `tipo`, `dataHora`, `MotivoPausa.nome` |
 | Postos | `Posto`, `Setor`, `EtapaPosto` | `codigo`, `nome`, `ativo`, `setorId`, `Setor.nome` |
 | Tempo padrão | `ProdutoEtapa` | `produtoId`, `etapaRoteiroId`, `tempoPadrao` |
@@ -208,11 +216,11 @@ As funções ficam em `modules/indicators/domain/`, são puras e testadas em `te
 | `tempoMedio` | `calcularTempoMedioPorUnidade` e `compararComTempoPadrao` (`tempos.ts`) | Média ponderada pela quantidade boa, comparada com o tempo padrão. |
 | `ordens` | `identificarBaixa` e `calcularPosicao` (`producao.ts`) | Aplicam a regra de baixa abaixo. |
 | `producao` | `somarResultados` e `conferirResultado` (`producao.ts`) | Somam as baixas e conferem com a quantidade da ordem. |
-| `producaoFinal` | `calcularProducaoFinal` (`producao.ts`) | Quantidade boa da última etapa do roteiro. |
+| `producaoFinal` | `identificarBaixa` e `somarResultados` (`producao.ts`) | Quantidade boa das baixas válidas da última etapa do roteiro. |
 | `cargaPendente` | `calcularCargaPendente` (`carga.ts`) | Resultado em segundos. |
 | `cargaPorPosto` | `distribuirCargaPorPosto` (`carga.ts`) | Divisão igual entre os postos da etapa e participação de cada posto. |
 
-O caso de uso `IndicadoresService.consultarSituacaoAtual`, em `modules/indicators/application/indicadores.ts`, monta os blocos `ordens`, `cargaPendente` e `cargaPorPosto` e as pendências deles a partir do contrato `IndicadoresRepository` (`contracts.ts`). Ele é testado com repositório em memória em `tests/unit/indicators/application/`. Ainda não existem a implementação do repositório com o Prisma, os blocos do período e a rota.
+O caso de uso `IndicadoresService.consultar`, em `modules/indicators/application/indicadores.ts`, lê os registros uma vez pelo contrato `IndicadoresRepository` (`contracts.ts`) e monta todos os blocos e as pendências; `consultarSituacaoAtual` devolve só `ordens`, `cargaPendente` e `cargaPorPosto`. Ele é testado com repositório em memória em `tests/unit/indicators/application/`. Ainda não existem a implementação do repositório com o Prisma, a rota, o bloco `meta` e os filtros `setorId` e `postoId`.
 
 As quantidades são somadas em centésimos, porque o banco guarda duas casas decimais. A conversão dos valores do banco (texto para número, data para milissegundos) é responsabilidade da camada de infraestrutura.
 
