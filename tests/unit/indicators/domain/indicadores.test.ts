@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { derivarIntervalos, calcularTempos, calcularTempoMedioPorUnidade, compararComTempoPadrao } from '../../../../modules/indicators/domain/tempos.ts';
 import type { EventoTempo } from '../../../../modules/indicators/domain/tempos.ts';
-import { calcularCargaPendente } from '../../../../modules/indicators/domain/carga.ts';
+import { calcularCargaPendente, distribuirCargaPorPosto } from '../../../../modules/indicators/domain/carga.ts';
 import { somarResultados, conferirResultado, identificarBaixa, calcularPosicao, calcularProducaoFinal } from '../../../../modules/indicators/domain/producao.ts';
 
 const instante = (hora: string) => Date.parse(`2026-10-06T${hora}:00-03:00`);
@@ -170,6 +170,28 @@ test('carga pendente em segundos: quantidade sem baixa × tempo padrão por unid
 test('tempo padrão ausente torna a carga indisponível, não zero', () => {
   assert.deepEqual(calcularCargaPendente([{ quantidade: 24, tempoPadraoSegundos: 100 }, { quantidade: 12, tempoPadraoSegundos: null }]), { cargaSegundos: null, referenciasPendentes: 1 });
   assert.deepEqual(calcularCargaPendente([{ quantidade: 0, tempoPadraoSegundos: null }]), { cargaSegundos: 0, referenciasPendentes: 0 });
+});
+test('POSTO-01: carga da etapa repartida em partes iguais entre os seus postos', () => {
+  // Corte 6.000 s (um posto), montagem 18.000 s (dois postos), acabamento 12.000 s (um posto).
+  const r = distribuirCargaPorPosto([
+    { cargaSegundos: 6000, postoIds: ['corte-1'] },
+    { cargaSegundos: 18000, postoIds: ['montagem-1', 'montagem-2'] },
+    { cargaSegundos: 12000, postoIds: ['acabamento-1'] },
+  ], ['corte-1', 'montagem-1', 'montagem-2', 'acabamento-1']);
+  assert.deepEqual(r.map((p) => p.cargaSegundos), [6000, 9000, 9000, 12000]);
+  assert.deepEqual(r.map((p) => Math.round((p.percentualDaCarga ?? NaN) * 100) / 100), [16.67, 25, 25, 33.33]);
+  assert.equal(r.reduce((soma, p) => soma + (p.cargaSegundos ?? NaN), 0), 36000);
+});
+test('POSTO-02: etapa sem posto não é atribuída, e posto sem etapa pendente fica com zero', () => {
+  const r = distribuirCargaPorPosto([{ cargaSegundos: 500, postoIds: [] }, { cargaSegundos: 300, postoIds: ['a', 'a'] }], ['a', 'b']);
+  assert.deepEqual(r, [{ postoId: 'a', cargaSegundos: 300, percentualDaCarga: 100 }, { postoId: 'b', cargaSegundos: 0, percentualDaCarga: 0 }]);
+});
+test('POSTO-03: carga indisponível de uma etapa não vira zero no posto nem nos percentuais', () => {
+  const r = distribuirCargaPorPosto([{ cargaSegundos: null, postoIds: ['a'] }, { cargaSegundos: 300, postoIds: ['a', 'b'] }], ['a', 'b']);
+  assert.deepEqual(r, [{ postoId: 'a', cargaSegundos: null, percentualDaCarga: null }, { postoId: 'b', cargaSegundos: 150, percentualDaCarga: null }]);
+  assert.deepEqual(distribuirCargaPorPosto([], ['a']), [{ postoId: 'a', cargaSegundos: 0, percentualDaCarga: null }]);
+  assert.throws(() => distribuirCargaPorPosto([{ cargaSegundos: 10, postoIds: ['x'] }], ['a']), /fora da lista/);
+  assert.throws(() => distribuirCargaPorPosto([{ cargaSegundos: -1, postoIds: ['a'] }], ['a']));
 });
 test('rejeita negativos, mais de duas casas e valores não finitos', () => {
   const r = (q: number) => ({ quantidadeBoa: q, quantidadeRetrabalho: 0, quantidadeRefugo: 0 });

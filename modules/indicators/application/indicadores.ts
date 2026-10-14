@@ -1,12 +1,13 @@
 import { centesimos, validarJanela } from '../../../shared/validation.ts';
 import type { Janela } from '../../../shared/validation.ts';
-import { calcularCargaPendente } from '../domain/carga.ts';
+import { calcularCargaPendente, distribuirCargaPorPosto } from '../domain/carga.ts';
+import type { CargaDaEtapaNosPostos } from '../domain/carga.ts';
 import { calcularPosicao, identificarBaixa } from '../domain/producao.ts';
 import type { EtapaRegistrada, ExecucaoRegistrada, IndicadoresRepository } from './contracts.ts';
 
 export type Pendencia =
   | { codigo: 'BAIXA_INCONSISTENTE'; ordemId: string; etapaRoteiroId: string }
-  | { codigo: 'SEM_TEMPO_PADRAO'; produtoId: string; etapaRoteiroId: string }
+  | { codigo: 'SEM_TEMPO_PADRAO'; produtoCodigo: string; etapaRoteiroId: string }
   | { codigo: 'ETAPA_SEM_POSTO'; etapaRoteiroId: string };
 
 export type PosicaoDaOrdem = {
@@ -38,7 +39,13 @@ export type CargaDaEtapa = {
   postosCompativeis: { id: string; codigo: string; nome: string }[];
 };
 
-export type SituacaoAtual = { ordens: PosicaoDaOrdem[]; cargaPendente: CargaDaEtapa[]; pendencias: Pendencia[] };
+export type CargaDoPosto = {
+  posto: { id: string; codigo: string; nome: string };
+  cargaPendenteSegundos: number | null;
+  percentualDaCarga: number | null;
+};
+
+export type SituacaoAtual = { ordens: PosicaoDaOrdem[]; cargaPendente: CargaDaEtapa[]; cargaPorPosto: CargaDoPosto[]; pendencias: Pendencia[] };
 
 function agrupar<T>(itens: readonly T[], chave: (item: T) => string): Map<string, T[]> {
   const grupos = new Map<string, T[]>();
@@ -65,8 +72,8 @@ export class IndicadoresService {
     this.registros = registros;
   }
 
-  /** Blocos `ordens` e `cargaPendente` do contrato de indicadores: mostram a
-   * situação no momento da consulta. O período só decide quais ordens já
+  /** Blocos `ordens`, `cargaPendente` e `cargaPorPosto` do contrato de indicadores:
+   * mostram a situação no momento da consulta. O período só decide quais ordens já
    * concluídas ainda aparecem (as que tiveram baixa dentro dele).
    */
   async consultarSituacaoAtual(periodo: Janela): Promise<SituacaoAtual> {
@@ -122,7 +129,10 @@ export class IndicadoresService {
     }
 
     const temposPadrao = new Map(dados.temposPadrao.map((t) => [`${t.produtoId}|${t.etapaRoteiroId}`, t.tempoPadraoSegundos]));
-    const postosPorEtapa = agrupar(dados.postosDasEtapas, (p) => p.etapaRoteiroId);
+    // Posto inativo não recebe carga nem conta como compatível.
+    const postosAtivos = dados.postosDasEtapas.filter((p) => p.ativo);
+    const postosPorEtapa = agrupar(postosAtivos, (p) => p.etapaRoteiroId);
+    const cargasDasEtapas: CargaDaEtapaNosPostos[] = [];
     const semTempoPadrao = new Set<string>();
     const semPosto = new Set<string>();
     const cargaPendente: CargaDaEtapa[] = [];
@@ -132,7 +142,7 @@ export class IndicadoresService {
       const tempoPadraoSegundos = temposPadrao.get(chave) ?? null;
       if (tempoPadraoSegundos === null && !semTempoPadrao.has(chave)) {
         semTempoPadrao.add(chave);
-        pendencias.push({ codigo: 'SEM_TEMPO_PADRAO', produtoId, etapaRoteiroId: etapa.id });
+        pendencias.push({ codigo: 'SEM_TEMPO_PADRAO', produtoCodigo, etapaRoteiroId: etapa.id });
       }
       const postosCompativeis = (postosPorEtapa.get(etapa.id) ?? [])
         .map((p) => ({ id: p.postoId, codigo: p.codigo, nome: p.nome }))
@@ -142,6 +152,8 @@ export class IndicadoresService {
         pendencias.push({ codigo: 'ETAPA_SEM_POSTO', etapaRoteiroId: etapa.id });
       }
       const quantidadePendente = total / 100;
+      const cargaPendenteSegundos = calcularCargaPendente([{ quantidade: quantidadePendente, tempoPadraoSegundos }]).cargaSegundos;
+      cargasDasEtapas.push({ cargaSegundos: cargaPendenteSegundos, postoIds: postosCompativeis.map((p) => p.id) });
       cargaPendente.push({
         produtoCodigo,
         etapaRoteiroId: etapa.id,
@@ -151,13 +163,18 @@ export class IndicadoresService {
         ordensPendentes,
         quantidadePendente,
         tempoPadraoSegundos,
-        cargaPendenteSegundos: calcularCargaPendente([{ quantidade: quantidadePendente, tempoPadraoSegundos }]).cargaSegundos,
+        cargaPendenteSegundos,
         postosCompativeis,
       });
     }
 
+    const postos = new Map(postosAtivos.map((p) => [p.postoId, { id: p.postoId, codigo: p.codigo, nome: p.nome }]));
+    const cargaPorPosto: CargaDoPosto[] = distribuirCargaPorPosto(cargasDasEtapas, [...postos.keys()])
+      .map((c) => ({ posto: postos.get(c.postoId)!, cargaPendenteSegundos: c.cargaSegundos, percentualDaCarga: c.percentualDaCarga }))
+      .sort((a, b) => comparar(a.posto.codigo, b.posto.codigo));
+
     ordens.sort((a, b) => comparar(a.numero, b.numero));
     cargaPendente.sort((a, b) => comparar(a.produtoCodigo, b.produtoCodigo) || a.ordem - b.ordem || comparar(a.unidade, b.unidade));
-    return { ordens, cargaPendente, pendencias };
+    return { ordens, cargaPendente, cargaPorPosto, pendencias };
   }
 }
