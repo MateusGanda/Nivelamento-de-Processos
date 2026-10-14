@@ -1,7 +1,7 @@
 // Dados fictícios. Testes das fórmulas, sem banco, API ou tela.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { derivarIntervalos, calcularTempos, calcularTempoMedioPorUnidade } from '../../../../modules/indicators/domain/tempos.ts';
+import { derivarIntervalos, calcularTempos, calcularTempoMedioPorUnidade, compararComTempoPadrao } from '../../../../modules/indicators/domain/tempos.ts';
 import type { EventoTempo } from '../../../../modules/indicators/domain/tempos.ts';
 import { calcularCargaPendente } from '../../../../modules/indicators/domain/carga.ts';
 import { somarResultados, conferirResultado, identificarBaixa, calcularPosicao, calcularProducaoFinal } from '../../../../modules/indicators/domain/producao.ts';
@@ -88,9 +88,23 @@ test('execuções simultâneas no mesmo posto somam tempo de execução', () => 
   assert.equal(calcularTempos([...a, ...b], janela('08:00', '10:00')).produtivoSegundos, 7200);
 });
 test('período sem registros dá zero, e período inválido é rejeitado', () => {
-  assert.deepEqual(calcularTempos([], janela('08:00', '10:00')), { produtivoSegundos: 0, pausaSegundos: 0, pausasPorMotivo: [] });
+  assert.deepEqual(calcularTempos([], janela('08:00', '10:00')), { produtivoSegundos: 0, pausaSegundos: 0, totalSegundos: 0, pausasPorMotivo: [] });
   assert.equal(calcularTempos(derivarIntervalos(execucao).intervalos, janela('11:00', '12:00')).produtivoSegundos, 0);
   assert.throws(() => calcularTempos([], janela('10:00', '08:00')), /Janela inválida/);
+});
+test('TEMPO-03: tempo total é produtivo + pausa, no mesmo recorte do período', () => {
+  const { intervalos } = derivarIntervalos(execucao);
+  assert.equal(calcularTempos(intervalos, janela('08:00', '09:30')).totalSegundos, 5400);
+  // 08:30–09:00: 10 min produtivos + 10 de pausa + 10 produtivos.
+  assert.equal(calcularTempos(intervalos, janela('08:30', '09:00')).totalSegundos, 1800);
+});
+test('TEMPO-04: comparação com o tempo padrão — diferença e percentual', () => {
+  assert.deepEqual(compararComTempoPadrao(120, 100), { diferencaSegundos: 20, percentualDoPadrao: 120 });
+  assert.deepEqual(compararComTempoPadrao(90, 120), { diferencaSegundos: -30, percentualDoPadrao: 75 });
+  assert.equal(compararComTempoPadrao(null, 100), null);
+  assert.equal(compararComTempoPadrao(120, null), null);
+  assert.throws(() => compararComTempoPadrao(120, 0), /positivo/);
+  assert.throws(() => compararComTempoPadrao(-1, 100));
 });
 test('tempo médio é ponderado pela quantidade e aceita decimais', () => {
   assert.equal(calcularTempoMedioPorUnidade([{ produtivoSegundos: 600, quantidadeBoa: 10 }, { produtivoSegundos: 600, quantidadeBoa: 30 }]), 30);
@@ -130,6 +144,8 @@ test('baixa com soma diferente da ordem, em duplicidade ou sem quantidade é inc
   const completa = { tipoFinalizacao: 'BAIXA' as const, quantidadeBoa: 40, quantidadeRetrabalho: 0, quantidadeRefugo: 0 };
   assert.equal(identificarBaixa(40, [{ ...completa, quantidadeBoa: 30 }]).situacao, 'INCONSISTENTE');
   assert.equal(identificarBaixa(40, [{ ...completa, quantidadeBoa: 41 }]).situacao, 'INCONSISTENTE');
+  // o banco aceita quantidade negativa; a soma fecha em 40, mas não vale como baixa
+  assert.equal(identificarBaixa(40, [{ ...completa, quantidadeBoa: 41, quantidadeRefugo: -1 }]).situacao, 'INCONSISTENTE');
   // o banco impede estes dois casos; a função não os aceita se chegarem
   assert.equal(identificarBaixa(40, [completa, completa]).situacao, 'INCONSISTENTE');
   assert.equal(identificarBaixa(40, [{ ...completa, quantidadeRefugo: null }]).situacao, 'INCONSISTENTE');

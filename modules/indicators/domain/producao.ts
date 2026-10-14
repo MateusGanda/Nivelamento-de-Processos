@@ -43,8 +43,8 @@ export type SituacaoBaixa = 'SEM_BAIXA' | 'BAIXADA' | 'INCONSISTENTE';
 /** Baixa de UMA etapa de UMA ordem: a execução com tipoFinalizacao BAIXA.
  * Execução aberta ou finalizada por TROCA_OPERACAO não é baixa.
  * O banco garante baixa única por ordem e etapa, com as três quantidades. Ele
- * não confere a soma com a quantidade da ordem: baixa com soma diferente é
- * inconsistência, e a etapa não conta como baixada.
+ * não confere a soma com a quantidade da ordem nem o sinal: baixa com soma
+ * diferente ou quantidade negativa é inconsistência, e a etapa não conta como baixada.
  */
 export function identificarBaixa(quantidadeOrdem: number, execucoes: readonly ExecucaoDaEtapa[]): { situacao: SituacaoBaixa; resultado: Resultado | null } {
   if (centesimos(quantidadeOrdem, 'Quantidade da ordem') === 0) throw new Error('Quantidade da ordem deve ser positiva.');
@@ -54,6 +54,7 @@ export function identificarBaixa(quantidadeOrdem: number, execucoes: readonly Ex
   if (baixas.length > 1 || quantidadeBoa === null || quantidadeRetrabalho === null || quantidadeRefugo === null) {
     return { situacao: 'INCONSISTENTE', resultado: null };
   }
+  if (quantidadeBoa < 0 || quantidadeRetrabalho < 0 || quantidadeRefugo < 0) return { situacao: 'INCONSISTENTE', resultado: null };
   const resultado = { quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo };
   if (!conferirResultado(quantidadeOrdem, resultado).confere) return { situacao: 'INCONSISTENTE', resultado: null };
   return { situacao: 'BAIXADA', resultado };

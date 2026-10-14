@@ -1,8 +1,15 @@
 # Contrato de consulta dos indicadores
 
-Versão de trabalho 0.4 — 08/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
+Versão de trabalho 0.5 — 13/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
 
-**Status: proposta para revisão.** A rota não está implementada. Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/AI_CONTEXT.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+**Status: proposta para revisão.** A rota não está implementada; os blocos `ordens` e `cargaPendente` já têm caso de uso testado, sem leitura do banco (ver "Funções de cálculo"). Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+
+## O que mudou na versão 0.5
+
+- **Tempo total** em `tempos[]`: produtivo mais pausa.
+- **Comparação com o tempo padrão** em `tempoMedio[]`: diferença e percentual.
+- **Quantidade negativa** em uma baixa passa a ser inconsistência, como a soma diferente.
+- **Caso de uso** dos blocos `ordens` e `cargaPendente`, em `modules/indicators/application/`.
 
 ## O que mudou na versão 0.4
 
@@ -74,7 +81,7 @@ Uma linha por ordem de produção que ainda tem etapa sem baixa ou que teve baix
 | `ordemId`, `numero` | texto | Identificação. O número é texto e preserva zeros à esquerda. |
 | `produtoCodigo`, `produtoNome` | texto | Produto da ordem. |
 | `quantidade`, `unidade` | decimal, texto | Tamanho do lote. |
-| `planoCodigo` | texto \| `null` | Plano de produção que agrupa a ordem. |
+| `planoCodigo` | texto | Plano de produção que agrupa a ordem. Toda ordem pertence a um plano. |
 | `etapasTotal`, `etapasBaixadas` | inteiro | Etapas do roteiro da ordem e quantas já têm baixa. |
 | `etapasInconsistentes` | inteiro | Etapas com baixa cuja soma das quantidades difere da quantidade da ordem. |
 | `etapaAtual` | objeto \| `null` | Primeira etapa sem baixa, pela ordem do roteiro: `etapaRoteiroId`, `ordem`, `operacaoNome`. `null` quando todas têm baixa. |
@@ -108,6 +115,7 @@ Tempos das execuções do posto, recortados ao período.
 | `posto` | objeto | `id`, `codigo`, `nome`, `setorNome`. |
 | `produtivoSegundos` | número | Soma dos intervalos entre `INICIO` ou `RETOMADA` e a `PAUSA` ou `FINALIZACAO` seguinte. |
 | `pausaSegundos` | número | Soma dos intervalos entre `PAUSA` e `RETOMADA`. |
+| `totalSegundos` | número | `produtivoSegundos + pausaSegundos`, no mesmo recorte do período. |
 | `pausasPorMotivo[]` | lista | `motivoNome`, `segundos`, `ocorrencias`. |
 | `execucoesFinalizadas`, `execucoesAbertas` | inteiro | Execuções do posto no período. |
 
@@ -123,6 +131,8 @@ Só entram intervalos fechados. Uma execução aberta gera pendência e não rec
 | `quantidadeBoa` | decimal | Soma das baixas dessas execuções. |
 | `segundosPorUnidade` | número \| `null` | `produtivoSegundos ÷ quantidadeBoa`. `null` com quantidade boa zero. |
 | `tempoPadraoSegundos` | decimal \| `null` | `ProdutoEtapa.tempoPadrao`, em segundos por unidade. `null` quando não cadastrado. |
+| `diferencaSegundos` | número \| `null` | `segundosPorUnidade − tempoPadraoSegundos`. Positivo: a etapa levou mais que o padrão. `null` sem um dos dois. |
+| `percentualDoPadrao` | número \| `null` | `segundosPorUnidade ÷ tempoPadraoSegundos × 100`. Pode passar de 100. `null` sem um dos dois. |
 
 É média ponderada pela quantidade, não média de médias. Inclui o tempo gasto em unidades de retrabalho e refugo. Como o tempo padrão também é em segundos por unidade, `segundosPorUnidade` e `tempoPadraoSegundos` são diretamente comparáveis.
 
@@ -150,7 +160,7 @@ Cada item de `meta.pendencias` tem `codigo` e os identificadores a que se refere
 | `SEM_TEMPO_PADRAO` | Produto e etapa sem registro em `ProdutoEtapa`. | `tempoPadraoSegundos` e `cargaPendenteSegundos` ficam `null`. |
 | `EXECUCAO_ABERTA` | Execução não finalizada no período. | O intervalo aberto fica fora dos totais. |
 | `ETAPA_SEM_POSTO` | Etapa sem nenhum posto em `EtapaPosto`. | `postosCompativeis` vazio. |
-| `BAIXA_INCONSISTENTE` | Baixa cuja soma das quantidades difere da quantidade da ordem (ver regra de baixa). | A etapa conta como sem baixa e entra em `etapasInconsistentes`. |
+| `BAIXA_INCONSISTENTE` | Baixa cuja soma das quantidades difere da quantidade da ordem ou que tem quantidade negativa (ver regra de baixa). | A etapa conta como sem baixa e entra em `etapasInconsistentes`. |
 
 ## Dados que a consulta precisa do banco
 
@@ -170,11 +180,13 @@ As funções ficam em `modules/indicators/domain/`, são puras e testadas em `te
 | Bloco da resposta | Função | Observação |
 | --- | --- | --- |
 | `tempos` | `derivarIntervalos` e `calcularTempos` (`tempos.ts`) | Os intervalos saem dos eventos de cada execução; execução aberta não recebe término presumido. |
-| `tempoMedio` | `calcularTempoMedioPorUnidade` (`tempos.ts`) | Média ponderada pela quantidade boa. |
+| `tempoMedio` | `calcularTempoMedioPorUnidade` e `compararComTempoPadrao` (`tempos.ts`) | Média ponderada pela quantidade boa, comparada com o tempo padrão. |
 | `ordens` | `identificarBaixa` e `calcularPosicao` (`producao.ts`) | Aplicam a regra de baixa abaixo. |
 | `producao` | `somarResultados` e `conferirResultado` (`producao.ts`) | Somam as baixas e conferem com a quantidade da ordem. |
 | `producaoFinal` | `calcularProducaoFinal` (`producao.ts`) | Quantidade boa da última etapa do roteiro. |
 | `cargaPendente` | `calcularCargaPendente` (`carga.ts`) | Resultado em segundos. |
+
+O caso de uso `IndicadoresService.consultarSituacaoAtual`, em `modules/indicators/application/indicadores.ts`, monta os blocos `ordens` e `cargaPendente` e as pendências deles a partir do contrato `IndicadoresRepository` (`contracts.ts`). Ele é testado com repositório em memória em `tests/unit/indicators/application/`. Ainda não existem a implementação do repositório com o Prisma, os blocos do período e a rota.
 
 As quantidades são somadas em centésimos, porque o banco guarda duas casas decimais. A conversão dos valores do banco (texto para número, data para milissegundos) é responsabilidade da camada de infraestrutura.
 
@@ -185,12 +197,14 @@ Desde a migração de 08/10/2026 a baixa está no contrato do banco, em `Execuca
 - A baixa de uma etapa é a execução com `tipoFinalizacao = BAIXA`.
 - Execução aberta, pausada ou finalizada por `TROCA_OPERACAO` não é baixa e não tem quantidades.
 - O banco garante uma única baixa por ordem e etapa e exige as três quantidades nela.
-- O banco não confere a soma. Os cálculos conferem: a baixa vale quando `boa + retrabalho + refugo` é igual à quantidade da ordem. Com soma diferente, a etapa conta como sem baixa e é sinalizada como inconsistência.
+- O banco não confere a soma nem o sinal. Os cálculos conferem: a baixa vale quando `boa + retrabalho + refugo` é igual à quantidade da ordem e nenhuma quantidade é negativa. Caso contrário, a etapa conta como sem baixa e é sinalizada como inconsistência.
 
-Os blocos `ordens`, `producao`, `producaoFinal` e `cargaPendente` dependem dessa regra; `tempos` não. A mesma regra está registrada no `docs/AI_CONTEXT.md`.
+Os blocos `ordens`, `producao`, `producaoFinal` e `cargaPendente` dependem dessa regra; `tempos` não. A regra de negócio está no modelo conceitual (`docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`).
 
 ## Pontos em aberto
 
+- **Carga por posto e utilização.** O `ROADMAP_GUNP.md` (Fase 12) lista "carga por posto" e "carga relativa/utilização". Este contrato calcula a carga por etapa, porque a mesma etapa pode ser feita em vários postos e o modelo não diz em qual; e não calcula utilização, porque o modelo não tem disponibilidade de posto. Falta a equipe decidir a regra antes de implementar.
+- **Filtros de setor e posto na situação atual.** Não está definido se `setorId` e `postoId` restringem `ordens` e `cargaPendente`; o caso de uso atual não os aplica.
 - **Soma das quantidades na baixa.** O comando de baixa deve recusar soma diferente da quantidade da ordem; os indicadores só sinalizam o que já estiver gravado.
 - **Tempo médio.** O tempo de execuções sem baixa (troca de operação) entra no tempo médio da etapa?
 - **Entrada do tempo padrão.** O sistema guarda segundos por unidade. Se a empresa registra em outra unidade, a conversão acontece no cadastro ou na importação.

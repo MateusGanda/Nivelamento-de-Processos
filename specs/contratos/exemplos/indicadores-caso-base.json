@@ -76,6 +76,7 @@
       },
       "produtivoSegundos": 4800,
       "pausaSegundos": 600,
+      "totalSegundos": 5400,
       "pausasPorMotivo": [
         {
           "motivoNome": "Falta de material",
@@ -97,7 +98,9 @@
       "produtivoSegundos": 4800,
       "quantidadeBoa": 40,
       "segundosPorUnidade": 120.0,
-      "tempoPadraoSegundos": 100
+      "tempoPadraoSegundos": 100,
+      "diferencaSegundos": 20,
+      "percentualDoPadrao": 120
     }
   ],
   "cargaPendente": [
