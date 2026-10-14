@@ -54,6 +54,7 @@
       },
       "produtivoSegundos": 1800,
       "pausaSegundos": 300,
+      "totalSegundos": 2100,
       "pausasPorMotivo": [
         {
           "motivoNome": "Ajuste de equipamento",

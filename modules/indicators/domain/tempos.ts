@@ -47,7 +47,7 @@ export function derivarIntervalos(eventos: readonly EventoTempo[]) {
 /** Tempos recortados ao período consultado. Aceita intervalos de várias execuções,
  * inclusive simultâneas: o total é tempo de execução somado, não tempo de relógio
  * do posto nem esforço de uma pessoa. Pausa não é automaticamente perda, e
- * período sem intervalo não é ociosidade.
+ * período sem intervalo não é ociosidade. O tempo total é produtivo + pausa.
  */
 export function calcularTempos(intervalos: readonly Intervalo[], periodo: Janela) {
   validarJanela(periodo);
@@ -71,7 +71,7 @@ export function calcularTempos(intervalos: readonly Intervalo[], periodo: Janela
   const pausasPorMotivo = [...porMotivo.entries()]
     .map(([motivoPausaId, v]) => ({ motivoPausaId, ...v }))
     .sort((a, b) => b.segundos - a.segundos);
-  return { produtivoSegundos, pausaSegundos, pausasPorMotivo };
+  return { produtivoSegundos, pausaSegundos, totalSegundos: produtivoSegundos + pausaSegundos, pausasPorMotivo };
 }
 
 /** Mesmo produto e etapa; execuções inteiras, sem recortar só o numerador.
@@ -88,4 +88,19 @@ export function calcularTempoMedioPorUnidade(execucoes: readonly { produtivoSegu
   }
   if (!Number.isFinite(tempo) || !Number.isSafeInteger(boas)) throw new Error('Totais excederam o limite numérico.');
   return boas > 0 ? tempo / (boas / 100) : null;
+}
+
+/** Tempo real por unidade contra o tempo padrão, ambos em segundos por unidade.
+ * Diferença positiva: a etapa levou mais que o padrão. Sem um dos dois valores
+ * a comparação é indisponível, nunca zero.
+ */
+export function compararComTempoPadrao(segundosPorUnidade: number | null, tempoPadraoSegundos: number | null) {
+  if (segundosPorUnidade === null || tempoPadraoSegundos === null) return null;
+  naoNegativo(segundosPorUnidade, 'Tempo por unidade');
+  naoNegativo(tempoPadraoSegundos, 'Tempo padrão');
+  if (tempoPadraoSegundos === 0) throw new Error('Tempo padrão deve ser positivo.');
+  return {
+    diferencaSegundos: segundosPorUnidade - tempoPadraoSegundos,
+    percentualDoPadrao: (segundosPorUnidade / tempoPadraoSegundos) * 100,
+  };
 }
