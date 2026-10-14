@@ -1,10 +1,10 @@
 # Pendências e fundamentos do modelo de dados
 
-Atualizado em 08/10/2026. Responsável: Mateus.
+Atualizado em 13/10/2026. Responsável: Mateus.
 
-O modelo de dados está em `src/prisma/contract.prisma` e as regras consolidadas em `docs/AI_CONTEXT.md`; este documento não os repete. Ele guarda duas coisas que não estão em outro lugar do repositório: as respostas da empresa que fundamentaram o modelo e a lista de decisões ainda abertas.
+O modelo de dados está em `src/prisma/contract.prisma` e as regras consolidadas em `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md` e `docs/CONTEXTO_DO_PROJETO.md`; este documento não os repete. Ele guarda duas coisas que não estão em outro lugar do repositório: as respostas da empresa que fundamentaram o modelo e a lista de decisões ainda abertas.
 
-Nada aqui é decisão tomada. As recomendações são sugestões para a equipe avaliar.
+As recomendações da seção "Decisões em aberto" são sugestões para a equipe avaliar, não decisões tomadas.
 
 ## Respostas do Ricardo (06/10/2026)
 
@@ -19,14 +19,22 @@ Nada aqui é decisão tomada. As recomendações são sugestões para a equipe a
 
 | # | Pendência | Por que importa | Recomendação | Quem decide |
 | --- | --- | --- | --- | --- |
-| 1 | **Soma e sinal das quantidades.** O banco aceita baixa com soma diferente da quantidade da ordem e com quantidade negativa. | A regra `boa + retrabalho + refugo = quantidade da ordem` fica sem proteção se o comando de baixa não validar. | Validar na transação da baixa. Avaliar uma restrição de verificação para quantidade negativa. | Equipe |
-| 2 | **Execuções abertas por operador.** O banco aceita duas execuções abertas ou pausadas do mesmo operador. | A regra existe no `AI_CONTEXT.md` e precisa valer também com dois comandos ao mesmo tempo. | Avaliar um índice único em `Execucao (operadorId)` para execuções sem `tipoFinalizacao`, como o que já existe para a baixa. | Equipe (altera o contrato) |
+| 1 | **Quantidade negativa na baixa.** O banco aceita quantidade negativa, e a documentação não diz se isso fica só na validação do comando. | Uma baixa com valor negativo pode fechar a soma e passar pela conferência. | Recusar no comando de baixa. Avaliar também uma restrição de verificação no banco. | Equipe (a restrição altera o contrato) |
+| 2 | **Técnica para uma execução aberta por operador.** A regra está definida (ver "Regra definida, falta implementar"), mas o `ARCHITECTURE.md` deixa a técnica como "A definir": restrição parcial, lock, controle otimista ou combinação. Hoje o banco aceita duas execuções abertas ou pausadas do mesmo operador. | A garantia precisa valer no PostgreSQL com dois comandos ao mesmo tempo, e ser coberta por teste. | Avaliar um índice único em `Execucao (operadorId)` para execuções sem `tipoFinalizacao`, como o que já existe para a baixa. | Equipe, na tarefa de início de execução (o índice altera o contrato) |
 | 3 | **Entrada do tempo padrão.** O sistema trabalha com segundos por unidade produzida (decisão de 07/10). | Se a empresa registra em minutos ou centésimos de minuto, o valor precisa ser convertido ao cadastrar. | Perguntar à empresa em que unidade ela registra e converter no cadastro ou na importação. | Empresa informa |
 | 4 | **Proteção contra reenvio.** Não há identificador de solicitação em `Execucao` nem em `EventoTempo`. | O `ARCHITECTURE.md` exige que duplo clique ou reenvio não dupliquem evento nem baixa. | Definir junto com os comandos de apontamento. | Equipe |
 | 5 | **Correção de apontamento.** Não há histórico de correção. | Uma baixa errada precisa ser corrigida sem perder o registro original. | Definir antes do piloto. | Equipe |
 | 6 | **Inativação de cadastros.** `Produto`, `Operacao` e `Setor` não têm `ativo`. | Cadastros usados em ordens não podem ser apagados. | Avaliar `ativo` nos três. | Equipe |
 | 7 | **Categoria do motivo de pausa.** `MotivoPausa` só tem nome. | O painel não separa pausa prevista de interrupção. | Avaliar um campo de categoria. | Equipe |
 | 8 | **Linha de produção.** O setor é o nível mais alto. | Com mais de uma linha, falta um agrupador. | Deixar para depois do piloto. | Equipe |
+| 9 | **Setor principal do operador e matrícula automática.** Estão planejados em `docs/design/SETORES_GUNP.md` para uma entrega posterior e não existem no contrato atual. | O vínculo cria um relacionamento novo entre `Operador` e `Setor`, o que muda o contrato, o script SQL e os diagramas. | Definir o relacionamento e a regra de geração da matrícula antes de implementar. | Equipe (altera o contrato) |
+
+## Regra definida, falta implementar
+
+As duas regras abaixo estão no modelo conceitual, no `CONTEXTO_DO_PROJETO.md`, no `ARCHITECTURE.md` e no `AGENTS.md`. Em 13/10/2026 ainda não existe o módulo de execução, e o contrato não tem restrição para nenhuma delas.
+
+- **Soma das quantidades na baixa.** `boa + retrabalho + refugo = quantidade da ordem`, sem baixa parcial. O `ROADMAP_GUNP.md` (Fase 8) define que a validação é feita na transação da baixa. Até o comando existir, o banco aceita baixa com soma diferente; os cálculos de indicadores apenas sinalizam a etapa como inconsistente.
+- **Uma execução aberta por operador.** O operador não pode ter duas execuções abertas, e a pausada continua ocupando o operador. A regra precisa valer também com solicitações concorrentes. A técnica está na pendência 2.
 
 ## Decidido
 
@@ -40,4 +48,4 @@ Nada aqui é decisão tomada. As recomendações são sugestões para a equipe a
 - Toda ordem pertence a um plano de produção (`planoProducaoId` obrigatório).
 - `status` da execução e `tipo` do evento são enumerações.
 - `Roteiro(nome, versao)`, `EtapaRoteiro(roteiroId, ordem)`, `ProdutoRoteiro(produtoId, roteiroId)` e `ProdutoEtapa(produtoId, etapaRoteiroId)` são únicos.
-- Tabelas de usuário e permissão ficam por conta da solução de autenticação.
+- **Usuários administrativos (12/10).** A tabela `Usuario`, com o papel `ADMIN`, entrou no contrato. `Usuario` e `Operador` são entidades distintas. O acesso operacional do terminal continua pendente, conforme o `CONTEXTO_DO_PROJETO.md`.
