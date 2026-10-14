@@ -28,8 +28,8 @@ export type ExecucaoRegistrada = ExecucaoDaEtapa & {
 /** Tempo padrão em segundos por unidade produzida (ProdutoEtapa.tempoPadrao). */
 export type TempoPadraoRegistrado = { produtoId: string; etapaRoteiroId: string; tempoPadraoSegundos: number };
 
-/** Posto em que a etapa pode ser feita (EtapaPosto). */
-export type PostoDaEtapa = { etapaRoteiroId: string; postoId: string; codigo: string; nome: string };
+/** Posto em que a etapa pode ser feita (EtapaPosto), com a situação do posto (Posto.ativo). */
+export type PostoDaEtapa = { etapaRoteiroId: string; postoId: string; codigo: string; nome: string; ativo: boolean };
 
 export type RegistrosDeProducao = {
   ordens: readonly OrdemRegistrada[];

@@ -1,36 +1,131 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GUNP — Gerenciamento de Nivelamento de Processos
 
-## Getting Started
+Sistema web para registrar a produção e os tempos de cada etapa de uma linha de produção e apoiar o gestor no nivelamento dos processos. É o Trabalho de Conclusão de Curso de Ciência da Computação da UNIP, desenvolvido por Mateus Minoru Ganda, Arthur Álvaro Silva Garcia e Luis Gustavo Nunes dos Santos.
 
-First, run the development server:
+O sistema está em desenvolvimento. A versão da branch `develop` fica publicada em <https://nivelamento-de-processos.vercel.app>.
+
+## Situação em 14/10/2026
+
+Pronto:
+
+- login com matrícula e senha, e API de usuários administrativos;
+- painel administrativo com menu lateral;
+- cadastro e consulta de operadores e de setores;
+- banco de dados com 16 tabelas, criado por migrações;
+- cálculos dos indicadores (tempos, produção, posição das ordens e carga pendente por etapa e por posto), com testes, ainda sem leitura do banco e sem tela.
+
+Em desenvolvimento: demais cadastros, roteiros, planos e ordens de produção, apontamento da produção (início, pausa, retomada, troca de operação e baixa), leitor USB e painel de indicadores. O acompanhamento das fases está em [`docs/plan/ROADMAP_GUNP.md`](docs/plan/ROADMAP_GUNP.md).
+
+## Tecnologias
+
+- Next.js 16 (App Router), React 19 e TypeScript
+- Tailwind CSS 4
+- PostgreSQL com Prisma 8
+- NextAuth 4 (credenciais) e Argon2id para as senhas
+- Testes com `node:test`
+
+## Como rodar
+
+Requisitos: Node.js 22 e acesso a um banco PostgreSQL.
+
+```bash
+git clone https://github.com/MateusGanda/Nivelamento-de-Processos.git
+cd Nivelamento-de-Processos
+npm ci
+cp .env.example .env
+```
+
+Preencha o `.env` (veja a tabela abaixo) e inicie:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O sistema abre em <http://localhost:3000>.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Variáveis de ambiente
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+O arquivo `.env` não vai para o Git. Nunca coloque senhas ou a string de conexão em commits, issues ou mensagens.
 
-## Learn More
+| Variável | Para que serve |
+| --- | --- |
+| `DATABASE_URL` | String de conexão do PostgreSQL. A do banco da equipe é passada em particular. |
+| `NEXTAUTH_SECRET` | Segredo que assina as sessões. Gere um valor próprio para cada ambiente. |
+| `INITIAL_ADMIN_NOME`, `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_MATRICULA`, `INITIAL_ADMIN_SENHA` | Usadas só pelo comando que cria o primeiro administrador. |
 
-To learn more about Next.js, take a look at the following resources:
+Para gerar um valor para o `NEXTAUTH_SECRET`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+node -e "console.log(crypto.randomBytes(32).toString('base64'))"
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Primeiro administrador
 
-## Deploy on Vercel
+Não existe cadastro público de usuário. O primeiro administrador é criado pelo comando abaixo, que só funciona enquanto não houver um administrador ativo no banco:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run bootstrap:admin
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Depois disso, novos usuários são criados pela API, por um administrador conectado. Ainda não há tela para isso.
+
+## Banco de dados
+
+O modelo de dados está em [`src/prisma/contract.prisma`](src/prisma/contract.prisma) e as migrações em [`migrations/app`](migrations/app). O arquivo [`docs/sql/schema.sql`](docs/sql/schema.sql) reúne os mesmos comandos em um único script, para consulta ou para criar o banco manualmente em um PostgreSQL vazio.
+
+```bash
+npx prisma migration status   # mostra as migrações aplicadas
+npx prisma db verify          # confere se o banco está igual ao modelo
+npx prisma db migrate         # aplica as migrações pendentes
+```
+
+Os dois primeiros comandos só leem. Não aplique migrações nem altere o modelo no banco da equipe sem combinar antes.
+
+## Comandos
+
+| Comando | O que faz |
+| --- | --- |
+| `npm run dev` | Inicia o sistema em modo de desenvolvimento. |
+| `npm run build` | Compila para produção. |
+| `npm run start` | Inicia a versão compilada. |
+| `npm run lint` | Confere o padrão do código. |
+| `npm run typecheck` | Confere os tipos do TypeScript. |
+| `npm test` | Roda os testes automatizados. |
+| `npm run bootstrap:admin` | Cria o primeiro administrador. |
+
+Os testes não usam o banco de dados. Os testes de login por HTTP são opcionais e só rodam com a aplicação local em execução e a variável `GUNP_HTTP_TEST_URL` definida, por exemplo `GUNP_HTTP_TEST_URL=http://localhost:3000`.
+
+## Organização do projeto
+
+```text
+app/          páginas do sistema e rotas da API
+modules/      código por módulo (access, operators, sectors, indicators),
+              dividido em domain, application, infrastructure e presentation
+shared/       validações usadas por mais de um módulo
+src/prisma/   modelo de dados e conexão com o banco
+migrations/   migrações que criam as tabelas
+scripts/      comandos de apoio
+tests/        testes automatizados
+docs/         documentação do projeto e o TCC
+specs/        contratos e pendências do modelo
+```
+
+As regras de cada camada estão em [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md).
+
+## Documentação
+
+- [`docs/CONTEXTO_DO_PROJETO.md`](docs/CONTEXTO_DO_PROJETO.md): visão geral e decisões do projeto
+- [`docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`](docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md): entidades e regras de negócio
+- [`docs/domain/diagrama-de-classes.drawio.png`](docs/domain/diagrama-de-classes.drawio.png): diagrama de classes
+- [`docs/technology/TECHNOLOGY.md`](docs/technology/TECHNOLOGY.md): tecnologias e padrões
+- [`specs/contratos/indicadores.md`](specs/contratos/indicadores.md): contrato da consulta de indicadores
+- [`docs/tcc`](docs/tcc): texto do TCC
+- [`AGENTS.md`](AGENTS.md): regras para o uso de ferramentas de IA no projeto
+
+## Como contribuir
+
+1. Atualize a `develop` e crie a branch a partir dela, com o tipo no nome: `feat/...`, `fix/...`, `docs/...`.
+2. Use Conventional Commits: `feat: ...`, `fix: ...`, `docs: ...`, `chore: ...`.
+3. Só abra o pull request para a `develop` depois de testar na branch.
+4. Todo pull request passa pela verificação automática (lint, tipos, testes e build). Faça o merge só com ela verde e depois de conferir os arquivos alterados.
+5. Arquivos criados só para teste local não vão para o Git.

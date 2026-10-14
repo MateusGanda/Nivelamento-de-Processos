@@ -45,9 +45,9 @@ const base = (): RegistrosDeProducao => ({
     { produtoId: 'produto-a', etapaRoteiroId: 'etapa-2', tempoPadraoSegundos: 100 },
   ],
   postosDasEtapas: [
-    { etapaRoteiroId: 'etapa-1', postoId: 'posto-1', codigo: 'P01', nome: 'Corte 1' },
-    { etapaRoteiroId: 'etapa-2', postoId: 'posto-3', codigo: 'P03', nome: 'Montagem 2' },
-    { etapaRoteiroId: 'etapa-2', postoId: 'posto-2', codigo: 'P02', nome: 'Montagem 1' },
+    { etapaRoteiroId: 'etapa-1', postoId: 'posto-1', codigo: 'P01', nome: 'Corte 1', ativo: true },
+    { etapaRoteiroId: 'etapa-2', postoId: 'posto-3', codigo: 'P03', nome: 'Montagem 2', ativo: true },
+    { etapaRoteiroId: 'etapa-2', postoId: 'posto-2', codigo: 'P02', nome: 'Montagem 1', ativo: true },
   ],
 });
 
@@ -103,7 +103,7 @@ test('CARGA-01: carga pendente por etapa = quantidade sem baixa × tempo padrão
 test('CARGA-02: sem tempo padrão ou sem posto a etapa gera uma pendência, sem repetir', async () => {
   const { pendencias } = await consultar(base());
   assert.deepEqual(pendencias.filter((p) => p.codigo !== 'BAIXA_INCONSISTENTE'), [
-    { codigo: 'SEM_TEMPO_PADRAO', produtoId: 'produto-a', etapaRoteiroId: 'etapa-3' },
+    { codigo: 'SEM_TEMPO_PADRAO', produtoCodigo: 'P-100', etapaRoteiroId: 'etapa-3' },
     { codigo: 'ETAPA_SEM_POSTO', etapaRoteiroId: 'etapa-3' },
   ]);
 });
@@ -114,6 +114,39 @@ test('CARGA-03: quantidades de unidades diferentes não são somadas', async () 
   assert.deepEqual(cargaPendente.filter((c) => c.etapaRoteiroId === 'etapa-1').map((c) => [c.unidade, c.quantidadePendente, c.cargaPendenteSegundos]), [['cx', 3, 180], ['un', 24, 1440]]);
 });
 
+test('POSTO-01: carga por posto — a etapa com dois postos divide a carga em partes iguais', async () => {
+  const { cargaPorPosto } = await consultar(base());
+  // Corte (2.190 s) só no P01. Montagem (7.650 s) em P02 e P03: 3.825 s cada. Acabamento não tem posto.
+  assert.deepEqual(cargaPorPosto.map((c) => [c.posto.codigo, c.posto.nome, c.cargaPendenteSegundos]), [['P01', 'Corte 1', 2190], ['P02', 'Montagem 1', 3825], ['P03', 'Montagem 2', 3825]]);
+  const percentuais = cargaPorPosto.map((c) => c.percentualDaCarga ?? NaN);
+  assert.ok(Math.abs(percentuais[0] - (2190 / 9840) * 100) < 1e-9);
+  assert.equal(percentuais[1], percentuais[2]);
+  assert.ok(Math.abs(percentuais[0] + percentuais[1] + percentuais[2] - 100) < 1e-9);
+});
+
+test('POSTO-02: posto inativo não recebe carga; etapa só com posto inativo vira pendência', async () => {
+  const dados = base();
+  const postosDasEtapas = dados.postosDasEtapas.map((p) => ({ ...p, ativo: p.codigo === 'P02' }));
+  const { cargaPorPosto, cargaPendente, pendencias } = await consultar({ ...dados, postosDasEtapas });
+  assert.deepEqual(cargaPorPosto, [{ posto: { id: 'posto-2', codigo: 'P02', nome: 'Montagem 1' }, cargaPendenteSegundos: 7650, percentualDaCarga: 100 }]);
+  assert.deepEqual(cargaPendente.map((c) => c.postosCompativeis.map((p) => p.codigo)), [[], ['P02'], []]);
+  assert.deepEqual(pendencias.filter((p) => p.codigo === 'ETAPA_SEM_POSTO').map((p) => p.etapaRoteiroId).sort(), ['etapa-1', 'etapa-3']);
+});
+
+test('POSTO-03: etapa sem tempo padrão deixa a carga do posto e os percentuais indisponíveis', async () => {
+  const dados = base();
+  const postosDasEtapas = [...dados.postosDasEtapas, { etapaRoteiroId: 'etapa-3', postoId: 'posto-4', codigo: 'P04', nome: 'Acabamento 1', ativo: true }];
+  const { cargaPorPosto } = await consultar({ ...dados, postosDasEtapas });
+  assert.deepEqual(cargaPorPosto.map((c) => [c.posto.codigo, c.cargaPendenteSegundos, c.percentualDaCarga]), [['P01', 2190, null], ['P02', 3825, null], ['P03', 3825, null], ['P04', null, null]]);
+});
+
+test('POSTO-04: posto sem trabalho pendente aparece com carga zero', async () => {
+  const dados = base();
+  const { cargaPorPosto } = await consultar({ ...dados, ordens: [ordem('0001', 40)] });
+  // Só a 0001, com o corte já baixado: sobram 40 un × 100 s na montagem.
+  assert.deepEqual(cargaPorPosto.map((c) => [c.posto.codigo, c.cargaPendenteSegundos, c.percentualDaCarga]), [['P01', 0, 0], ['P02', 2000, 50], ['P03', 2000, 50]]);
+});
+
 test('baixa com quantidade negativa é inconsistência, não erro da consulta', async () => {
   const dados = base();
   const { ordens } = await consultar({ ...dados, ordens: [ordem('0002', 24)], execucoes: [baixa('0002', 'etapa-1', 25, -1, 0, '06', '09:00')] });
@@ -121,7 +154,10 @@ test('baixa com quantidade negativa é inconsistência, não erro da consulta', 
 });
 
 test('sem ordens o resultado é vazio, e período inválido é rejeitado antes de ler os registros', async () => {
-  assert.deepEqual(await consultar({ ...base(), ordens: [] }), { ordens: [], cargaPendente: [], pendencias: [] });
+  const vazio = await consultar({ ...base(), ordens: [] });
+  assert.deepEqual([vazio.ordens, vazio.cargaPendente, vazio.pendencias], [[], [], []]);
+  // Sem carga para repartir, os postos aparecem com zero e sem percentual.
+  assert.deepEqual(vazio.cargaPorPosto.map((c) => [c.posto.codigo, c.cargaPendenteSegundos, c.percentualDaCarga]), [['P01', 0, null], ['P02', 0, null], ['P03', 0, null]]);
   const repositorio = new RepositorioEmMemoria(base());
   await assert.rejects(() => new IndicadoresService(repositorio).consultarSituacaoAtual({ inicioMs: DIA_06.fimMs, fimMs: DIA_06.inicioMs }), /Janela inválida/);
   assert.equal(repositorio.leituras, 0);

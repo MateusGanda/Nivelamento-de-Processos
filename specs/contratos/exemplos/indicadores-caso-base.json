@@ -140,5 +140,25 @@
         }
       ]
     }
+  ],
+  "cargaPorPosto": [
+    {
+      "posto": {
+        "id": "00000000-0000-4000-8000-000000000101",
+        "codigo": "P01",
+        "nome": "Corte (fictício)"
+      },
+      "cargaPendenteSegundos": 720,
+      "percentualDaCarga": 23.076923076923077
+    },
+    {
+      "posto": {
+        "id": "00000000-0000-4000-8000-000000000102",
+        "codigo": "P02",
+        "nome": "Costura (fictício)"
+      },
+      "cargaPendenteSegundos": 2400,
+      "percentualDaCarga": 76.92307692307693
+    }
   ]
 }

@@ -1,8 +1,15 @@
 # Contrato de consulta dos indicadores
 
-Versão de trabalho 0.5 — 13/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
+Versão de trabalho 0.6 — 14/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
 
-**Status: proposta para revisão.** A rota não está implementada; os blocos `ordens` e `cargaPendente` já têm caso de uso testado, sem leitura do banco (ver "Funções de cálculo"). Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+**Status: proposta para revisão.** A rota não está implementada; os blocos `ordens`, `cargaPendente` e `cargaPorPosto` já têm caso de uso testado, sem leitura do banco (ver "Funções de cálculo"). Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+
+## O que mudou na versão 0.6
+
+- **Carga por posto** em `cargaPorPosto[]`: a carga de cada etapa é repartida em partes iguais entre os postos ativos em que ela pode ser feita. Regra definida pela equipe em 14/10/2026.
+- **Participação na carga**: percentual de cada posto no total distribuído.
+- **Posto inativo** não conta como compatível nem recebe carga.
+- **Utilização** (carga sobre tempo disponível) fica fora do MVP.
 
 ## O que mudou na versão 0.5
 
@@ -56,7 +63,7 @@ Respostas de erro: `400` para filtro inválido, `401`/`403` para falta de acesso
 ## Dois tipos de informação
 
 - **Do período:** `producao`, `producaoFinal`, `tempos` e `tempoMedio` consideram só o que aconteceu entre `inicio` e `fim`.
-- **Do momento da consulta:** `ordens` e `cargaPendente` mostram a situação atual, independentemente do período.
+- **Do momento da consulta:** `ordens`, `cargaPendente` e `cargaPorPosto` mostram a situação atual, independentemente do período.
 
 ## Resposta
 
@@ -147,9 +154,27 @@ Trabalho ainda sem baixa, estimado pelo tempo padrão. É a base para comparar a
 | `quantidadePendente` | decimal | Soma das quantidades dessas ordens. |
 | `tempoPadraoSegundos` | decimal \| `null` | `ProdutoEtapa.tempoPadrao`, em segundos por unidade. |
 | `cargaPendenteSegundos` | número \| `null` | `quantidadePendente × tempoPadraoSegundos`. `null` sem tempo padrão; nunca zero presumido. |
-| `postosCompativeis[]` | lista | `id`, `codigo`, `nome` dos postos de `EtapaPosto`. |
+| `postosCompativeis[]` | lista | `id`, `codigo`, `nome` dos postos ativos de `EtapaPosto`. |
 
-A carga é por etapa, não por posto: a mesma etapa pode ser feita em vários postos, e o modelo não diz em qual ela será feita. Também não há ocupação percentual, porque o modelo não tem disponibilidade de posto.
+A mesma etapa pode ser feita em vários postos, e o modelo não diz em qual ela será feita. Por isso este bloco é por etapa e é exato; a estimativa por posto está em `cargaPorPosto`.
+
+### `cargaPorPosto[]` — por posto
+
+Estimativa do trabalho pendente em cada posto, para comparar a carga entre os postos e apoiar o nivelamento. Uma linha por posto ativo ligado a alguma etapa em `EtapaPosto`.
+
+| Campo | Tipo | Significado |
+| --- | --- | --- |
+| `posto` | objeto | `id`, `codigo`, `nome`. |
+| `cargaPendenteSegundos` | número \| `null` | Soma das partes recebidas pelo posto. Zero quando as etapas do posto não têm trabalho pendente. `null` quando alguma dessas etapas está sem tempo padrão. |
+| `percentualDaCarga` | número \| `null` | `cargaPendenteSegundos ÷ soma das cargas dos postos × 100`. `null` quando a soma é zero ou quando a carga de algum posto é indisponível. |
+
+Regra de distribuição: a `cargaPendenteSegundos` de cada linha de `cargaPendente` é dividida em partes iguais entre os `postosCompativeis` da etapa. Exemplo: uma etapa com 18.000 s pendentes e dois postos compatíveis entrega 9.000 s a cada um. A etapa sem posto ativo não é atribuída a nenhum posto e gera a pendência `ETAPA_SEM_POSTO`.
+
+Limites, que a tela deve informar:
+
+- Com um posto só o valor é exato. Com mais de um é estimativa: o sistema não sabe como o trabalho será dividido de fato.
+- A comparação entre postos supõe disponibilidade parecida entre eles. O bloco mostra onde a carga se concentra; não comprova gargalo.
+- Não há utilização (carga ÷ tempo disponível do posto), porque o modelo não tem disponibilidade de posto. Fica fora do MVP.
 
 ### Pendências
 
@@ -157,9 +182,9 @@ Cada item de `meta.pendencias` tem `codigo` e os identificadores a que se refere
 
 | Código | Quando aparece | Efeito |
 | --- | --- | --- |
-| `SEM_TEMPO_PADRAO` | Produto e etapa sem registro em `ProdutoEtapa`. | `tempoPadraoSegundos` e `cargaPendenteSegundos` ficam `null`. |
+| `SEM_TEMPO_PADRAO` | Produto e etapa sem registro em `ProdutoEtapa`. | `tempoPadraoSegundos` e `cargaPendenteSegundos` ficam `null`; em `cargaPorPosto`, a carga dos postos da etapa e todos os percentuais ficam `null`. |
 | `EXECUCAO_ABERTA` | Execução não finalizada no período. | O intervalo aberto fica fora dos totais. |
-| `ETAPA_SEM_POSTO` | Etapa sem nenhum posto em `EtapaPosto`. | `postosCompativeis` vazio. |
+| `ETAPA_SEM_POSTO` | Etapa sem nenhum posto ativo em `EtapaPosto`. | `postosCompativeis` vazio; a carga da etapa não entra em nenhum posto. |
 | `BAIXA_INCONSISTENTE` | Baixa cuja soma das quantidades difere da quantidade da ordem ou que tem quantidade negativa (ver regra de baixa). | A etapa conta como sem baixa e entra em `etapasInconsistentes`. |
 
 ## Dados que a consulta precisa do banco
@@ -170,7 +195,7 @@ Cada item de `meta.pendencias` tem `codigo` e os identificadores a que se refere
 | Roteiro | `EtapaRoteiro`, `Operacao` | `roteiroId`, `ordem`, `Operacao.nome` |
 | Baixas | `Execucao` | `ordemProducaoId`, `etapaRoteiroId`, `postoId`, `status`, `tipoFinalizacao`, `quantidadeBoa`, `quantidadeRetrabalho`, `quantidadeRefugo` |
 | Tempos | `EventoTempo`, `MotivoPausa` | `execucaoId`, `tipo`, `dataHora`, `MotivoPausa.nome` |
-| Postos | `Posto`, `Setor`, `EtapaPosto` | `codigo`, `nome`, `setorId`, `Setor.nome` |
+| Postos | `Posto`, `Setor`, `EtapaPosto` | `codigo`, `nome`, `ativo`, `setorId`, `Setor.nome` |
 | Tempo padrão | `ProdutoEtapa` | `produtoId`, `etapaRoteiroId`, `tempoPadrao` |
 
 ## Funções de cálculo
@@ -185,8 +210,9 @@ As funções ficam em `modules/indicators/domain/`, são puras e testadas em `te
 | `producao` | `somarResultados` e `conferirResultado` (`producao.ts`) | Somam as baixas e conferem com a quantidade da ordem. |
 | `producaoFinal` | `calcularProducaoFinal` (`producao.ts`) | Quantidade boa da última etapa do roteiro. |
 | `cargaPendente` | `calcularCargaPendente` (`carga.ts`) | Resultado em segundos. |
+| `cargaPorPosto` | `distribuirCargaPorPosto` (`carga.ts`) | Divisão igual entre os postos da etapa e participação de cada posto. |
 
-O caso de uso `IndicadoresService.consultarSituacaoAtual`, em `modules/indicators/application/indicadores.ts`, monta os blocos `ordens` e `cargaPendente` e as pendências deles a partir do contrato `IndicadoresRepository` (`contracts.ts`). Ele é testado com repositório em memória em `tests/unit/indicators/application/`. Ainda não existem a implementação do repositório com o Prisma, os blocos do período e a rota.
+O caso de uso `IndicadoresService.consultarSituacaoAtual`, em `modules/indicators/application/indicadores.ts`, monta os blocos `ordens`, `cargaPendente` e `cargaPorPosto` e as pendências deles a partir do contrato `IndicadoresRepository` (`contracts.ts`). Ele é testado com repositório em memória em `tests/unit/indicators/application/`. Ainda não existem a implementação do repositório com o Prisma, os blocos do período e a rota.
 
 As quantidades são somadas em centésimos, porque o banco guarda duas casas decimais. A conversão dos valores do banco (texto para número, data para milissegundos) é responsabilidade da camada de infraestrutura.
 
@@ -203,8 +229,7 @@ Os blocos `ordens`, `producao`, `producaoFinal` e `cargaPendente` dependem dessa
 
 ## Pontos em aberto
 
-- **Carga por posto e utilização.** O `ROADMAP_GUNP.md` (Fase 12) lista "carga por posto" e "carga relativa/utilização". Este contrato calcula a carga por etapa, porque a mesma etapa pode ser feita em vários postos e o modelo não diz em qual; e não calcula utilização, porque o modelo não tem disponibilidade de posto. Falta a equipe decidir a regra antes de implementar.
-- **Filtros de setor e posto na situação atual.** Não está definido se `setorId` e `postoId` restringem `ordens` e `cargaPendente`; o caso de uso atual não os aplica.
+- **Filtros de setor e posto na situação atual.** Não está definido se `setorId` e `postoId` restringem `ordens`, `cargaPendente` e `cargaPorPosto`; o caso de uso atual não os aplica.
 - **Soma das quantidades na baixa.** O comando de baixa deve recusar soma diferente da quantidade da ordem; os indicadores só sinalizam o que já estiver gravado.
 - **Tempo médio.** O tempo de execuções sem baixa (troca de operação) entra no tempo médio da etapa?
 - **Entrada do tempo padrão.** O sistema guarda segundos por unidade. Se a empresa registra em outra unidade, a conversão acontece no cadastro ou na importação.
