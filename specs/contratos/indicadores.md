@@ -1,8 +1,15 @@
 # Contrato de consulta dos indicadores
 
-Versão de trabalho 0.7 — 14/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
+Versão de trabalho 0.8 — 14/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
 
-**Status: proposta para revisão.** A rota não está implementada; todos os blocos da resposta, menos `meta`, já têm caso de uso testado, sem leitura do banco (ver "Funções de cálculo"). Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+**Status: proposta para revisão.** A rota `GET /api/indicadores` está implementada e lê o banco, ainda sem os filtros `setorId` e `postoId` e sem `meta.origem` (ver "Implementação"). Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+
+## O que mudou na versão 0.8
+
+- **Rota implementada**, com leitura do banco pelo Prisma, autorização de administrador e o bloco `meta`.
+- **Filtros `setorId` e `postoId`** ainda recusados com `400`, até a regra de cada bloco ser definida.
+- **`meta.origem`** ainda não é enviado: falta definir de onde vem.
+- **Erros** no formato `{ erro: { codigo, mensagem } }`, como nas demais rotas.
 
 ## O que mudou na versão 0.7
 
@@ -53,7 +60,9 @@ GET /api/indicadores?inicio=<instante>&fim=<instante>&setorId=<uuid>&postoId=<uu
 
 O servidor valida filtros e permissão, lê o banco e aplica as funções de cálculo. O navegador nunca consulta o banco.
 
-Respostas de erro: `400` para filtro inválido, `401`/`403` para falta de acesso, `404` para setor ou posto inexistente. O formato do corpo de erro segue o padrão que a equipe definir para toda a API.
+Respostas de erro: `400` para filtro inválido, `401`/`403` para falta de acesso, `404` para setor ou posto inexistente e `500` para falha inesperada, sem detalhes internos. O corpo segue o formato das demais rotas: `{ erro: { codigo, mensagem } }`.
+
+Na implementação atual, `inicio` e `fim` precisam de data, hora e fuso (`Z` ou `±hh:mm`), por exemplo `2026-10-06T08:00:00-03:00`. `setorId`, `postoId` e parâmetros desconhecidos são recusados com `400`. Só administrador ativo acessa a rota.
 
 ## Convenções
 
@@ -79,7 +88,7 @@ Exemplo completo: [`exemplos/indicadores-caso-base.json`](exemplos/indicadores-c
 
 | Campo | Tipo | Significado |
 | --- | --- | --- |
-| `origem` | `FICTICIA` \| `APONTADA` | Se os dados vêm de seed ou de apontamento real. |
+| `origem` | `FICTICIA` \| `APONTADA` | Se os dados vêm de seed ou de apontamento real. Ainda não enviado (ver "Pontos em aberto"). |
 | `consultadoEm` | instante | Momento da consulta no servidor. |
 | `fuso` | texto | `America/Sao_Paulo` no piloto. |
 | `filtros` | objeto | `inicio`, `fim`, `setorId` e `postoId` efetivamente aplicados. |
@@ -220,7 +229,14 @@ As funções ficam em `modules/indicators/domain/`, são puras e testadas em `te
 | `cargaPendente` | `calcularCargaPendente` (`carga.ts`) | Resultado em segundos. |
 | `cargaPorPosto` | `distribuirCargaPorPosto` (`carga.ts`) | Divisão igual entre os postos da etapa e participação de cada posto. |
 
-O caso de uso `IndicadoresService.consultar`, em `modules/indicators/application/indicadores.ts`, lê os registros uma vez pelo contrato `IndicadoresRepository` (`contracts.ts`) e monta todos os blocos e as pendências; `consultarSituacaoAtual` devolve só `ordens`, `cargaPendente` e `cargaPorPosto`. Ele é testado com repositório em memória em `tests/unit/indicators/application/`. Ainda não existem a implementação do repositório com o Prisma, a rota, o bloco `meta` e os filtros `setorId` e `postoId`.
+## Implementação
+
+- **Rota:** `app/api/indicadores/route.ts`. O handler (`modules/indicators/presentation/http.ts`) confere a sessão de administrador, valida o período, chama o caso de uso e monta `meta`.
+- **Caso de uso:** `IndicadoresService.consultar` (`modules/indicators/application/indicadores.ts`) lê os registros uma vez pelo contrato `IndicadoresRepository` e monta todos os blocos e as pendências; `consultarSituacaoAtual` devolve só `ordens`, `cargaPendente` e `cargaPorPosto`.
+- **Leitura do banco:** `PrismaIndicadoresRepository` (`modules/indicators/infrastructure/`), somente leitura. Faz uma consulta por tabela e o caso de uso junta em memória, o que basta para o volume do piloto. Converte `numeric` e `timestamptz`, que o Prisma devolve como texto.
+- **Testes:** caso de uso com repositório em memória em `tests/unit/indicators/application/` e handler com autorização e consulta substituídas em `tests/unit/indicators/presentation/`.
+
+Falta: filtros `setorId` e `postoId` e `meta.origem`.
 
 As quantidades são somadas em centésimos, porque o banco guarda duas casas decimais. A conversão dos valores do banco (texto para número, data para milissegundos) é responsabilidade da camada de infraestrutura.
 
@@ -243,5 +259,6 @@ Os blocos `ordens`, `producao`, `producaoFinal` e `cargaPendente` dependem dessa
 - **Entrada do tempo padrão.** O sistema guarda segundos por unidade. Se a empresa registra em outra unidade, a conversão acontece no cadastro ou na importação.
 - **Categoria de pausa.** Sem categoria em `MotivoPausa`, o painel não separa pausa prevista de interrupção.
 - **Cumprimento do plano.** `PlanoProducao` tem período e agrupa ordens. Vale um indicador de ordens concluídas sobre ordens do plano?
-- **Origem dos dados.** De onde vem `FICTICIA` ou `APONTADA`?
+- **Origem dos dados.** De onde vem `FICTICIA` ou `APONTADA`? Enquanto não for definido, `meta.origem` não é enviado.
+- **Filtros de setor e posto nos blocos do período.** Falta definir, para `producao`, `tempos` e `tempoMedio`, se o posto considerado é o da execução que registrou a baixa ou o de cada execução.
 - **Correção de baixa.** Como uma baixa corrigida entra nas somas.
