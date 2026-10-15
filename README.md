@@ -12,7 +12,7 @@ Pronto:
 - painel administrativo com menu lateral;
 - cadastro e consulta de operadores e de setores;
 - banco de dados com 16 tabelas, criado por migrações;
-- cálculos dos indicadores (tempos, produção, posição das ordens e carga pendente por etapa e por posto), com testes, ainda sem leitura do banco e sem tela.
+- indicadores (tempos, produção, posição das ordens e carga pendente por etapa e por posto) na API `GET /api/indicadores`, com testes, ainda sem tela.
 
 Em desenvolvimento: demais cadastros, roteiros, planos e ordens de produção, apontamento da produção (início, pausa, retomada, troca de operação e baixa), leitor USB e painel de indicadores. O acompanhamento das fases está em [`docs/plan/ROADMAP_GUNP.md`](docs/plan/ROADMAP_GUNP.md).
 
