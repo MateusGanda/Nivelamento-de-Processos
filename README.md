@@ -117,6 +117,7 @@ As regras de cada camada estão em [`docs/architecture/ARCHITECTURE.md`](docs/ar
 - [`docs/CONTEXTO_DO_PROJETO.md`](docs/CONTEXTO_DO_PROJETO.md): visão geral e decisões do projeto
 - [`docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`](docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md): entidades e regras de negócio
 - [`docs/domain/diagrama-de-classes.drawio.png`](docs/domain/diagrama-de-classes.drawio.png): diagrama de classes
+- [`docs/domain/diagrama-de-casos-de-uso.drawio.png`](docs/domain/diagrama-de-casos-de-uso.drawio.png): diagrama de casos de uso
 - [`docs/technology/TECHNOLOGY.md`](docs/technology/TECHNOLOGY.md): tecnologias e padrões
 - [`specs/contratos/indicadores.md`](specs/contratos/indicadores.md): contrato da consulta de indicadores
 - [`docs/tcc`](docs/tcc): texto do TCC
