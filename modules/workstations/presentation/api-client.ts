@@ -1,4 +1,4 @@
-import type { CadastroPosto, Posto } from '../domain/posto.ts';
+import type { AlteracaoPosto, CadastroPosto, Posto } from '../domain/posto.ts';
 
 export class ErroApiPostos extends Error {
   readonly status: number;
@@ -42,4 +42,20 @@ export async function cadastrarPosto(dados: CadastroPosto): Promise<Posto> {
   }));
   if (!ehPosto(posto)) throw new ErroApiPostos(500, 'Não foi possível confirmar o cadastro. Verifique a lista antes de tentar novamente.');
   return posto;
+}
+
+async function enviarAlteracao(url: string, corpo: unknown): Promise<Posto> {
+  const posto = await lerResposta(await fetch(url, {
+    method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo),
+  }));
+  if (!ehPosto(posto)) throw new ErroApiPostos(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
+  return posto;
+}
+
+export function alterarPosto(id: string, dados: AlteracaoPosto): Promise<Posto> {
+  return enviarAlteracao(`/api/postos/${encodeURIComponent(id)}`, dados);
+}
+
+export function definirStatusPosto(id: string, ativo: boolean): Promise<Posto> {
+  return enviarAlteracao(`/api/postos/${encodeURIComponent(id)}/status`, { ativo });
 }

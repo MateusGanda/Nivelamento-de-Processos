@@ -2,35 +2,57 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PostosService } from '../../../modules/workstations/application/postos.ts';
 import type { PostoRepository } from '../../../modules/workstations/application/contracts.ts';
-import { ErroDePosto, type CadastroPosto, type Posto } from '../../../modules/workstations/domain/posto.ts';
-import { traduzirErroCriacaoPosto } from '../../../modules/workstations/infrastructure/persistence-errors.ts';
+import { ErroDePosto, type AlteracaoPosto, type CadastroPosto, type Posto } from '../../../modules/workstations/domain/posto.ts';
+import { traduzirErroGravacaoPosto } from '../../../modules/workstations/infrastructure/persistence-errors.ts';
 import { criarHandlersPostos } from '../../../modules/workstations/presentation/http.ts';
 import { filtrarOrdenarPostos, formatarDataCadastro } from '../../../modules/workstations/presentation/listing.ts';
 import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
 
 const MONTAGEM = { id: '00000000-0000-4000-8000-000000000001', nome: 'Montagem' };
 const PREPARACAO = { id: '00000000-0000-4000-8000-000000000002', nome: 'Preparação' };
+const ID_INEXISTENTE = '00000000-0000-4000-8000-0000000000ff';
 
 class RepositorioEmMemoria implements PostoRepository {
   postos: Posto[] = [];
   setores = [MONTAGEM, PREPARACAO];
   async listar() { return [...this.postos]; }
+  async buscarPorId(id: string) { return this.postos.find((posto) => posto.id === id) ?? null; }
   async buscarPorCodigo(codigo: string) { return this.postos.find((posto) => posto.codigo === codigo) ?? null; }
   async buscarSetor(id: string) { return this.setores.find((setor) => setor.id === id) ?? null; }
   async criar(dados: CadastroPosto) {
     // Simula a constraint atômica: pode falhar mesmo após a consulta prévia.
     if (this.postos.some((posto) => posto.codigo === dados.codigo)) {
-      return traduzirErroCriacaoPosto({ sqlState: '23505', constraint: 'Posto_codigo_key' });
+      return traduzirErroGravacaoPosto({ sqlState: '23505', constraint: 'Posto_codigo_key' });
     }
     const setor = this.setores.find((s) => s.id === dados.setorId)!;
-    const posto: Posto = { id: String(this.postos.length + 1), codigo: dados.codigo, nome: dados.nome, ativo: true, setor, createdAt: '2026-10-19T12:00:00Z', updatedAt: '2026-10-19T12:00:00Z' };
+    const id = `00000000-0000-4000-9000-${String(this.postos.length + 1).padStart(12, '0')}`;
+    const posto: Posto = { id, codigo: dados.codigo, nome: dados.nome, ativo: true, setor, createdAt: '2026-10-19T12:00:00Z', updatedAt: '2026-10-19T12:00:00Z' };
     this.postos.push(posto);
+    return posto;
+  }
+  async alterar(id: string, dados: AlteracaoPosto) {
+    const indice = this.postos.findIndex((posto) => posto.id === id);
+    if (indice < 0) return null;
+    if (dados.codigo !== undefined && this.postos.some((posto) => posto.id !== id && posto.codigo === dados.codigo)) {
+      return traduzirErroGravacaoPosto({ sqlState: '23505', constraint: 'Posto_codigo_key' });
+    }
+    const { setorId, ...campos } = dados;
+    const setor = setorId === undefined ? this.postos[indice].setor : this.setores.find((s) => s.id === setorId)!;
+    this.postos[indice] = { ...this.postos[indice], ...campos, setor, updatedAt: '2026-10-20T12:00:00Z' };
+    return this.postos[indice];
+  }
+  async definirAtivo(id: string, ativo: boolean) {
+    const posto = this.postos.find((item) => item.id === id);
+    if (!posto) return null;
+    posto.ativo = ativo;
+    posto.updatedAt = '2026-10-20T12:00:00Z';
     return posto;
   }
 }
 
 const post = (corpo: unknown) => new Request('http://localhost/api/postos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
-const erroCom = (codigo: 'ENTRADA_INVALIDA' | 'CONFLITO', mensagem?: RegExp) => (erro: unknown) =>
+const patch = (corpo: unknown) => new Request('http://localhost/api/postos/id', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+const erroCom = (codigo: ErroDePosto['codigo'], mensagem?: RegExp) => (erro: unknown) =>
   erro instanceof ErroDePosto && erro.codigo === codigo && (!mensagem || mensagem.test(erro.message));
 
 test('posto: cria ativo no setor, remove só espaços externos e preserva caixa', async () => {
@@ -72,11 +94,11 @@ test('posto: código repetido gera conflito, inclusive em criações simultânea
 });
 
 test('posto: traduz as violações de código único e de setor, inclusive na cadeia cause', () => {
-  assert.throws(() => traduzirErroCriacaoPosto({ sqlState: '23505', constraint: 'Posto_codigo_key' }), erroCom('CONFLITO'));
-  assert.throws(() => traduzirErroCriacaoPosto({ message: 'falha', cause: { code: '23505', constraint: 'Posto_codigo_key' } }), erroCom('CONFLITO'));
-  assert.throws(() => traduzirErroCriacaoPosto({ code: '23503', constraint: 'Posto_setorId_fkey' }), erroCom('ENTRADA_INVALIDA', /Setor não encontrado/));
+  assert.throws(() => traduzirErroGravacaoPosto({ sqlState: '23505', constraint: 'Posto_codigo_key' }), erroCom('CONFLITO'));
+  assert.throws(() => traduzirErroGravacaoPosto({ message: 'falha', cause: { code: '23505', constraint: 'Posto_codigo_key' } }), erroCom('CONFLITO'));
+  assert.throws(() => traduzirErroGravacaoPosto({ code: '23503', constraint: 'Posto_setorId_fkey' }), erroCom('ENTRADA_INVALIDA', /Setor não encontrado/));
   const outro = { code: '23505', constraint: 'Outra_key' };
-  assert.throws(() => traduzirErroCriacaoPosto(outro), (erro: unknown) => erro === outro);
+  assert.throws(() => traduzirErroGravacaoPosto(outro), (erro: unknown) => erro === outro);
 });
 
 test('posto: handlers autorizados listam, criam com 201 e respondem 409 para código repetido', async () => {
@@ -112,8 +134,78 @@ test('posto: sem sessão ou sem ADMIN ativo não lê nem grava', async () => {
   }
 });
 
+test('posto: altera só os campos enviados, troca o setor e mantém o próprio código', async () => {
+  const service = new PostosService(new RepositorioEmMemoria());
+  const criado = await service.criar({ codigo: 'MON-01', nome: 'Montagem 1', setorId: MONTAGEM.id });
+  const nome = await service.alterar(criado.id, { nome: ' Montagem principal ' });
+  assert.deepEqual([nome.codigo, nome.nome, nome.setor, nome.ativo], ['MON-01', 'Montagem principal', MONTAGEM, true]);
+  const setor = await service.alterar(criado.id, { setorId: PREPARACAO.id, codigo: 'MON-01' });
+  assert.deepEqual([setor.codigo, setor.setor], ['MON-01', PREPARACAO]);
+  const codigo = await service.alterar(criado.id, { codigo: 'PRE-09' });
+  assert.deepEqual([codigo.id, codigo.codigo, codigo.createdAt], [criado.id, 'PRE-09', criado.createdAt]);
+  assert.notEqual(codigo.updatedAt, criado.createdAt);
+});
+
+test('posto: alteração recusa código de outro posto, setor inexistente, campos vazios e posto inexistente', async () => {
+  const repositorio = new RepositorioEmMemoria();
+  const service = new PostosService(repositorio);
+  const a = await service.criar({ codigo: 'MON-01', nome: 'Montagem 1', setorId: MONTAGEM.id });
+  await service.criar({ codigo: 'MON-02', nome: 'Montagem 2', setorId: MONTAGEM.id });
+  await assert.rejects(() => service.alterar(a.id, { codigo: 'MON-02' }), erroCom('CONFLITO'));
+  await assert.rejects(() => service.alterar(a.id, { setorId: ID_INEXISTENTE }), erroCom('ENTRADA_INVALIDA', /Setor não encontrado/));
+  await assert.rejects(() => service.alterar(a.id, { setorId: 'setor-1' }), erroCom('ENTRADA_INVALIDA'));
+  await assert.rejects(() => service.alterar(a.id, {}), erroCom('ENTRADA_INVALIDA'));
+  await assert.rejects(() => service.alterar(a.id, { nome: ' ' }), erroCom('ENTRADA_INVALIDA'));
+  await assert.rejects(() => service.alterar(ID_INEXISTENTE, { nome: 'X' }), erroCom('NAO_ENCONTRADO'));
+  await assert.rejects(() => service.alterar('posto-1', { nome: 'X' }), erroCom('NAO_ENCONTRADO'));
+  assert.deepEqual(repositorio.postos.map((p) => [p.codigo, p.nome, p.setor.id]), [['MON-01', 'Montagem 1', MONTAGEM.id], ['MON-02', 'Montagem 2', MONTAGEM.id]]);
+});
+
+test('posto: inativa e reativa sem alterar os demais dados', async () => {
+  const service = new PostosService(new RepositorioEmMemoria());
+  const criado = await service.criar({ codigo: 'MON-01', nome: 'Montagem 1', setorId: MONTAGEM.id });
+  const inativo = await service.definirStatus(criado.id, false);
+  assert.deepEqual([inativo.ativo, inativo.codigo, inativo.nome, inativo.setor], [false, 'MON-01', 'Montagem 1', MONTAGEM]);
+  assert.equal((await service.definirStatus(criado.id, true)).ativo, true);
+  await assert.rejects(() => service.definirStatus(ID_INEXISTENTE, false), erroCom('NAO_ENCONTRADO'));
+  await assert.rejects(() => service.definirStatus('posto-1', false), erroCom('NAO_ENCONTRADO'));
+});
+
+test('posto: handlers de alteração e de status respondem 200, 400, 404 e 409', async () => {
+  const repositorio = new RepositorioEmMemoria();
+  const service = new PostosService(repositorio);
+  const handlers = criarHandlersPostos({ autorizar: async () => ({}), postos: service });
+  const { id } = await service.criar({ codigo: 'MON-01', nome: 'Montagem 1', setorId: MONTAGEM.id });
+  await service.criar({ codigo: 'MON-02', nome: 'Montagem 2', setorId: MONTAGEM.id });
+  const alterado = await handlers.PATCH(patch({ nome: 'Montagem A', setorId: PREPARACAO.id }), id);
+  assert.equal(alterado.status, 200);
+  assert.deepEqual([(await alterado.json()).setor.nome], ['Preparação']);
+  assert.equal((await handlers.PATCH(patch({ codigo: 'MON-02' }), id)).status, 409);
+  assert.equal((await handlers.PATCH(patch({ nome: 'X' }), ID_INEXISTENTE)).status, 404);
+  for (const corpo of [{ ativo: false }, { codigo: 1 }, []]) assert.equal((await handlers.PATCH(patch(corpo), id)).status, 400);
+  const status = await handlers.PATCH_STATUS(patch({ ativo: false }), id);
+  assert.equal(status.status, 200);
+  assert.equal((await status.json()).ativo, false);
+  for (const corpo of [{}, { ativo: 'false' }, { ativo: true, nome: 'X' }]) assert.equal((await handlers.PATCH_STATUS(patch(corpo), id)).status, 400);
+  assert.equal((await handlers.PATCH_STATUS(patch({ ativo: true }), ID_INEXISTENTE)).status, 404);
+  assert.deepEqual(repositorio.postos.map((p) => [p.codigo, p.nome, p.ativo]), [['MON-01', 'Montagem A', false], ['MON-02', 'Montagem 2', true]]);
+});
+
+test('posto: alteração e status sem sessão ou sem ADMIN ativo não gravam', async () => {
+  for (const [codigo, status] of [['NAO_AUTENTICADO', 401], ['SEM_AUTORIZACAO', 403]] as const) {
+    const repositorio = new RepositorioEmMemoria();
+    const service = new PostosService(repositorio);
+    const { id } = await service.criar({ codigo: 'MON-01', nome: 'Montagem 1', setorId: MONTAGEM.id });
+    const handlers = criarHandlersPostos({ autorizar: async () => { throw new ErroDeAcesso(codigo, 'Acesso negado.'); }, postos: service });
+    assert.equal((await handlers.PATCH(patch({ nome: 'Outro' }), id)).status, status);
+    assert.equal((await handlers.PATCH_STATUS(patch({ ativo: false }), id)).status, status);
+    assert.deepEqual(repositorio.postos.map((p) => [p.nome, p.ativo]), [['Montagem 1', true]]);
+  }
+});
+
 test('posto: falha inesperada responde 500 sem detalhes internos', async () => {
-  const handlers = criarHandlersPostos({ autorizar: async () => ({}), postos: { listar: async () => { throw new Error('connect ECONNREFUSED'); }, criar: async () => { throw new Error('x'); } } });
+  const falha = async () => { throw new Error('connect ECONNREFUSED'); };
+  const handlers = criarHandlersPostos({ autorizar: async () => ({}), postos: { listar: falha, criar: falha, alterar: falha, definirStatus: falha } });
   const resposta = await handlers.GET();
   assert.equal(resposta.status, 500);
   assert.deepEqual(await resposta.json(), { erro: { codigo: 'ERRO_INTERNO', mensagem: 'Não foi possível concluir a solicitação.' } });
