@@ -1,7 +1,25 @@
+import type { Numeric } from '@prisma/orm-postgres/target/codec-types';
 import { db } from '../../../src/prisma/db.ts';
 import type { RoteiroRepository } from '../application/contracts.ts';
-import { ErroDeRoteiro, type EtapaInformada, type OperacaoDoRoteiro, type RoteiroDetalhe, type RoteiroResumo } from '../domain/roteiro.ts';
+import {
+  ErroDeRoteiro, type EtapaInformada, type OperacaoDoRoteiro, type ProdutoDoRoteiro, type RoteiroDetalhe, type RoteiroResumo, type TempoInformado,
+} from '../domain/roteiro.ts';
 import { traduzirErroGravacaoRoteiro } from './persistence-errors.ts';
+
+type Transacao = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// O Prisma devolve e recebe numeric como texto; a conversão fica nesta camada.
+function decimal(valor: string): number {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) throw new Error('Valor decimal inválido no banco.');
+  return numero;
+}
+const tempoParaBanco = (valor: number) => valor.toFixed(2) as Numeric<10, 2>;
+
+// Repete a verificação dentro da transação: uma ordem pode ter sido criada depois da consulta.
+async function exigirProdutoSemOrdens(t: Transacao['orm']['public'], roteiroId: string, produtoId: string, mensagem: string) {
+  if (await t.OrdemProducao.where({ roteiroId, produtoId }).select('id').first()) throw new ErroDeRoteiro('CONFLITO', mensagem);
+}
 
 // O include de uma relação obrigatória vem tipado como possivelmente nulo; a chave
 // estrangeira garante o registro, então a ausência é erro de dados.
@@ -29,7 +47,7 @@ export class PrismaRoteiroRepository implements RoteiroRepository {
   async buscar(id: string): Promise<RoteiroDetalhe | null> {
     const roteiro = await db.orm.public.Roteiro.where({ id }).include('ordensProducao', (ordens) => ordens.count()).first();
     if (!roteiro) return null;
-    const [etapas, versoes] = await Promise.all([
+    const [etapas, versoes, ligados, ordens] = await Promise.all([
       db.orm.public.EtapaRoteiro
         .where({ roteiroId: id })
         .select('id', 'ordem', 'operacaoId')
@@ -37,11 +55,17 @@ export class PrismaRoteiroRepository implements RoteiroRepository {
         .orderBy((etapa) => etapa.ordem.asc())
         .all(),
       db.orm.public.Roteiro.where({ nome: roteiro.nome }).select('id', 'versao', 'ativo').orderBy((r) => r.versao.asc()).all(),
+      db.orm.public.ProdutoRoteiro.where({ roteiroId: id }).select('produtoId', 'vigente').include('produto', (produto) => produto.select('id', 'codigo', 'nome')).all(),
+      db.orm.public.OrdemProducao.where({ roteiroId: id }).select('produtoId').all(),
     ]);
-    const ligacoes = etapas.length === 0 ? [] : await db.orm.public.EtapaPosto
-      .where((ligacao) => ligacao.etapaRoteiroId.in(etapas.map((etapa) => etapa.id)))
-      .include('posto', (posto) => posto.select('id', 'codigo', 'nome', 'ativo', 'setorId').include('setor', (setor) => setor.select('nome')))
-      .all();
+    const idsEtapas = etapas.map((etapa) => etapa.id);
+    const [ligacoes, tempos] = idsEtapas.length === 0 ? [[], []] : await Promise.all([
+      db.orm.public.EtapaPosto
+        .where((ligacao) => ligacao.etapaRoteiroId.in(idsEtapas))
+        .include('posto', (posto) => posto.select('id', 'codigo', 'nome', 'ativo', 'setorId').include('setor', (setor) => setor.select('nome')))
+        .all(),
+      db.orm.public.ProdutoEtapa.where((tempo) => tempo.etapaRoteiroId.in(idsEtapas)).select('produtoId', 'etapaRoteiroId', 'tempoPadrao').all(),
+    ]);
     const postosPorEtapa = new Map<string, RoteiroDetalhe['etapas'][number]['postos']>();
     for (const ligacao of ligacoes) {
       const posto = relacionado(ligacao.posto, 'posto da etapa');
@@ -49,6 +73,16 @@ export class PrismaRoteiroRepository implements RoteiroRepository {
       lista.push({ id: posto.id, codigo: posto.codigo, nome: posto.nome, ativo: posto.ativo, setorNome: relacionado(posto.setor, 'setor do posto').nome });
       postosPorEtapa.set(ligacao.etapaRoteiroId, lista);
     }
+    const ordensPorProduto = new Map<string, number>();
+    for (const ordem of ordens) ordensPorProduto.set(ordem.produtoId, (ordensPorProduto.get(ordem.produtoId) ?? 0) + 1);
+    const produtos: ProdutoDoRoteiro[] = ligados.map((ligado) => {
+      const produto = relacionado(ligado.produto, 'produto do roteiro');
+      const quantidadeOrdens = ordensPorProduto.get(produto.id) ?? 0;
+      return {
+        id: produto.id, codigo: produto.codigo, nome: produto.nome, vigente: ligado.vigente, quantidadeOrdens, travado: quantidadeOrdens > 0,
+        tempos: tempos.filter((tempo) => tempo.produtoId === produto.id).map((tempo) => ({ etapaId: tempo.etapaRoteiroId, tempoPadrao: decimal(tempo.tempoPadrao) })),
+      };
+    }).sort((a, b) => collation.compare(a.codigo, b.codigo));
     return {
       id: roteiro.id, nome: roteiro.nome, versao: roteiro.versao, ativo: roteiro.ativo,
       quantidadeEtapas: etapas.length, quantidadeOrdens: roteiro.ordensProducao, travado: roteiro.ordensProducao > 0,
@@ -58,6 +92,7 @@ export class PrismaRoteiroRepository implements RoteiroRepository {
         postos: (postosPorEtapa.get(etapa.id) ?? []).sort((a, b) => collation.compare(a.codigo, b.codigo)),
       })),
       versoes,
+      produtos,
     };
   }
 
@@ -89,6 +124,10 @@ export class PrismaRoteiroRepository implements RoteiroRepository {
   async buscarPostos(ids: readonly string[]): Promise<{ id: string; ativo: boolean }[]> {
     if (ids.length === 0) return [];
     return db.orm.public.Posto.where((posto) => posto.id.in([...ids])).select('id', 'ativo').all();
+  }
+
+  async existeProduto(id: string): Promise<boolean> {
+    return (await db.orm.public.Produto.where({ id }).select('id').first()) !== null;
   }
 
   async substituirEtapas(roteiroId: string, etapas: readonly EtapaInformada[]): Promise<void> {
@@ -139,11 +178,22 @@ export class PrismaRoteiroRepository implements RoteiroRepository {
         const versoes = await t.Roteiro.where({ nome: origem.nome }).select('versao').all();
         const nova = await t.Roteiro.create({ nome: origem.nome, versao: Math.max(...versoes.map((r) => r.versao)) + 1, ativo: true });
         const etapas = await t.EtapaRoteiro.where({ roteiroId }).select('id', 'operacaoId', 'ordem').orderBy((etapa) => etapa.ordem.asc()).all();
-        const ligacoes = etapas.length === 0 ? [] : await t.EtapaPosto.where((ligacao) => ligacao.etapaRoteiroId.in(etapas.map((etapa) => etapa.id))).all();
+        const idsEtapas = etapas.map((etapa) => etapa.id);
+        const [ligacoes, tempos] = idsEtapas.length === 0 ? [[], []] : [
+          await t.EtapaPosto.where((ligacao) => ligacao.etapaRoteiroId.in(idsEtapas)).all(),
+          await t.ProdutoEtapa.where((tempo) => tempo.etapaRoteiroId.in(idsEtapas)).select('produtoId', 'etapaRoteiroId', 'tempoPadrao').all(),
+        ];
+        // A nova versão recebe os produtos sem vigência: torná-la vigente é uma decisão separada.
+        for (const ligado of await t.ProdutoRoteiro.where({ roteiroId }).select('produtoId').all()) {
+          await t.ProdutoRoteiro.create({ produtoId: ligado.produtoId, roteiroId: nova.id, vigente: false });
+        }
         for (const etapa of etapas) {
           const copia = await t.EtapaRoteiro.create({ roteiroId: nova.id, operacaoId: etapa.operacaoId, ordem: etapa.ordem });
           for (const ligacao of ligacoes.filter((item) => item.etapaRoteiroId === etapa.id)) {
             await t.EtapaPosto.create({ etapaRoteiroId: copia.id, postoId: ligacao.postoId });
+          }
+          for (const tempo of tempos.filter((item) => item.etapaRoteiroId === etapa.id)) {
+            await t.ProdutoEtapa.create({ produtoId: tempo.produtoId, etapaRoteiroId: copia.id, tempoPadrao: tempo.tempoPadrao });
           }
         }
         return nova.id;
@@ -151,5 +201,52 @@ export class PrismaRoteiroRepository implements RoteiroRepository {
     } catch (erro) {
       return traduzirErroGravacaoRoteiro(erro);
     }
+  }
+
+  async associarProduto(roteiroId: string, produtoId: string): Promise<void> {
+    try {
+      await db.orm.public.ProdutoRoteiro.create({ produtoId, roteiroId, vigente: false });
+    } catch (erro) {
+      traduzirErroGravacaoRoteiro(erro);
+    }
+  }
+
+  async definirVigente(roteiroId: string, produtoId: string): Promise<void> {
+    try {
+      await db.transaction(async (tx) => {
+        const t = tx.orm.public;
+        const agora = new Date().toISOString();
+        // Primeiro tira a vigência atual: o índice único parcial aceita só uma vigente por produto.
+        await t.ProdutoRoteiro.where({ produtoId, vigente: true }).updateAll({ vigente: false, updatedAt: agora });
+        await t.ProdutoRoteiro.where({ produtoId, roteiroId }).update({ vigente: true, updatedAt: agora });
+      });
+    } catch (erro) {
+      traduzirErroGravacaoRoteiro(erro);
+    }
+  }
+
+  async removerProduto(roteiroId: string, produtoId: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const t = tx.orm.public;
+      await exigirProdutoSemOrdens(t, roteiroId, produtoId, 'Este produto tem ordens com esta versão do roteiro, por isso a ligação não pode ser removida.');
+      const idsEtapas = (await t.EtapaRoteiro.where({ roteiroId }).select('id').all()).map((etapa) => etapa.id);
+      if (idsEtapas.length > 0) await t.ProdutoEtapa.where((tempo) => tempo.produtoId.eq(produtoId)).where((tempo) => tempo.etapaRoteiroId.in(idsEtapas)).deleteAll();
+      await t.ProdutoRoteiro.where({ produtoId, roteiroId }).deleteAll();
+    });
+  }
+
+  async salvarTempos(roteiroId: string, produtoId: string, tempos: readonly TempoInformado[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      const t = tx.orm.public;
+      await exigirProdutoSemOrdens(t, roteiroId, produtoId, 'Este produto já tem ordens com esta versão do roteiro. Para mudar os tempos padrão, crie uma nova versão.');
+      const agora = new Date().toISOString();
+      for (const tempo of tempos) {
+        const filtro = { produtoId, etapaRoteiroId: tempo.etapaId };
+        if (tempo.tempoPadrao === null) await t.ProdutoEtapa.where(filtro).deleteAll();
+        else if (await t.ProdutoEtapa.where(filtro).select('id').first()) {
+          await t.ProdutoEtapa.where(filtro).update({ tempoPadrao: tempoParaBanco(tempo.tempoPadrao), updatedAt: agora });
+        } else await t.ProdutoEtapa.create({ ...filtro, tempoPadrao: tempoParaBanco(tempo.tempoPadrao) });
+      }
+    });
   }
 }

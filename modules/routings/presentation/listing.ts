@@ -46,3 +46,17 @@ export function etapasAlteradas(originais: readonly EtapaDoRoteiro[], editadas: 
 export function formatarData(data: string): string {
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(new Date(data));
 }
+
+// Lê o tempo digitado em segundos, aceitando vírgula ou ponto. Vazio é nulo (sem tempo);
+// undefined indica valor inválido.
+export function lerTempoDigitado(texto: string): number | null | undefined {
+  const limpo = texto.trim().replace(',', '.');
+  if (!limpo) return null;
+  if (!/^\d+(\.\d{1,2})?$/.test(limpo)) return undefined;
+  const valor = Number(limpo);
+  return valor > 0 && valor <= 99_999_999.99 ? valor : undefined;
+}
+
+export function formatarSegundos(valor: number): string {
+  return `${valor.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} s`;
+}

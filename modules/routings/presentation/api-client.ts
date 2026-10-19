@@ -1,4 +1,4 @@
-import type { EtapaInformada, RoteiroDetalhe, RoteiroResumo } from '../domain/roteiro.ts';
+import type { EtapaInformada, RoteiroDetalhe, RoteiroResumo, TempoInformado } from '../domain/roteiro.ts';
 
 export class ErroApiRoteiros extends Error {
   readonly status: number;
@@ -33,14 +33,14 @@ function ehResumo(valor: unknown): valor is RoteiroResumo {
 function ehDetalhe(valor: unknown): valor is RoteiroDetalhe {
   if (!ehResumo(valor)) return false;
   const d = valor as unknown as Record<string, unknown>;
-  return typeof d.travado === 'boolean' && Array.isArray(d.versoes) && Array.isArray(d.etapas) && d.etapas.every((etapa: unknown) => {
+  return typeof d.travado === 'boolean' && Array.isArray(d.versoes) && Array.isArray(d.produtos) && Array.isArray(d.etapas) && d.etapas.every((etapa: unknown) => {
     const e = etapa as Record<string, unknown> | null;
     const operacao = e?.operacao as Record<string, unknown> | null | undefined;
     return !!e && texto(e.id) && Number.isInteger(e.ordem) && !!operacao && texto(operacao.id) && texto(operacao.nome) && Array.isArray(e.postos);
   });
 }
 
-async function enviar(url: string, method: 'POST' | 'PUT' | 'PATCH', corpo?: unknown): Promise<RoteiroDetalhe> {
+async function enviar(url: string, method: 'POST' | 'PUT' | 'PATCH' | 'DELETE', corpo?: unknown): Promise<RoteiroDetalhe> {
   const roteiro = await lerResposta(await fetch(url, {
     method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: corpo === undefined ? undefined : JSON.stringify(corpo),
   }));
@@ -68,3 +68,10 @@ export const salvarEtapasRoteiro = (id: string, etapas: EtapaInformada[]) => env
 export const definirPostosEtapa = (id: string, etapaId: string, postoIds: string[]) =>
   enviar(`${rota(id)}/etapas/${encodeURIComponent(etapaId)}/postos`, 'PUT', { postoIds });
 export const criarVersaoRoteiro = (id: string) => enviar(`${rota(id)}/versoes`, 'POST');
+
+const rotaProduto = (id: string, produtoId: string) => `${rota(id)}/produtos/${encodeURIComponent(produtoId)}`;
+export const ligarProdutoRoteiro = (id: string, produtoId: string) => enviar(`${rota(id)}/produtos`, 'POST', { produtoId });
+export const removerProdutoRoteiro = (id: string, produtoId: string) => enviar(rotaProduto(id, produtoId), 'DELETE');
+export const tornarVigenteRoteiro = (id: string, produtoId: string) => enviar(`${rotaProduto(id, produtoId)}/vigente`, 'PUT');
+export const salvarTemposRoteiro = (id: string, produtoId: string, tempos: TempoInformado[]) =>
+  enviar(`${rotaProduto(id, produtoId)}/tempos`, 'PUT', { tempos });
