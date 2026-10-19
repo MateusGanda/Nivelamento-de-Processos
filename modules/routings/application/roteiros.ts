@@ -1,10 +1,17 @@
 import {
-  ehIdentificadorValido, ErroDeRoteiro, validarEtapasInformadas, validarNomeRoteiro, validarPostosInformados,
-  type OperacaoDoRoteiro, type RoteiroDetalhe, type RoteiroResumo,
+  ehIdentificadorValido, ErroDeRoteiro, validarEtapasInformadas, validarNomeRoteiro, validarPostosInformados, validarTemposInformados,
+  type OperacaoDoRoteiro, type ProdutoDoRoteiro, type RoteiroDetalhe, type RoteiroResumo,
 } from '../domain/roteiro.ts';
 import type { RoteiroRepository } from './contracts.ts';
 
 const naoEncontrado = () => new ErroDeRoteiro('NAO_ENCONTRADO', 'Roteiro não encontrado.');
+const MENSAGEM_TEMPOS_TRAVADOS = 'Este produto já tem ordens com esta versão do roteiro. Para mudar os tempos padrão, crie uma nova versão.';
+
+function produtoLigado(roteiro: RoteiroDetalhe, produtoId: string): ProdutoDoRoteiro {
+  const produto = roteiro.produtos.find((item) => item.id === produtoId);
+  if (!produto) throw new ErroDeRoteiro('NAO_ENCONTRADO', 'Produto não está ligado a este roteiro.');
+  return produto;
+}
 
 export class RoteirosService {
   private readonly roteiros: RoteiroRepository;
@@ -40,6 +47,10 @@ export class RoteirosService {
   async definirStatus(id: string, ativo: boolean): Promise<RoteiroDetalhe> {
     if (!ehIdentificadorValido(id)) throw naoEncontrado();
     if (typeof ativo !== 'boolean') throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'ativo deve ser verdadeiro ou falso.');
+    const roteiro = await this.buscar(id);
+    if (!ativo && roteiro.produtos.some((produto) => produto.vigente)) {
+      throw new ErroDeRoteiro('CONFLITO', 'Este roteiro é o vigente de algum produto. Torne outra versão vigente antes de inativar.');
+    }
     if (!await this.roteiros.definirAtivo(id, ativo)) throw naoEncontrado();
     return this.buscar(id);
   }
@@ -83,7 +94,46 @@ export class RoteirosService {
     return this.buscar(id);
   }
 
-  // Copia as etapas e os postos para a próxima versão do mesmo nome; a versão de origem não muda.
+  async associarProduto(id: string, produtoId: unknown): Promise<RoteiroDetalhe> {
+    const roteiro = await this.buscar(id);
+    if (!ehIdentificadorValido(produtoId)) throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Selecione um produto válido.');
+    if (!await this.roteiros.existeProduto(produtoId)) throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Produto não encontrado.');
+    if (roteiro.produtos.some((produto) => produto.id === produtoId)) throw new ErroDeRoteiro('CONFLITO', 'Este produto já está ligado a este roteiro.');
+    await this.roteiros.associarProduto(id, produtoId);
+    return this.buscar(id);
+  }
+
+  // A vigente é a versão usada por padrão nas próximas ordens do produto; só uma por produto.
+  async definirVigente(id: string, produtoId: string): Promise<RoteiroDetalhe> {
+    const roteiro = await this.buscar(id);
+    if (produtoLigado(roteiro, produtoId).vigente) return roteiro;
+    if (!roteiro.ativo) throw new ErroDeRoteiro('CONFLITO', 'Um roteiro inativo não pode ser o vigente. Ative-o antes.');
+    await this.roteiros.definirVigente(id, produtoId);
+    return this.buscar(id);
+  }
+
+  async removerProduto(id: string, produtoId: string): Promise<RoteiroDetalhe> {
+    const roteiro = await this.buscar(id);
+    if (produtoLigado(roteiro, produtoId).quantidadeOrdens > 0) {
+      throw new ErroDeRoteiro('CONFLITO', 'Este produto tem ordens com esta versão do roteiro, por isso a ligação não pode ser removida.');
+    }
+    await this.roteiros.removerProduto(id, produtoId);
+    return this.buscar(id);
+  }
+
+  async salvarTempos(id: string, produtoId: string, input: unknown): Promise<RoteiroDetalhe> {
+    const roteiro = await this.buscar(id);
+    const produto = produtoLigado(roteiro, produtoId);
+    const tempos = validarTemposInformados(input);
+    if (produto.travado) throw new ErroDeRoteiro('CONFLITO', MENSAGEM_TEMPOS_TRAVADOS);
+    const etapas = new Set(roteiro.etapas.map((etapa) => etapa.id));
+    if (tempos.some((tempo) => !etapas.has(tempo.etapaId))) throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Etapa não pertence a este roteiro.');
+    await this.roteiros.salvarTempos(id, produtoId, tempos);
+    return this.buscar(id);
+  }
+
+  // Copia as etapas, os postos, os produtos ligados (sem vigência) e os tempos padrão para a
+  // próxima versão do mesmo nome; a versão de origem não muda.
   async criarVersao(id: string): Promise<RoteiroDetalhe> {
     await this.buscar(id);
     return this.buscar(await this.roteiros.criarVersao(id));

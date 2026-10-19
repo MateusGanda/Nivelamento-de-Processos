@@ -8,6 +8,7 @@ import type { OperacaoDoRoteiro, RoteiroDetalhe } from '../../domain/roteiro';
 import { buscarRoteiro, criarVersaoRoteiro, definirPostosEtapa, definirStatusRoteiro, ErroApiRoteiros, salvarEtapasRoteiro } from '../api-client';
 import { etapasAlteradas, moverEtapa, paraEdicao, type EtapaEmEdicao } from '../listing';
 import { EtapaPostosDialog, type PedidoPostosEtapa } from './etapa-postos-dialog';
+import { RoteiroProdutosSection } from './roteiro-produtos-section';
 
 const botao = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60';
 const botaoIcone = 'inline-flex size-10 cursor-pointer items-center justify-center rounded-lg border border-[#3b454e] hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40';
@@ -16,11 +17,11 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
   const router = useRouter();
   const [roteiro, setRoteiro] = useState<RoteiroDetalhe | null>(null);
   const [erroCarga, setErroCarga] = useState('');
-  const [mensagem, setMensagem] = useState(versaoCriada ? 'Nova versão criada com as mesmas etapas e postos. As ordens da versão anterior não mudam.' : '');
+  const [mensagem, setMensagem] = useState(versaoCriada ? 'Nova versão criada com as mesmas etapas, postos, produtos e tempos padrão. A versão vigente de cada produto não mudou, e as ordens da versão anterior também não.' : '');
   const [erro, setErro] = useState('');
   const [edicao, setEdicao] = useState<EtapaEmEdicao[]>([]);
   const [operacaoNova, setOperacaoNova] = useState('');
-  const [ocupado, setOcupado] = useState<'etapas' | 'status' | 'versao' | null>(null);
+  const [ocupado, setOcupado] = useState<'etapas' | 'status' | 'versao' | 'produto' | null>(null);
   const [pedidoPostos, setPedidoPostos] = useState<PedidoPostosEtapa | null>(null);
   const dialogPostosRef = useRef<HTMLDialogElement>(null);
   const origemFoco = useRef<HTMLButtonElement | null>(null);
@@ -54,7 +55,7 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
     return () => controller.abort();
   }, [carregar]);
 
-  async function executar(tipo: 'etapas' | 'status' | 'versao', acao: () => Promise<RoteiroDetalhe>, sucesso: string, padrao: string) {
+  async function executar(tipo: 'etapas' | 'status' | 'versao' | 'produto', acao: () => Promise<RoteiroDetalhe>, sucesso: string, padrao: string) {
     if (ocupado) return;
     setOcupado(tipo);
     setErro('');
@@ -75,16 +76,20 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
     }
   }
 
-  async function salvarPostos(etapaId: string, postoIds: string[]): Promise<string | null> {
+  // Gravações feitas dentro de um formulário: o erro volta para o formulário, que continua aberto.
+  async function gravarNoFormulario(acao: () => Promise<RoteiroDetalhe>, sucesso: string, padrao: string): Promise<string | null> {
     try {
-      aplicar(await definirPostosEtapa(id, etapaId, postoIds));
+      aplicar(await acao());
       setErro('');
-      setMensagem('Postos da etapa salvos com sucesso.');
+      setMensagem(sucesso);
       return null;
     } catch (falha) {
-      return tratarFalha(falha, 'Não foi possível salvar os postos. Verifique sua conexão e tente novamente.') ?? '';
+      return tratarFalha(falha, padrao) ?? '';
     }
   }
+
+  const salvarPostos = (etapaId: string, postoIds: string[]) => gravarNoFormulario(() => definirPostosEtapa(id, etapaId, postoIds),
+    'Postos da etapa salvos com sucesso.', 'Não foi possível salvar os postos. Verifique sua conexão e tente novamente.');
 
   if (erroCarga) {
     return (
@@ -224,6 +229,11 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
           </div>
         )}
       </section>
+      <RoteiroProdutosSection
+        roteiro={roteiro} etapasPendentes={alterado} ocupado={ocupado !== null}
+        executar={(acao, sucesso, padrao) => executar('produto', acao, sucesso, padrao)}
+        salvarTempos={(acao) => gravarNoFormulario(acao, 'Tempos padrão salvos com sucesso.', 'Não foi possível salvar os tempos padrão. Verifique sua conexão e tente novamente.')}
+      />
       <EtapaPostosDialog dialogRef={dialogPostosRef} pedido={pedidoPostos} salvar={salvarPostos} aoFechar={() => origemFoco.current?.focus()} />
     </div>
   );

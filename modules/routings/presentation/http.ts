@@ -24,7 +24,9 @@ async function lerCampo(request: Request, campo: string): Promise<unknown> {
 
 type Dependencias = {
   autorizar: () => Promise<unknown>;
-  roteiros: Pick<RoteirosService, 'listar' | 'buscar' | 'criar' | 'definirStatus' | 'salvarEtapas' | 'definirPostosDaEtapa' | 'criarVersao'>;
+  roteiros: Pick<RoteirosService,
+    'listar' | 'buscar' | 'criar' | 'definirStatus' | 'salvarEtapas' | 'definirPostosDaEtapa' | 'criarVersao' |
+    'associarProduto' | 'definirVigente' | 'removerProduto' | 'salvarTempos'>;
 };
 
 // A rota fornece a autorização real; testes substituem dependências sem usar o banco.
@@ -53,5 +55,10 @@ export function criarHandlersRoteiros({ autorizar, roteiros }: Dependencias) {
     PUT_POSTOS: (request: Request, id: string, etapaId: string) =>
       responder(async () => roteiros.definirPostosDaEtapa(id, etapaId, await lerCampo(request, 'postoIds'))),
     POST_VERSAO: (id: string) => responder(() => roteiros.criarVersao(id), 201),
+    POST_PRODUTO: (request: Request, id: string) => responder(async () => roteiros.associarProduto(id, await lerCampo(request, 'produtoId')), 201),
+    DELETE_PRODUTO: (id: string, produtoId: string) => responder(() => roteiros.removerProduto(id, produtoId)),
+    PUT_VIGENTE: (id: string, produtoId: string) => responder(() => roteiros.definirVigente(id, produtoId)),
+    PUT_TEMPOS: (request: Request, id: string, produtoId: string) =>
+      responder(async () => roteiros.salvarTempos(id, produtoId, await lerCampo(request, 'tempos'))),
   };
 }
