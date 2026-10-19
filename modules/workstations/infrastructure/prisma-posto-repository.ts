@@ -1,7 +1,7 @@
 import { db } from '../../../src/prisma/db.ts';
 import type { PostoRepository } from '../application/contracts.ts';
-import type { CadastroPosto, Posto } from '../domain/posto.ts';
-import { traduzirErroCriacaoPosto } from './persistence-errors.ts';
+import type { AlteracaoPosto, CadastroPosto, Posto } from '../domain/posto.ts';
+import { traduzirErroGravacaoPosto } from './persistence-errors.ts';
 
 type Linha = { id: string; codigo: string; nome: string; ativo: boolean; createdAt: string; updatedAt: string };
 
@@ -23,6 +23,11 @@ export class PrismaPostoRepository implements PostoRepository {
     return postos.map((posto) => mapear(posto, posto.setor));
   }
 
+  async buscarPorId(id: string): Promise<Posto | null> {
+    const posto = await db.orm.public.Posto.where({ id }).include('setor', (setor) => setor.select('id', 'nome')).first();
+    return posto ? mapear(posto, posto.setor) : null;
+  }
+
   async buscarPorCodigo(codigo: string): Promise<Posto | null> {
     const posto = await db.orm.public.Posto.where({ codigo }).include('setor', (setor) => setor.select('id', 'nome')).first();
     return posto ? mapear(posto, posto.setor) : null;
@@ -37,7 +42,22 @@ export class PrismaPostoRepository implements PostoRepository {
       const posto = await db.orm.public.Posto.create({ codigo: dados.codigo, nome: dados.nome, setorId: dados.setorId, ativo: true });
       return mapear(posto, await this.buscarSetor(dados.setorId));
     } catch (erro) {
-      return traduzirErroCriacaoPosto(erro);
+      return traduzirErroGravacaoPosto(erro);
     }
+  }
+
+  async alterar(id: string, dados: AlteracaoPosto): Promise<Posto | null> {
+    try {
+      // O banco só preenche updatedAt na criação; na alteração ele é informado aqui.
+      const posto = await db.orm.public.Posto.where({ id }).update({ ...dados, updatedAt: new Date().toISOString() });
+      return posto ? this.buscarPorId(id) : null;
+    } catch (erro) {
+      return traduzirErroGravacaoPosto(erro);
+    }
+  }
+
+  async definirAtivo(id: string, ativo: boolean): Promise<Posto | null> {
+    const posto = await db.orm.public.Posto.where({ id }).update({ ativo, updatedAt: new Date().toISOString() });
+    return posto ? this.buscarPorId(id) : null;
   }
 }

@@ -1,7 +1,7 @@
 import { ErroDePosto } from '../domain/posto.ts';
 
 // Traduz as violações do banco que a consulta prévia não evita em pedidos simultâneos.
-export function traduzirErroCriacaoPosto(erro: unknown): never {
+export function traduzirErroGravacaoPosto(erro: unknown): never {
   let atual = erro;
   const visitados = new Set<object>();
   while (atual && typeof atual === 'object' && !visitados.has(atual)) {
