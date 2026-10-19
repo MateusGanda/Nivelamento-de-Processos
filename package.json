@@ -12,7 +12,8 @@
     "test": "node --experimental-strip-types --test \"tests/**/*.test.ts\"",
     "postinstall": "prisma skills sync || exit 0",
     "contract:emit": "prisma contract emit",
-    "bootstrap:admin": "node --experimental-strip-types scripts/criar-primeiro-admin.ts"
+    "bootstrap:admin": "node --experimental-strip-types scripts/criar-primeiro-admin.ts",
+    "seed:desenvolvimento": "node --experimental-strip-types scripts/popular-banco-desenvolvimento.ts"
   },
   "dependencies": {
     "@prisma/client": "^7.10.0",

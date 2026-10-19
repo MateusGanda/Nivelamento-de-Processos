@@ -52,6 +52,7 @@ O arquivo `.env` não vai para o Git. Nunca coloque senhas ou a string de conex�
 | `DATABASE_URL` | String de conexão do PostgreSQL. A do banco da equipe é passada em particular. |
 | `NEXTAUTH_SECRET` | Segredo que assina as sessões. Gere um valor próprio para cada ambiente. |
 | `INITIAL_ADMIN_NOME`, `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_MATRICULA`, `INITIAL_ADMIN_SENHA` | Usadas só pelo comando que cria o primeiro administrador. |
+| `SEED_DATABASE_URL` | Banco de desenvolvimento que recebe os dados fictícios do seed. Nunca o banco do site. |
 
 Para gerar um valor para o `NEXTAUTH_SECRET`:
 
@@ -81,6 +82,10 @@ npx prisma db migrate         # aplica as migrações pendentes
 
 Os dois primeiros comandos só leem. Não aplique migrações nem altere o modelo no banco da equipe sem combinar antes.
 
+### Dados fictícios para testes
+
+O comando `npm run seed:desenvolvimento` grava uma fábrica fictícia (setores, postos, operações, operadores, motivos de pausa, produtos com roteiro, um plano, seis ordens e execuções com pausas e baixas) no banco indicado em `SEED_DATABASE_URL`. A equipe usa para isso a branch Indicators do Neon. O comando grava tudo numa transação, recusa rodar no mesmo banco de `DATABASE_URL` e não grava nada se algum registro do cenário já existir.
+
 ## Comandos
 
 | Comando | O que faz |
@@ -92,6 +97,7 @@ Os dois primeiros comandos só leem. Não aplique migrações nem altere o model
 | `npm run typecheck` | Confere os tipos do TypeScript. |
 | `npm test` | Roda os testes automatizados. |
 | `npm run bootstrap:admin` | Cria o primeiro administrador. |
+| `npm run seed:desenvolvimento` | Grava dados fictícios no banco de `SEED_DATABASE_URL`. |
 
 Os testes não usam o banco de dados. Os testes de login por HTTP são opcionais e só rodam com a aplicação local em execução e a variável `GUNP_HTTP_TEST_URL` definida, por exemplo `GUNP_HTTP_TEST_URL=http://localhost:3000`.
 
