@@ -41,6 +41,13 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 
 ## Regras de negócio
 
+### Cadastro de operação
+- Nome obrigatório e único; descrição opcional. Remover somente espaços nas extremidades, preservando caixa, acentos e espaços internos, sem novos limites de tamanho.
+- Descrição ausente no cadastro, nula ou vazia após trim é armazenada como `null`. Na edição, campos omitidos permanecem inalterados.
+- A unicidade mantém a comparação do schema/banco: `Corte` e `corte` são distintos. Busca sem caixa/acentos é somente de apresentação.
+- A entrega permite criação, listagem e edição de nome/descrição, preservando o identificador e os vínculos das etapas. Não inclui exclusão nem ativação/inativação; `Operacao` não possui `ativo` no contrato atual.
+- Operação não possui tempo padrão universal; ele continua na combinação produto + etapa do roteiro.
+
 ### Cadastro de setor
 - Nome obrigatório e único; descrição opcional. Remover espaços nas extremidades, preservando caixa, acentos e espaços internos.
 - Descrição ausente, nula ou vazia após trim é armazenada como `null`. Não há novos limites de tamanho.

@@ -140,11 +140,13 @@ Esta é a **primeira grande frente funcional**, conforme a estratégia da equipe
 
 ## 7.1 Operações
 
-- [ ] Listar
-- [ ] Criar
-- [ ] Editar
+Entrega de listagem, criação e edição em `/painel/operacoes`, com GET/POST `/api/operacoes` e PATCH `/api/operacoes/[id]`. Nome obrigatório e único, descrição opcional, busca e ordenação. Sem alteração de schema; ativação/inativação permanece pendente porque `Operacao` não possui `ativo`. Detalhes e limites de verificação em `docs/design/OPERACOES_GUNP.md`.
+
+- [x] Listar
+- [x] Criar
+- [x] Editar
 - [ ] Ativar/desativar
-- [ ] Validar nome obrigatório e duplicidade
+- [x] Validar nome obrigatório e duplicidade
 
 ## 7.2 Produtos
 
