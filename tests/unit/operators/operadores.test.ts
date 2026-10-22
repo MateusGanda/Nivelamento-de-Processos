@@ -2,126 +2,231 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OperadoresService } from '../../../modules/operators/application/operadores.ts';
 import type { OperadorRepository } from '../../../modules/operators/application/contracts.ts';
-import { ErroDeOperador, type CadastroOperador, type Operador } from '../../../modules/operators/domain/operador.ts';
+import { ErroDeOperador, ErroMatriculaReservada, type AlteracaoOperador, type CadastroOperador, type NovoOperador, type Operador, type SetorPrincipal } from '../../../modules/operators/domain/operador.ts';
+import { gerarMatriculaOperador, iniciaisOperador } from '../../../modules/operators/domain/matricula.ts';
 import { traduzirErroCriacaoOperador } from '../../../modules/operators/infrastructure/persistence-errors.ts';
 import { criarHandlersOperadores } from '../../../modules/operators/presentation/http.ts';
 import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
 import { filtrarOrdenarOperadores, formatarDataCadastro } from '../../../modules/operators/presentation/listing.ts';
 
+const id = (n: number) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
+const setores: SetorPrincipal[] = [{ id: id(1), codigo: 'PES1', nome: 'Pesponto' }, { id: id(2), codigo: 'COS1', nome: 'Costura' }];
+const entrada = (nome = 'Luis Gustavo Nunes dos Santos'): CadastroOperador => ({ nome, setorPrincipalId: id(1) });
+const linha = (nome: string, matricula: string, extras: Partial<Operador> = {}): Operador => ({
+  id: id(200), nome, matricula, ativo: true, funcao: null, setorPrincipal: null,
+  createdAt: '2026-10-20T12:00:00Z', updatedAt: '2026-10-20T12:00:00Z', ...extras,
+});
 class RepositorioEmMemoria implements OperadorRepository {
   operadores: Operador[] = [];
-  async listar() { return [...this.operadores]; }
-  async buscarPorMatricula(matricula: string) { return this.operadores.find((operador) => operador.matricula === matricula) ?? null; }
-  async criar(dados: CadastroOperador) {
-    // Simula a constraint atômica: pode falhar mesmo após uma consulta prévia.
-    if (this.operadores.some((operador) => operador.matricula === dados.matricula)) {
+  leituras = 0;
+  escritas = 0;
+  async listar() { this.leituras++; return [...this.operadores]; }
+  async buscarPorId(id: string) { this.leituras++; return this.operadores.find((o) => o.id === id) ?? null; }
+  async buscarSetorPrincipal(id: string) { this.leituras++; return setores.find((s) => s.id === id) ?? null; }
+  async matriculasReservadas() { this.leituras++; return this.operadores.map((o) => o.matricula); }
+  async criar(dados: NovoOperador) {
+    if (this.operadores.some((o) => o.matricula === dados.matricula)) {
       return traduzirErroCriacaoOperador({ sqlState: '23505', constraint: 'Operador_matricula_key' });
     }
-    const operador: Operador = { id: String(this.operadores.length + 1), ...dados, ativo: true, createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
+    const operador = linha(dados.nome, dados.matricula, {
+      id: id(this.operadores.length + 100), funcao: dados.funcao,
+      setorPrincipal: setores.find((s) => s.id === dados.setorPrincipalId) ?? null,
+    });
+    this.escritas++;
     this.operadores.push(operador);
     return operador;
   }
-}
-
-const post = (corpo: unknown) => new Request('http://localhost/api/operadores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
-const conflito = (erro: unknown) => erro instanceof ErroDeOperador && erro.codigo === 'CONFLITO';
-
-test('cria ativo, remove só espaços externos e preserva caixa, espaços internos e zeros', async () => {
-  const service = new OperadoresService(new RepositorioEmMemoria());
-  const operador = await service.criar({ nome: '  João  Silva  ', matricula: '  op-001  ' });
-  assert.equal(operador.nome, 'João  Silva');
-  assert.equal(operador.matricula, 'op-001');
-  assert.equal(operador.ativo, true);
-  assert.deepEqual(Object.keys(operador).sort(), ['ativo', 'createdAt', 'id', 'matricula', 'nome', 'updatedAt']);
-  await service.criar({ nome: 'João  Silva', matricula: 'OP-001' });
-  assert.equal((await service.listar()).length, 2);
-});
-
-test('rejeita dados vazios e tipos inválidos, sem impor limites de tamanho novos', async () => {
-  const service = new OperadoresService(new RepositorioEmMemoria());
-  for (const dados of [{ nome: '', matricula: '01' }, { nome: '  ', matricula: '01' }, { nome: 'Ana', matricula: '\t' }, { nome: 1, matricula: '01' }, { nome: 'Ana', matricula: 1 }]) {
-    await assert.rejects(() => service.criar(dados as CadastroOperador), (erro: unknown) => erro instanceof ErroDeOperador && erro.codigo === 'ENTRADA_INVALIDA');
+  async alterar(id: string, dados: AlteracaoOperador) {
+    const indice = this.operadores.findIndex((o) => o.id === id);
+    if (indice < 0) return null;
+    const antigo = this.operadores[indice];
+    const alterado = { ...antigo, updatedAt: '2026-10-21T12:00:00Z' };
+    if (dados.nome !== undefined) alterado.nome = dados.nome;
+    if (dados.funcao !== undefined) alterado.funcao = dados.funcao;
+    if (dados.setorPrincipalId !== undefined) alterado.setorPrincipal = await this.buscarSetorPrincipal(dados.setorPrincipalId);
+    this.operadores[indice] = alterado;
+    this.escritas++;
+    return alterado;
   }
-  assert.equal((await service.criar({ nome: 'A'.repeat(200), matricula: '0'.repeat(200) })).matricula.length, 200);
+}
+const pedido = (method: 'POST' | 'PATCH', corpo: unknown) => new Request('http://localhost/api/operadores', { method, body: JSON.stringify(corpo), headers: { 'Content-Type': 'application/json' } });
+const erroCom = (codigo: ErroDeOperador['codigo']) => (erro: unknown) => erro instanceof ErroDeOperador && erro.codigo === codigo;
+
+test('matrícula: iniciais disponíveis, partículas, acentos, quatro palavras e fallback', () => {
+  for (const [nome, esperado] of [
+    ['Luis Gustavo Nunes Dos Santos', 'LGNS'], ['Ana Silva', 'AS'], ['Ana', 'A'],
+    ['João da Silva', 'JS'], ['Álvaro de Sá', 'AS'], ['Ana Beatriz Clara Diana Elisa', 'ABCD'],
+    ['de da dos e do', 'DDDE'], ['123!', 'OP'], ['Ana-Maria Silva', 'AMS'],
+  ]) assert.equal(iniciaisOperador(nome), esperado);
+  assert.equal(gerarMatriculaOperador('Ana Silva', 'PES1', []), 'AS-PES1');
 });
 
-test('matrícula de operador inativo continua reservada', async () => {
+test('matrícula: grupos separados por setor e sequência sem limite de três dígitos', () => {
+  const nome = 'Luis Gustavo Nunes dos Santos';
+  assert.equal(gerarMatriculaOperador(nome, 'PES1', ['LGNS-PES1', 'LGNS3-PES1', 'LGNS99-COS1', 'LGNSX-PES1']), 'LGNS4-PES1');
+  assert.equal(gerarMatriculaOperador(nome, 'COS1', ['LGNS-PES1']), 'LGNS-COS1');
+  assert.equal(gerarMatriculaOperador(nome, 'PES1', ['LGNS99999999999999999999-PES1']), 'LGNS100000000000000000000-PES1');
+});
+
+test('operador: cria ativo com setor, função normalizada e matrícula gerada pelo servidor', async () => {
+  const service = new OperadoresService(new RepositorioEmMemoria());
+  const o = await service.criar({ nome: '  João  da Silva  ', setorPrincipalId: ' ' + id(1) + ' ', funcao: '  Auxiliar  de produção  ' });
+  assert.equal(o.nome, 'João  da Silva');
+  assert.equal(o.matricula, 'JS-PES1');
+  assert.equal(o.ativo, true);
+  assert.equal(o.funcao, 'Auxiliar  de produção');
+  assert.deepEqual(o.setorPrincipal, setores[0]);
+  assert.deepEqual(Object.keys(o).sort(), ['ativo', 'createdAt', 'funcao', 'id', 'matricula', 'nome', 'setorPrincipal', 'updatedAt']);
+});
+
+test('operador: função ausente/vazia/nula é null e nomes não têm novo limite', async () => {
+  const service = new OperadoresService(new RepositorioEmMemoria());
+  for (const funcao of [undefined, null, '', ' \t ']) assert.equal((await service.criar({ ...entrada(), funcao })).funcao, null);
+  assert.equal((await service.criar(entrada('A'.repeat(200)))).nome.length, 200);
+});
+
+test('operador: rejeita dados inválidos, setor ausente/nulo/inexistente sem gravar', async () => {
   const repo = new RepositorioEmMemoria();
   const service = new OperadoresService(repo);
-  const operador = await service.criar({ nome: 'Ana', matricula: '001' });
-  operador.ativo = false;
-  await assert.rejects(() => service.criar({ nome: 'Bia', matricula: ' 001 ' }), conflito);
-  assert.equal((await service.listar()).length, 1);
+  for (const input of [{}, { ...entrada(), nome: '' }, { ...entrada(), nome: 1 }, { nome: 'Ana' }, { ...entrada(), setorPrincipalId: null }, { ...entrada(), setorPrincipalId: 'PES1' }, { ...entrada(), setorPrincipalId: id(99) }, { ...entrada(), funcao: 2 }]) {
+    await assert.rejects(() => service.criar(input as CadastroOperador), erroCom('ENTRADA_INVALIDA'));
+  }
+  assert.equal(repo.escritas, 0);
 });
 
-test('duas criações concorrentes da mesma matrícula geram um sucesso e um conflito', async () => {
-  const service = new OperadoresService(new RepositorioEmMemoria());
-  const resultados = await Promise.allSettled([service.criar({ nome: 'Ana', matricula: '01' }), service.criar({ nome: 'Bia', matricula: '01' })]);
-  assert.equal(resultados.filter((resultado) => resultado.status === 'fulfilled').length, 1);
-  const rejeitado = resultados.find((resultado) => resultado.status === 'rejected');
-  assert.ok(rejeitado?.status === 'rejected' && conflito(rejeitado.reason));
-  assert.equal((await service.listar()).length, 1);
+test('operador: matrícula antiga e de inativo permanecem reservadas; nomes repetidos são permitidos', async () => {
+  const repo = new RepositorioEmMemoria();
+  repo.operadores.push(linha('Antigo', 'LGNS-PES1', { ativo: false }));
+  const service = new OperadoresService(repo);
+  assert.equal((await service.criar(entrada())).matricula, 'LGNS2-PES1');
+  assert.equal((await service.criar(entrada())).matricula, 'LGNS3-PES1');
+  assert.equal(repo.operadores[0].matricula, 'LGNS-PES1');
 });
 
-test('traduz somente a violação da constraint de matrícula, inclusive na cadeia cause', () => {
-  assert.throws(() => traduzirErroCriacaoOperador({ cause: { sqlState: '23505', constraint: 'Operador_matricula_key' } }), conflito);
-  assert.throws(() => traduzirErroCriacaoOperador({ code: '23505', constraint: 'Operador_matricula_key' }), conflito);
-  for (const erro of [{ sqlState: '23505', constraint: 'Operador_pkey' }, { sqlState: '23503', constraint: 'Operador_matricula_key' }, new Error('Conexão indisponível')]) {
+test('operador: duas criações concorrentes com iniciais iguais recalculam a matrícula', async () => {
+  const repo = new RepositorioEmMemoria();
+  const resultados = await Promise.all([new OperadoresService(repo).criar(entrada()), new OperadoresService(repo).criar(entrada())]);
+  assert.deepEqual(resultados.map((o) => o.matricula).sort(), ['LGNS-PES1', 'LGNS2-PES1']);
+  assert.equal(repo.escritas, 2);
+});
+
+test('operador: limite de dez colisões e falha inesperada não se confundem', async () => {
+  const repo = new RepositorioEmMemoria();
+  let tentativas = 0;
+  repo.criar = async () => { tentativas++; throw new ErroMatriculaReservada(); };
+  await assert.rejects(() => new OperadoresService(repo).criar(entrada()), erroCom('CONFLITO'));
+  assert.equal(tentativas, 10);
+  repo.criar = async () => { tentativas++; throw new Error('Falha de conexão'); };
+  await assert.rejects(() => new OperadoresService(repo).criar(entrada()), /Falha de conexão/);
+  assert.equal(tentativas, 11);
+});
+
+test('operador: transferência e mudança de nome preservam matrícula, criação, status e reserva na origem', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new OperadoresService(repo);
+  const criado = await service.criar(entrada());
+  criado.ativo = false;
+  const alterado = await service.alterar(criado.id, { nome: ' Outro  Nome ', setorPrincipalId: id(2), funcao: ' Costureiro ' });
+  assert.deepEqual([alterado.id, alterado.matricula, alterado.createdAt, alterado.ativo], [criado.id, 'LGNS-PES1', criado.createdAt, false]);
+  assert.deepEqual([alterado.nome, alterado.funcao, alterado.setorPrincipal], ['Outro  Nome', 'Costureiro', setores[1]]);
+  assert.notEqual(alterado.updatedAt, criado.updatedAt);
+  assert.equal((await service.criar(entrada())).matricula, 'LGNS2-PES1');
+});
+
+test('operador: cadastro antigo continua sem setor ao editar outros campos e pode ser regularizado', async () => {
+  const repo = new RepositorioEmMemoria();
+  const antigo = linha('Antigo', 'op-0007', { funcao: 'Antiga' });
+  repo.operadores.push(antigo);
+  const service = new OperadoresService(repo);
+  assert.equal((await service.alterar(antigo.id, { nome: 'Renomeado' })).setorPrincipal, null);
+  for (const funcao of [null, '', '  ']) assert.equal((await service.alterar(antigo.id, { funcao })).funcao, null);
+  const regularizado = await service.alterar(antigo.id, { setorPrincipalId: id(1) });
+  assert.equal(regularizado.matricula, 'op-0007');
+  assert.deepEqual(regularizado.setorPrincipal, setores[0]);
+});
+
+test('operador: edição rejeita vazio, remoção de setor e inexistência', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new OperadoresService(repo);
+  const criado = await service.criar(entrada());
+  for (const dados of [{}, { nome: ' ' }, { setorPrincipalId: null }, { setorPrincipalId: id(99) }, { funcao: false }]) {
+    await assert.rejects(() => service.alterar(criado.id, dados as AlteracaoOperador), erroCom('ENTRADA_INVALIDA'));
+  }
+  for (const idAusente of [id(90), 'invalido']) await assert.rejects(() => service.alterar(idAusente, { nome: 'Outro' }), erroCom('NAO_ENCONTRADO'));
+  repo.alterar = async () => null;
+  await assert.rejects(() => service.alterar(criado.id, { nome: 'Outro' }), erroCom('NAO_ENCONTRADO'));
+});
+
+test('operador: traduz constraints de matrícula e FK, preserva falhas desconhecidas e ciclos', () => {
+  assert.throws(() => traduzirErroCriacaoOperador({ cause: { sqlState: '23505', constraint: 'Operador_matricula_key' } }), (e: unknown) => e instanceof ErroMatriculaReservada);
+  assert.throws(() => traduzirErroCriacaoOperador({ code: '23505', constraint: 'Operador_matricula_key' }), erroCom('CONFLITO'));
+  assert.throws(() => traduzirErroCriacaoOperador({ code: '23503', constraint: 'Operador_setorPrincipalId_fkey' }), erroCom('ENTRADA_INVALIDA'));
+  const ciclo: { cause?: unknown } = {}; ciclo.cause = ciclo;
+  for (const erro of [ciclo, { sqlState: '23505', constraint: 'Operador_pkey' }, new Error('Conexão indisponível')]) {
     assert.throws(() => traduzirErroCriacaoOperador(erro), (recebido: unknown) => recebido === erro);
   }
-  const ciclo: { cause?: unknown } = {};
-  ciclo.cause = ciclo;
-  assert.throws(() => traduzirErroCriacaoOperador(ciclo), (recebido: unknown) => recebido === ciclo);
 });
 
-test('handlers autorizados criam com 201, listam, negam extras e retornam 409', async () => {
-  const handlers = criarHandlersOperadores({ autorizar: async () => ({ id: 'admin' }), operadores: new OperadoresService(new RepositorioEmMemoria()) });
-  assert.deepEqual(await (await handlers.GET()).json(), []);
-  const criado = await handlers.POST(post({ nome: 'Ana', matricula: '001' }));
+test('operador: handlers retornam 201/200/404 e rejeitam matrícula/status manual ou JSON inválido', async () => {
+  const repo = new RepositorioEmMemoria();
+  const handlers = criarHandlersOperadores({ autorizar: async () => ({}), operadores: new OperadoresService(repo) });
+  const criado = await handlers.POST(pedido('POST', entrada()));
   assert.equal(criado.status, 201);
-  assert.equal((await criado.json()).ativo, true);
+  const { id: operadorId, matricula } = await criado.json();
+  assert.equal(matricula, 'LGNS-PES1');
   const lista = await handlers.GET();
-  assert.equal(lista.status, 200);
   assert.equal(lista.headers.get('Cache-Control'), 'no-store');
   assert.equal((await lista.json()).length, 1);
-  assert.equal((await handlers.POST(post({ nome: 'Ana', matricula: '001' }))).status, 409);
-  for (const corpo of [null, [], 'texto', {}, { nome: 10, matricula: '02' }, { nome: 'Bia', matricula: 2 }, { nome: 'Bia', matricula: '' }]) {
-    assert.equal((await handlers.POST(post(corpo))).status, 400);
+  assert.equal((await handlers.PATCH(pedido('PATCH', { nome: 'Outro' }), operadorId)).status, 200);
+  assert.equal((await handlers.PATCH(pedido('PATCH', { nome: 'Outro' }), id(99))).status, 404);
+  for (const method of ['POST', 'PATCH'] as const) {
+    for (const campo of ['matricula', 'ativo', 'id', 'email', 'senha', 'papel', 'postoId']) {
+      const req = pedido(method, { ...entrada(), [campo]: 'proibido' });
+      assert.equal((await (method === 'POST' ? handlers.POST(req) : handlers.PATCH(req, operadorId))).status, 400);
+    }
+    for (const corpo of [null, [], 'texto', {}, { nome: 10 }, { ...entrada(), funcao: 2 }, { ...entrada(), setorPrincipalId: null }]) {
+      const req = pedido(method, corpo);
+      assert.equal((await (method === 'POST' ? handlers.POST(req) : handlers.PATCH(req, operadorId))).status, 400);
+    }
+    const invalido = new Request('http://localhost/api/operadores', { method, body: '{' });
+    assert.equal((await (method === 'POST' ? handlers.POST(invalido) : handlers.PATCH(invalido, operadorId))).status, 400);
   }
-  for (const campo of ['ativo', 'id', 'email', 'senha', 'papel', 'operadorId', 'qr']) {
-    assert.equal((await handlers.POST(post({ nome: 'Bia', matricula: '02', [campo]: 'não permitido' }))).status, 400);
-  }
-  assert.equal((await handlers.POST(new Request('http://localhost/api/operadores', { method: 'POST', body: '{' }))).status, 400);
+  assert.equal(repo.escritas, 2);
 });
 
-test('handlers bloqueiam sessão ausente/inválida e ADMIN inativo antes da ação', async () => {
-  let acessos = 0;
-  for (const codigo of ['NAO_AUTENTICADO', 'SEM_AUTORIZACAO'] as const) {
-    const handlers = criarHandlersOperadores({ autorizar: async () => { throw new ErroDeAcesso(codigo, 'Acesso negado.'); }, operadores: { listar: async () => { acessos++; return []; }, criar: async () => { acessos++; throw new Error('Não deve executar'); } } });
-    assert.equal((await handlers.GET()).status, codigo === 'NAO_AUTENTICADO' ? 401 : 403);
-    assert.equal((await handlers.POST(post({ matricula: 'QR-01', senha: 'credencial-falsa' }))).status, codigo === 'NAO_AUTENTICADO' ? 401 : 403);
-  }
-  assert.equal(acessos, 0);
-});
-
-test('falha inesperada retorna 500 sem expor mensagem de infraestrutura', async () => {
-  const handlers = criarHandlersOperadores({ autorizar: async () => undefined, operadores: { listar: async () => { throw new Error('detalhe-interno-nao-publico'); }, criar: async () => { throw new Error('detalhe-interno-nao-publico'); } } });
-  for (const resposta of [await handlers.GET(), await handlers.POST(post({ nome: 'Ana', matricula: '01' }))]) {
-    assert.equal(resposta.status, 500);
-    assert.ok(!(await resposta.text()).includes('detalhe-interno-nao-publico'));
+test('operador: autorização vem antes de parsing, leitura e escrita em todas as ações', async () => {
+  for (const [codigo, status] of [['NAO_AUTENTICADO', 401], ['SEM_AUTORIZACAO', 403], ['NAO_ENCONTRADO', 404]] as const) {
+    const repo = new RepositorioEmMemoria();
+    const handlers = criarHandlersOperadores({ autorizar: async () => { throw new ErroDeAcesso(codigo, 'Negado'); }, operadores: new OperadoresService(repo) });
+    assert.equal((await handlers.GET()).status, status);
+    assert.equal((await handlers.POST(pedido('POST', {}))).status, status);
+    assert.equal((await handlers.PATCH(pedido('PATCH', {}), id(99))).status, status);
+    assert.equal(repo.leituras + repo.escritas, 0);
   }
 });
 
-test('busca ignora caixa e acentos, filtra status, ordena e não altera a entrada', () => {
-  const base = { ativo: true, createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
-  const operadores: Operador[] = [{ ...base, id: '1', nome: 'João', matricula: 'op-010' }, { ...base, id: '2', nome: 'Ana', matricula: 'OP-002', ativo: false, createdAt: '2026-10-12T12:00:00Z' }];
-  const original = structuredClone(operadores);
-  assert.equal(filtrarOrdenarOperadores(operadores, 'JOAO', 'todos', { coluna: 'nome', direcao: 'asc' })[0].id, '1');
-  assert.equal(filtrarOrdenarOperadores(operadores, 'op-002', 'inativos', { coluna: 'nome', direcao: 'asc' })[0].id, '2');
+test('operador: falhas de infraestrutura na autorização ou serviço retornam 500 genérico', async () => {
+  const falha = async (): Promise<never> => { throw new Error('detalhe-interno'); };
+  for (const autorizar of [falha, async () => ({})]) {
+    const handlers = criarHandlersOperadores({ autorizar, operadores: { listar: falha, criar: falha, alterar: falha } });
+    for (const resposta of [await handlers.GET(), await handlers.POST(pedido('POST', entrada())), await handlers.PATCH(pedido('PATCH', { funcao: null }), id(99))]) {
+      assert.equal(resposta.status, 500);
+      assert.ok(!(await resposta.text()).includes('detalhe-interno'));
+    }
+  }
+});
+
+test('operador: busca por função/setor/código, status e ordenação tratam legado sem alterar entrada', () => {
+  const operadores = [
+    linha('João', 'JS-PES1', { id: id(1), setorPrincipal: setores[0], funcao: 'Revisão' }),
+    linha('Ana', 'op-0007', { id: id(2), ativo: false, createdAt: '2026-10-19T12:00:00Z' }),
+  ];
+  const copia = structuredClone(operadores);
+  for (const busca of ['JOAO', 'revisao', 'Pesponto', 'PES1']) assert.equal(filtrarOrdenarOperadores(operadores, busca, 'todos', { coluna: 'nome', direcao: 'asc' })[0].nome, 'João');
+  assert.equal(filtrarOrdenarOperadores(operadores, 'op-0007', 'inativos', { coluna: 'nome', direcao: 'asc' })[0].nome, 'Ana');
+  for (const coluna of ['setor', 'funcao', 'createdAt'] as const) assert.equal(filtrarOrdenarOperadores(operadores, '', 'todos', { coluna, direcao: 'asc' })[0].nome, 'Ana');
+  assert.equal(filtrarOrdenarOperadores(operadores, '', 'todos', { coluna: 'ativo', direcao: 'asc' })[0].nome, 'João');
   assert.equal(filtrarOrdenarOperadores(operadores, 'inexistente', 'todos', { coluna: 'nome', direcao: 'asc' }).length, 0);
-  assert.deepEqual(filtrarOrdenarOperadores(operadores, '', 'todos', { coluna: 'matricula', direcao: 'asc' }).map((item) => item.id), ['2', '1']);
-  assert.deepEqual(filtrarOrdenarOperadores(operadores, '', 'todos', { coluna: 'createdAt', direcao: 'desc' }).map((item) => item.id), ['1', '2']);
-  assert.deepEqual(filtrarOrdenarOperadores(operadores, '', 'todos', { coluna: 'ativo', direcao: 'asc' }).map((item) => item.id), ['1', '2']);
-  assert.deepEqual(operadores, original);
+  assert.deepEqual(operadores, copia);
   assert.ok(formatarDataCadastro('2026-10-13T01:00:00Z').includes('12/10/2026'));
 });

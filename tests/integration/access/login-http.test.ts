@@ -68,6 +68,7 @@ test('HTTP: sem sessão, raiz e painel redirecionam e API nega acesso', { skip: 
   assert.equal((await fetch(url('/api/usuarios'))).status, 401);
   assert.equal((await fetch(url('/api/operadores'))).status, 401);
   assert.equal((await fetch(url('/api/operadores'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
+  assert.equal((await fetch(url(`/api/operadores/${randomUUID()}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
   assert.equal((await fetch(url('/api/setores'))).status, 401);
   assert.equal((await fetch(url('/api/setores'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
   for (const [caminho, method] of [['/api/operacoes', 'GET'], ['/api/operacoes', 'POST'], [`/api/operacoes/${randomUUID()}`, 'PATCH']]) {
@@ -136,12 +137,18 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
         assert.ok(conteudo.includes('Adicionar operador'));
         assert.ok(conteudo.includes('Buscar operadores'));
         assert.ok(conteudo.includes('Cadastrar operador'));
+        assert.ok(conteudo.includes('operador-setor'));
+        assert.ok(conteudo.includes('operador-funcao'));
+        assert.ok(!conteudo.includes('name="matricula"'));
         assert.ok(!conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
       } else if (slug === 'setores') {
         for (const trecho of ['Adicionar setor', 'Buscar setores', 'Cadastrar setor', 'setor-nome', 'setor-descricao']) assert.ok(conteudo.includes(trecho));
         assert.ok(!conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
       } else if (slug === 'operacoes') {
         for (const trecho of ['Adicionar operação', 'Buscar operações', 'Cadastrar operação', 'operacao-nome', 'operacao-descricao']) assert.ok(conteudo.includes(trecho));
+        assert.ok(!conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
+      } else if (slug === 'produtos' || slug === 'postos' || slug === 'roteiros') {
+        // Estes cadastros já têm páginas próprias; não são destinos provisórios.
         assert.ok(!conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
       } else {
         assert.ok(conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
@@ -164,9 +171,15 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
     assert.equal(respostaSetores.headers.get('Cache-Control'), 'no-store');
     const setores = await respostaSetores.json();
     assert.ok(Array.isArray(setores));
-    for (const setor of setores) assert.deepEqual(Object.keys(setor).sort(), ['createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
+    for (const setor of setores) assert.deepEqual(Object.keys(setor).sort(), ['codigo', 'createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
     const invalida = await fetch(url('/api/setores'), { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ nome: 'Não persistir', senha: 'campo-proibido' }) });
     assert.equal(invalida.status, 400);
+  });
+  await t.test('operador: matrícula e status não podem ser alterados pela API', async () => {
+    for (const campos of [{ matricula: 'NAO-ALTERAR' }, { ativo: false }]) {
+      const resposta = await fetch(url(`/api/operadores/${randomUUID()}`), { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(campos) });
+      assert.equal(resposta.status, 400);
+    }
   });
   await t.test('API de operações autorizada lista e rejeita campos proibidos sem gravar', async () => {
     const resposta = await fetch(url('/api/operacoes'), { headers });
@@ -198,6 +211,7 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
     }
     assert.equal((await fetch(url('/api/usuarios'), { headers: headersInativo })).status, 403);
     assert.equal((await fetch(url('/api/operadores'), { headers: headersInativo })).status, 403);
+    assert.equal((await fetch(url(`/api/operadores/${randomUUID()}`), { method: 'PATCH', headers: { ...headersInativo, 'Content-Type': 'application/json' }, body: '{}' })).status, 403);
     assert.equal((await fetch(url('/api/setores'), { headers: headersInativo })).status, 403);
     assert.equal((await fetch(url('/api/setores'), { method: 'POST', headers: { ...headersInativo, 'Content-Type': 'application/json' }, body: '{}' })).status, 403);
     assert.equal((await fetch(url('/api/operacoes'), { headers: headersInativo })).status, 403);

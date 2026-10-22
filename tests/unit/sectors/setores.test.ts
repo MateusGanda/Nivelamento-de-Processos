@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SetoresService } from '../../../modules/sectors/application/setores.ts';
 import type { SetorRepository } from '../../../modules/sectors/application/contracts.ts';
-import { ErroDeSetor, type CadastroSetor, type DadosSetor, type Setor } from '../../../modules/sectors/domain/setor.ts';
+import { ErroDeSetor, type CadastroSetor, type NovoSetor, type Setor } from '../../../modules/sectors/domain/setor.ts';
 import { traduzirErroCriacaoSetor } from '../../../modules/sectors/infrastructure/persistence-errors.ts';
 import { criarHandlersSetores } from '../../../modules/sectors/presentation/http.ts';
 import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
@@ -11,11 +11,15 @@ import { filtrarOrdenarSetores, formatarDataCadastro } from '../../../modules/se
 class RepositorioEmMemoria implements SetorRepository {
   setores: Setor[] = [];
   async listar() { return [...this.setores]; }
+  async codigosReservados() { return this.setores.map((setor) => setor.codigo); }
   async buscarPorNome(nome: string) { return this.setores.find((setor) => setor.nome === nome) ?? null; }
-  async criar(dados: DadosSetor) {
+  async criar(dados: NovoSetor) {
     // Simula a constraint atômica mesmo quando ambas as consultas prévias não encontram o nome.
     if (this.setores.some((setor) => setor.nome === dados.nome)) {
       return traduzirErroCriacaoSetor({ sqlState: '23505', constraint: 'Setor_nome_key' });
+    }
+    if (this.setores.some((setor) => setor.codigo === dados.codigo)) {
+      return traduzirErroCriacaoSetor({ sqlState: '23505', constraint: 'Setor_codigo_key' });
     }
     const setor: Setor = { id: String(this.setores.length + 1), ...dados, createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
     this.setores.push(setor);
@@ -31,7 +35,7 @@ test('setor: trim preserva caixa, acentos e espaços internos, retornando soment
   const setor = await service.criar({ nome: '  Produção  Final  ', descricao: '  Área  de montagem\nmanual  ' });
   assert.equal(setor.nome, 'Produção  Final');
   assert.equal(setor.descricao, 'Área  de montagem\nmanual');
-  assert.deepEqual(Object.keys(setor).sort(), ['createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
+  assert.deepEqual(Object.keys(setor).sort(), ['codigo', 'createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
   await service.criar({ nome: 'produção  Final' });
   assert.equal((await service.listar()).length, 2);
 });
@@ -130,7 +134,7 @@ test('setor: falhas inesperadas de autorização, leitura e escrita retornam 500
 
 test('setor: busca por nome/descrição ignora caixa e acentos e ordenação não modifica os dados', () => {
   const base = { createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
-  const setores: Setor[] = [{ ...base, id: '1', nome: 'Costura', descricao: 'Produção' }, { ...base, id: '2', nome: 'Acabamento', descricao: null, createdAt: '2026-10-12T12:00:00Z' }];
+  const setores: Setor[] = [{ ...base, id: '1', codigo: 'COS1', nome: 'Costura', descricao: 'Produção' }, { ...base, id: '2', codigo: 'ACA1', nome: 'Acabamento', descricao: null, createdAt: '2026-10-12T12:00:00Z' }];
   const original = structuredClone(setores);
   assert.equal(filtrarOrdenarSetores(setores, 'PRODUCAO', { coluna: 'nome', direcao: 'asc' })[0].id, '1');
   assert.equal(filtrarOrdenarSetores(setores, '  COSTURA ', { coluna: 'nome', direcao: 'asc' })[0].id, '1');
