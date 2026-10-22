@@ -64,8 +64,7 @@ const PRODUTOS = [
   { codigo: 'PRD-001', nome: 'Produto A', roteiro: 'Roteiro do Produto A', etapas: [['Corte', 30], ['Montagem', 120], ['Acabamento', 60], ['Inspeção', 20]] },
   { codigo: 'PRD-002', nome: 'Produto B', roteiro: 'Roteiro do Produto B', etapas: [['Corte', 45], ['Montagem', 90], ['Inspeção', 25]] },
 ] as const;
-// Sem dataInicio e dataFim: o Prisma grava datas como Temporal.PlainDate, que o Node 22 não tem.
-const PLANO = { codigo: 'PL-2026-10', descricao: 'Plano fictício de 13 a 24 de outubro de 2026' };
+const PLANO = { codigo: 'PL-2026-10', descricao: 'Plano fictício da segunda quinzena de outubro', dataInicio: '2026-10-13', dataFim: '2026-10-24' };
 const ORDENS = [
   { numero: 'OP-0001', produto: 'PRD-001', quantidade: 40 },
   { numero: 'OP-0002', produto: 'PRD-002', quantidade: 60 },

@@ -1168,14 +1168,14 @@
               "dataFim": {
                 "nullable": true,
                 "type": {
-                  "codecId": "pg/date-temporal@1",
+                  "codecId": "pg/date-string@1",
                   "kind": "scalar"
                 }
               },
               "dataInicio": {
                 "nullable": true,
                 "type": {
-                  "codecId": "pg/date-temporal@1",
+                  "codecId": "pg/date-string@1",
                   "kind": "scalar"
                 }
               },
@@ -2958,12 +2958,12 @@
                   "nullable": false
                 },
                 "dataFim": {
-                  "codecId": "pg/date-temporal@1",
+                  "codecId": "pg/date-string@1",
                   "nativeType": "date",
                   "nullable": true
                 },
                 "dataInicio": {
-                  "codecId": "pg/date-temporal@1",
+                  "codecId": "pg/date-string@1",
                   "nativeType": "date",
                   "nullable": true
                 },
@@ -3650,7 +3650,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "dae99b37a9f2e5d95a706ae93d1b64e94f15f1f4b19b0e67000805a5579000c4"
+    "storageHash": "0cd2f58a0afa8654847c19a3cfa7990e8b80882d93262714b6646ca1951b699e"
   },
   "execution": {
     "executionHash": "d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33",
