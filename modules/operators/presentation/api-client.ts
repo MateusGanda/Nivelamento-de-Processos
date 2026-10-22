@@ -1,4 +1,4 @@
-import type { CadastroOperador, Operador } from '../domain/operador.ts';
+import type { AlteracaoOperador, CadastroOperador, Operador } from '../domain/operador.ts';
 
 export class ErroApiOperadores extends Error {
   readonly status: number;
@@ -23,6 +23,9 @@ async function lerResposta(resposta: Response): Promise<unknown> {
 function ehOperador(valor: unknown): valor is Operador {
   if (!valor || typeof valor !== 'object') return false;
   const dados = valor as Record<string, unknown>;
+  const setor = dados.setorPrincipal as Record<string, unknown> | null | undefined;
+  if (!(setor === null || (setor && typeof setor.id === 'string' && typeof setor.codigo === 'string' && typeof setor.nome === 'string'))) return false;
+  if (!(dados.funcao === null || typeof dados.funcao === 'string')) return false;
   return typeof dados.id === 'string' && typeof dados.nome === 'string' && typeof dados.matricula === 'string' &&
     typeof dados.ativo === 'boolean' && typeof dados.createdAt === 'string' && Number.isFinite(Date.parse(dados.createdAt)) &&
     typeof dados.updatedAt === 'string' && Number.isFinite(Date.parse(dados.updatedAt));
@@ -39,5 +42,13 @@ export async function cadastrarOperador(dados: CadastroOperador): Promise<Operad
     method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados),
   }));
   if (!ehOperador(operador)) throw new ErroApiOperadores(500, 'Não foi possível confirmar o cadastro. Verifique a lista antes de tentar novamente.');
+  return operador;
+}
+
+export async function alterarOperador(id: string, dados: AlteracaoOperador): Promise<Operador> {
+  const operador = await lerResposta(await fetch(`/api/operadores/${encodeURIComponent(id)}`, {
+    method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados),
+  }));
+  if (!ehOperador(operador)) throw new ErroApiOperadores(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
   return operador;
 }
