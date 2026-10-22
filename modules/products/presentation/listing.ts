@@ -1,19 +1,21 @@
 import type { Produto } from '../domain/produto.ts';
 
-export type ColunaProduto = 'codigo' | 'nome' | 'createdAt' | 'updatedAt';
+export type ColunaProduto = 'codigo' | 'nome' | 'ativo' | 'createdAt' | 'updatedAt';
+export type FiltroStatusProduto = 'todos' | 'ativos' | 'inativos';
 export type OrdemProduto = { coluna: ColunaProduto; direcao: 'asc' | 'desc' };
 
 function textoBusca(texto: string): string {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('pt-BR');
 }
 
-export function filtrarOrdenarProdutos(produtos: readonly Produto[], busca: string, ordem: OrdemProduto): Produto[] {
+export function filtrarOrdenarProdutos(produtos: readonly Produto[], busca: string, ordem: OrdemProduto, status: FiltroStatusProduto = 'todos'): Produto[] {
   const termo = textoBusca(busca.trim());
   const collation = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
-  return produtos.filter((produto) => !termo || [produto.codigo, produto.nome].some((campo) => textoBusca(campo).includes(termo)))
+  return produtos.filter((produto) => status === 'todos' || produto.ativo === (status === 'ativos'))
+    .filter((produto) => !termo || [produto.codigo, produto.nome].some((campo) => textoBusca(campo).includes(termo)))
     .sort((a, b) => {
-      const comparacao = ordem.coluna === 'createdAt' || ordem.coluna === 'updatedAt'
-        ? Date.parse(a[ordem.coluna]) - Date.parse(b[ordem.coluna])
+      const comparacao = ordem.coluna === 'ativo' ? Number(b.ativo) - Number(a.ativo)
+        : ordem.coluna === 'createdAt' || ordem.coluna === 'updatedAt' ? Date.parse(a[ordem.coluna]) - Date.parse(b[ordem.coluna])
         : collation.compare(a[ordem.coluna], b[ordem.coluna]);
       return (comparacao || collation.compare(a.codigo, b.codigo) || a.id.localeCompare(b.id)) * (ordem.direcao === 'asc' ? 1 : -1);
     });

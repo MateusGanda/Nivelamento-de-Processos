@@ -4,7 +4,7 @@ import type { AlteracaoProduto, CadastroProduto, Produto } from '../domain/produ
 import { traduzirErroGravacaoProduto } from './persistence-errors.ts';
 
 function mapear(produto: Produto): Produto {
-  return { id: produto.id, codigo: produto.codigo, nome: produto.nome, createdAt: produto.createdAt, updatedAt: produto.updatedAt };
+  return { id: produto.id, codigo: produto.codigo, nome: produto.nome, ativo: produto.ativo, createdAt: produto.createdAt, updatedAt: produto.updatedAt };
 }
 
 export class PrismaProdutoRepository implements ProdutoRepository {
@@ -25,7 +25,7 @@ export class PrismaProdutoRepository implements ProdutoRepository {
 
   async criar(dados: CadastroProduto): Promise<Produto> {
     try {
-      return mapear(await db.orm.public.Produto.create({ codigo: dados.codigo, nome: dados.nome }));
+      return mapear(await db.orm.public.Produto.create({ codigo: dados.codigo, nome: dados.nome, ativo: true }));
     } catch (erro) {
       return traduzirErroGravacaoProduto(erro);
     }
@@ -39,5 +39,10 @@ export class PrismaProdutoRepository implements ProdutoRepository {
     } catch (erro) {
       return traduzirErroGravacaoProduto(erro);
     }
+  }
+
+  async definirAtivo(id: string, ativo: boolean): Promise<Produto | null> {
+    const produto = await db.orm.public.Produto.where({ id }).update({ ativo, updatedAt: new Date().toISOString() });
+    return produto ? mapear(produto) : null;
   }
 }

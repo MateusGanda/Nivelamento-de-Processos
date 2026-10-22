@@ -772,6 +772,13 @@
           },
           "Operacao": {
             "fields": {
+              "ativo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -827,6 +834,9 @@
             },
             "storage": {
               "fields": {
+                "ativo": {
+                  "column": "ativo"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
@@ -1366,6 +1376,13 @@
           },
           "Produto": {
             "fields": {
+              "ativo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "codigo": {
                 "nullable": false,
                 "type": {
@@ -1451,6 +1468,9 @@
             },
             "storage": {
               "fields": {
+                "ativo": {
+                  "column": "ativo"
+                },
                 "codigo": {
                   "column": "codigo"
                 },
@@ -1802,6 +1822,13 @@
           },
           "Setor": {
             "fields": {
+              "ativo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "codigo": {
                 "nullable": false,
                 "type": {
@@ -1879,6 +1906,9 @@
             },
             "storage": {
               "fields": {
+                "ativo": {
+                  "column": "ativo"
+                },
                 "codigo": {
                   "column": "codigo"
                 },
@@ -2608,6 +2638,15 @@
             },
             "Operacao": {
               "columns": {
+                "ativo": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
@@ -3056,6 +3095,15 @@
             },
             "Produto": {
               "columns": {
+                "ativo": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
                 "codigo": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -3399,6 +3447,15 @@
             },
             "Setor": {
               "columns": {
+                "ativo": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
                 "codigo": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -3593,7 +3650,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "6507e3fa65abcbf7b1dc0bd72285c300577ac65f833cd0606497475ffe88b1a1"
+    "storageHash": "dae99b37a9f2e5d95a706ae93d1b64e94f15f1f4b19b0e67000805a5579000c4"
   },
   "execution": {
     "executionHash": "d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33",

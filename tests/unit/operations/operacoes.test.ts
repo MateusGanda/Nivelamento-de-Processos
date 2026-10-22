@@ -22,7 +22,7 @@ class RepositorioEmMemoria implements OperacaoRepository {
       return traduzirErroGravacaoOperacao({ sqlState: '23505', constraint: 'Operacao_nome_key' });
     }
     const id = `00000000-0000-4000-8000-${String(this.operacoes.length + 1).padStart(12, '0')}`;
-    const operacao: Operacao = { id, ...dados, createdAt: '2026-10-19T12:00:00Z', updatedAt: '2026-10-19T12:00:00Z' };
+    const operacao: Operacao = { id, ...dados, ativo: true, createdAt: '2026-10-19T12:00:00Z', updatedAt: '2026-10-19T12:00:00Z' };
     this.escritas++;
     this.operacoes.push(operacao);
     return operacao;
@@ -37,6 +37,13 @@ class RepositorioEmMemoria implements OperacaoRepository {
     this.operacoes[indice] = { ...this.operacoes[indice], ...dados, updatedAt: '2026-10-20T12:00:00Z' };
     return this.operacoes[indice];
   }
+  async definirAtivo(id: string, ativo: boolean) {
+    const operacao = this.operacoes.find((item) => item.id === id);
+    if (!operacao) return null;
+    this.escritas++;
+    Object.assign(operacao, { ativo, updatedAt: '2026-10-21T12:00:00Z' });
+    return operacao;
+  }
 }
 
 const pedido = (method: 'POST' | 'PATCH', corpo: unknown) => new Request('http://localhost/api/operacoes', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
@@ -46,7 +53,7 @@ test('operação: trim preserva caixa, acentos e espaços internos, sem acrescen
   const service = new OperacoesService(new RepositorioEmMemoria());
   const operacao = await service.criar({ nome: '  Corte  a laser  ', descricao: '  Preparação  das peças  ' });
   assert.deepEqual([operacao.nome, operacao.descricao], ['Corte  a laser', 'Preparação  das peças']);
-  assert.deepEqual(Object.keys(operacao).sort(), ['createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
+  assert.deepEqual(Object.keys(operacao).sort(), ['ativo', 'createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
   await service.criar({ nome: 'corte  a laser' });
   await service.criar({ nome: 'Corte a laser' });
   assert.equal((await service.listar()).length, 3);
@@ -189,7 +196,7 @@ test('operação: autorização vem antes de parsing, leitura e escrita', async 
 test('operação: falha na autorização ou no serviço responde 500 sem detalhes internos', async () => {
   const falha = async () => { throw new Error('detalhe-interno-do-banco'); };
   for (const autorizar of [falha, async () => ({})]) {
-    const handlers = criarHandlersOperacoes({ autorizar, operacoes: { listar: falha, criar: falha, alterar: falha } });
+    const handlers = criarHandlersOperacoes({ autorizar, operacoes: { listar: falha, criar: falha, alterar: falha, definirStatus: falha } });
     for (const resposta of [await handlers.GET(), await handlers.POST(pedido('POST', { nome: 'Corte' })), await handlers.PATCH(pedido('PATCH', { nome: 'Corte' }), ID_INEXISTENTE)]) {
       assert.equal(resposta.status, 500);
       assert.deepEqual(await resposta.json(), { erro: { codigo: 'ERRO_INTERNO', mensagem: 'Não foi possível concluir a solicitação.' } });
@@ -198,7 +205,7 @@ test('operação: falha na autorização ou no serviço responde 500 sem detalhe
 });
 
 test('operação: busca ignora acentos/caixa, ordenação trata descrição nula e mantém entrada', () => {
-  const base = (id: string, nome: string, descricao: string | null, createdAt: string, updatedAt = createdAt): Operacao => ({ id, nome, descricao, createdAt, updatedAt });
+  const base = (id: string, nome: string, descricao: string | null, createdAt: string, updatedAt = createdAt): Operacao => ({ id, nome, descricao, ativo: true, createdAt, updatedAt });
   const operacoes = [
     base('1', 'Inspeção', 'Revisão', '2026-10-19T12:00:00Z'),
     base('2', 'Corte', null, '2026-10-17T12:00:00Z', '2026-10-20T12:00:00Z'),
@@ -216,4 +223,34 @@ test('operação: busca ignora acentos/caixa, ordenação trata descrição nula
   assert.deepEqual(nomes('inexistente', 'nome'), []);
   assert.deepEqual(operacoes, copia);
   assert.equal(formatarDataCadastro('2026-10-19T12:00:00Z'), '19/10/2026, 09:00');
+});
+
+test('operação: inativa e reativa sem alterar os outros dados; handler valida o corpo', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new OperacoesService(repo);
+  const criada = await service.criar({ nome: 'Corte', descricao: 'Corte das peças' });
+  const inativa = await service.definirStatus(criada.id, false);
+  assert.deepEqual([inativa.ativo, inativa.nome, inativa.descricao], [false, 'Corte', 'Corte das peças']);
+  assert.equal((await service.definirStatus(criada.id, true)).ativo, true);
+  await assert.rejects(() => service.definirStatus(ID_INEXISTENTE, false), erroCom('NAO_ENCONTRADO'));
+  await assert.rejects(() => service.definirStatus('corte', false), erroCom('NAO_ENCONTRADO'));
+  const handlers = criarHandlersOperacoes({ autorizar: async () => ({}), operacoes: service });
+  const resposta = await handlers.PATCH_STATUS(pedido('PATCH', { ativo: false }), criada.id);
+  assert.equal(resposta.status, 200);
+  assert.equal((await resposta.json()).ativo, false);
+  for (const corpo of [{}, { ativo: 1 }, { ativo: true, nome: 'X' }, []]) assert.equal((await handlers.PATCH_STATUS(pedido('PATCH', corpo), criada.id)).status, 400);
+  assert.equal((await handlers.PATCH_STATUS(pedido('PATCH', { ativo: true }), ID_INEXISTENTE)).status, 404);
+  assert.equal((await handlers.PATCH(pedido('PATCH', { ativo: true }), criada.id)).status, 400);
+  const negado = criarHandlersOperacoes({ autorizar: async () => { throw new ErroDeAcesso('NAO_AUTENTICADO', 'Acesso negado.'); }, operacoes: service });
+  assert.equal((await negado.PATCH_STATUS(pedido('PATCH', { ativo: true }), criada.id)).status, 401);
+  assert.equal(repo.operacoes[0].ativo, false);
+});
+
+test('operação: filtro de status e ordenação por status', () => {
+  const base = (id: string, nome: string, ativo: boolean): Operacao => ({ id, nome, descricao: null, ativo, createdAt: '2026-10-19T12:00:00Z', updatedAt: '2026-10-19T12:00:00Z' });
+  const operacoes = [base('1', 'Inspeção', false), base('2', 'Corte', true), base('3', 'Montagem', true)];
+  const ordem = { coluna: 'nome', direcao: 'asc' } as const;
+  assert.deepEqual(filtrarOrdenarOperacoes(operacoes, '', ordem, 'ativos').map((o) => o.nome), ['Corte', 'Montagem']);
+  assert.deepEqual(filtrarOrdenarOperacoes(operacoes, '', ordem, 'inativos').map((o) => o.nome), ['Inspeção']);
+  assert.deepEqual(filtrarOrdenarOperacoes(operacoes, '', { coluna: 'ativo', direcao: 'desc' }).map((o) => o.nome), ['Inspeção', 'Montagem', 'Corte']);
 });

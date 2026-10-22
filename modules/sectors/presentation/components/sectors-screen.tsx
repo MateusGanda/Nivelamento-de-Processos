@@ -2,17 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Factory, LoaderCircle, Plus, Search } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Factory, LoaderCircle, Plus, Power, PowerOff, Search } from 'lucide-react';
 import type { Setor } from '../../domain/setor';
-import { listarSetores, ErroApiSetores } from '../api-client';
-import { filtrarOrdenarSetores, formatarDataCadastro, type ColunaSetor, type OrdemSetor } from '../listing';
+import { definirStatusSetor, listarSetores, ErroApiSetores } from '../api-client';
+import { filtrarOrdenarSetores, formatarDataCadastro, type ColunaSetor, type FiltroStatusSetor, type OrdemSetor } from '../listing';
 import { SectorCreateDialog } from './sector-create-dialog';
 
 const colunas: ReadonlyArray<{ campo: ColunaSetor; titulo: string }> = [
-  { campo: 'codigo', titulo: 'Código' }, { campo: 'nome', titulo: 'Nome' }, { campo: 'descricao', titulo: 'Descrição' }, { campo: 'createdAt', titulo: 'Cadastrado em' },
+  { campo: 'codigo', titulo: 'Código' }, { campo: 'nome', titulo: 'Nome' }, { campo: 'descricao', titulo: 'Descrição' }, { campo: 'ativo', titulo: 'Status' }, { campo: 'createdAt', titulo: 'Cadastrado em' },
 ];
-const mensagemSucesso = 'Setor cadastrado com sucesso.';
-const mensagemFalhaAtualizacao = 'Setor cadastrado, mas não foi possível atualizar a lista. Use Tentar novamente para recarregar, sem repetir o cadastro.';
+type Acao = 'cadastrado' | 'ativado' | 'inativado';
+const acoes: readonly Acao[] = ['cadastrado', 'ativado', 'inativado'];
+const mensagemSucesso = (acao: Acao) => `Setor ${acao} com sucesso.`;
+const mensagemFalhaAtualizacao = (acao: Acao) => `Setor ${acao}, mas não foi possível atualizar a lista. Use Tentar novamente para recarregar, sem repetir a operação.`;
 
 export function SectorsScreen() {
   const router = useRouter();
@@ -22,6 +24,8 @@ export function SectorsScreen() {
   const [mensagem, setMensagem] = useState('');
   const [busca, setBusca] = useState('');
   const [ordem, setOrdem] = useState<OrdemSetor>({ coluna: 'nome', direcao: 'asc' });
+  const [status, setStatus] = useState<FiltroStatusSetor>('todos');
+  const [alterandoStatus, setAlterandoStatus] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const botaoAdicionarRef = useRef<HTMLButtonElement>(null);
   const pedidoLista = useRef(0);
@@ -33,7 +37,10 @@ export function SectorsScreen() {
       if (signal?.aborted || !montado.current || pedido !== pedidoLista.current) return null;
       setSetores(dados);
       setErro('');
-      setMensagem((atual) => atual === mensagemFalhaAtualizacao ? mensagemSucesso : atual);
+      setMensagem((atual) => {
+        const acao = acoes.find((item) => atual === mensagemFalhaAtualizacao(item));
+        return acao ? mensagemSucesso(acao) : atual;
+      });
       return true;
     }).catch((falha: unknown) => {
       if (signal?.aborted || !montado.current || pedido !== pedidoLista.current) return null;
@@ -63,16 +70,35 @@ export function SectorsScreen() {
     void carregarLista();
   }
 
-  function aoCadastrado() {
-    setMensagem(mensagemSucesso);
+  function recarregarApos(acao: Acao) {
+    setMensagem(mensagemSucesso(acao));
     setCarregando(true);
     setErro('');
     void carregarLista().then((sucesso) => {
-      if (sucesso === false && montado.current) setMensagem(mensagemFalhaAtualizacao);
+      if (sucesso === false && montado.current) setMensagem(mensagemFalhaAtualizacao(acao));
     });
   }
 
-  const visiveis = useMemo(() => filtrarOrdenarSetores(setores, busca, ordem), [setores, busca, ordem]);
+  async function alternarStatus(setor: Setor) {
+    if (alterandoStatus) return;
+    setAlterandoStatus(setor.id);
+    setMensagem('');
+    try {
+      await definirStatusSetor(setor.id, !setor.ativo);
+      recarregarApos(setor.ativo ? 'inativado' : 'ativado');
+    } catch (falha) {
+      if (falha instanceof ErroApiSetores && (falha.status === 401 || falha.status === 403)) {
+        router.replace('/login');
+        router.refresh();
+      } else {
+        setErro(falha instanceof ErroApiSetores ? falha.message : 'Não foi possível alterar o status. Verifique sua conexão e tente novamente.');
+      }
+    } finally {
+      if (montado.current) setAlterandoStatus(null);
+    }
+  }
+
+  const visiveis = useMemo(() => filtrarOrdenarSetores(setores, busca, ordem, status), [setores, busca, ordem, status]);
 
   function ordenar(coluna: ColunaSetor) {
     setOrdem((atual) => ({ coluna, direcao: atual.coluna === coluna && atual.direcao === 'asc' ? 'desc' : 'asc' }));
@@ -81,7 +107,7 @@ export function SectorsScreen() {
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1440px]">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div><h1 className="text-2xl font-semibold tracking-tight">Setores</h1><p className="mt-2 text-sm leading-6 text-muted">Cadastre e consulte os setores da produção.</p></div>
+        <div><h1 className="text-2xl font-semibold tracking-tight">Setores</h1><p className="mt-2 text-sm leading-6 text-muted">Cadastre, consulte e inative os setores da produção.</p></div>
         <button ref={botaoAdicionarRef} type="button" aria-haspopup="dialog" aria-controls="cadastro-setor"
           onClick={() => { if (!dialogRef.current?.open) { dialogRef.current?.showModal(); dialogRef.current?.querySelector<HTMLInputElement>('#setor-nome')?.focus(); } }}
           className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
@@ -90,7 +116,7 @@ export function SectorsScreen() {
 
       {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-lg border border-[#7bcba5]/25 bg-[#7bcba5]/5 p-4 text-sm leading-6 text-[#a6dfbf]"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
 
-      <section aria-label="Listagem de setores" className="mt-7 min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
+      <section aria-label="Listagem de setores" aria-busy={carregando} className="mt-7 min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
         <div className="flex flex-col gap-4 border-b border-white/10 p-4 sm:p-5 sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
             <label htmlFor="setores-busca" className="mb-2 block text-sm font-medium">Buscar setores</label>
@@ -98,10 +124,16 @@ export function SectorsScreen() {
               <input id="setores-busca" type="search" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Código, nome ou descrição" className="h-11 w-full rounded-lg border border-[#3b454e] bg-background pr-3 pl-10 text-base outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20" />
             </div>
           </div>
-          <button type="button" onClick={() => setBusca('')} className="min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Limpar busca</button>
+          <div className="sm:w-44"><label htmlFor="setores-status" className="mb-2 block text-sm font-medium">Status</label>
+            <select id="setores-status" value={status} onChange={(event) => setStatus(event.target.value as FiltroStatusSetor)} className="h-11 w-full rounded-lg border border-[#3b454e] bg-background px-3 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20">
+              <option value="todos">Todos</option><option value="ativos">Ativos</option><option value="inativos">Inativos</option>
+            </select>
+          </div>
+          <button type="button" onClick={() => { setBusca(''); setStatus('todos'); }} className="min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Limpar filtros</button>
         </div>
 
-        {carregando ? (
+        {/* Na recarga após gravar, a tabela continua na tela para o foco voltar ao botão da linha. */}
+        {carregando && setores.length === 0 ? (
           <p role="status" className="flex min-h-48 items-center justify-center gap-3 p-6 text-sm text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Carregando setores…</p>
         ) : erro ? (
           <div className="flex min-h-48 flex-col items-center justify-center gap-4 p-6 text-center">
@@ -111,7 +143,7 @@ export function SectorsScreen() {
         ) : (
           <>
             <div className="max-w-full overflow-x-auto rounded-b-xl">
-              <table className="w-full min-w-[640px] text-left text-sm">
+              <table className="w-full min-w-[880px] text-left text-sm">
                 <caption className="sr-only">Setores cadastrados. Use os cabeçalhos para ordenar as colunas.</caption>
                 <thead className="border-b border-white/10 bg-white/[0.025] text-muted"><tr>
                   {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-5 py-3 font-medium">
@@ -119,15 +151,24 @@ export function SectorsScreen() {
                       {titulo}{ordem.coluna !== campo ? <ArrowUpDown aria-hidden="true" size={16} strokeWidth={2} /> : ordem.direcao === 'asc' ? <ArrowUp aria-hidden="true" size={16} strokeWidth={2} /> : <ArrowDown aria-hidden="true" size={16} strokeWidth={2} />}
                     </button>
                   </th>)}
+                  <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
                 </tr></thead>
                 <tbody className="divide-y divide-white/5">
                   {visiveis.map((setor) => <tr key={setor.id} className="hover:bg-white/[0.025]">
                     <td className="px-5 py-4 font-medium">{setor.codigo}</td>
                     <td className="max-w-80 px-5 py-4 font-medium break-words [overflow-wrap:anywhere]">{setor.nome}</td>
                     <td className="max-w-lg px-5 py-4 whitespace-pre-wrap break-words text-[#c1c8cf] [overflow-wrap:anywhere]">{setor.descricao ?? <span className="text-muted">Sem descrição</span>}</td>
+                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${setor.ativo ? 'border-[#7bcba5]/20 bg-[#7bcba5]/10 text-[#a6dfbf]' : 'border-white/10 bg-white/5 text-muted'}`}>{setor.ativo ? 'Ativo' : 'Inativo'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={setor.createdAt}>{formatarDataCadastro(setor.createdAt)}</time></td>
+                    <td className="px-5 py-3 text-right">
+                      {/* aria-disabled em vez de disabled: o botão mantém o foco durante o envio. */}
+                      <button type="button" aria-label={`${setor.ativo ? 'Inativar' : 'Ativar'} ${setor.nome}`} aria-disabled={alterandoStatus !== null}
+                        onClick={() => void alternarStatus(setor)}
+                        className="inline-flex min-h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60"
+                      >{alterandoStatus === setor.id ? <LoaderCircle aria-hidden="true" size={16} strokeWidth={2} className="motion-safe:animate-spin" /> : setor.ativo ? <PowerOff aria-hidden="true" size={16} strokeWidth={2} /> : <Power aria-hidden="true" size={16} strokeWidth={2} />}{setor.ativo ? 'Inativar' : 'Ativar'}</button>
+                    </td>
                   </tr>)}
-                  {visiveis.length === 0 && <tr><td colSpan={4} className="px-5 py-12 text-center text-muted"><Factory aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />{setores.length === 0 ? 'Nenhum setor cadastrado.' : 'Nenhum setor encontrado para a busca informada.'}</td></tr>}
+                  {visiveis.length === 0 && <tr><td colSpan={6} className="px-5 py-12 text-center text-muted"><Factory aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />{setores.length === 0 ? 'Nenhum setor cadastrado.' : 'Nenhum setor encontrado para os filtros selecionados.'}</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -135,7 +176,7 @@ export function SectorsScreen() {
           </>
         )}
       </section>
-      <SectorCreateDialog dialogRef={dialogRef} botaoRef={botaoAdicionarRef} aoCadastrado={aoCadastrado} />
+      <SectorCreateDialog dialogRef={dialogRef} botaoRef={botaoAdicionarRef} aoCadastrado={() => recarregarApos('cadastrado')} />
     </div>
   );
 }

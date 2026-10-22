@@ -81,7 +81,7 @@ export function WorkstationFormDialog({ dialogRef, pedido, aoConcluir, aoFechar 
     }
   }
 
-  const semSetores = setores !== null && setores.length === 0;
+  const semSetores = setores !== null && !setores.some((setor) => setor.ativo || setor.id === posto?.setor.id);
   const campo = 'mt-2 h-12 w-full rounded-lg border border-[#3b454e] bg-background px-4 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60';
   const botaoSecundario = 'min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
 
@@ -117,7 +117,8 @@ export function WorkstationFormDialog({ dialogRef, pedido, aoConcluir, aoFechar 
           <label htmlFor="posto-setor" className="block text-sm font-medium">Setor</label>
           <select id="posto-setor" name="setorId" required value={setorId} onChange={(event) => setSetorId(event.target.value)} disabled={enviando || !setores || semSetores} className={campo}>
             <option value="">{setores === null && !erroSetores ? 'Carregando setores…' : 'Selecione o setor'}</option>
-            {(setores ?? []).map((setor) => <option key={setor.id} value={setor.id}>{setor.nome}</option>)}
+            {/* Setor inativo só aparece quando já é o setor deste posto. */}
+            {(setores ?? []).filter((setor) => setor.ativo || setor.id === posto?.setor.id).map((setor) => <option key={setor.id} value={setor.id}>{setor.nome}{setor.ativo ? '' : ' (inativo)'}</option>)}
           </select>
           {semSetores && <p className="mt-2 text-xs leading-5 text-muted">Nenhum setor cadastrado. Cadastre um setor antes de adicionar postos.</p>}
           {erroSetores && <p role="alert" className="mt-2 text-xs leading-5 text-[#ffb4a5]">{erroSetores}</p>}

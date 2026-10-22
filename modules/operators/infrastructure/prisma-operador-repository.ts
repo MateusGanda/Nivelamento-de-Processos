@@ -24,8 +24,8 @@ export class PrismaOperadorRepository implements OperadorRepository {
     return operador ? mapear(operador) : null;
   }
 
-  async buscarSetorPrincipal(id: string): Promise<SetorPrincipal | null> {
-    return db.orm.public.Setor.where({ id }).select('id', 'codigo', 'nome').first();
+  async buscarSetorPrincipal(id: string): Promise<(SetorPrincipal & { ativo: boolean }) | null> {
+    return db.orm.public.Setor.where({ id }).select('id', 'codigo', 'nome', 'ativo').first();
   }
 
   async matriculasReservadas(): Promise<string[]> {

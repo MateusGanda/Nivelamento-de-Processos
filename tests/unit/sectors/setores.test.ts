@@ -21,13 +21,20 @@ class RepositorioEmMemoria implements SetorRepository {
     if (this.setores.some((setor) => setor.codigo === dados.codigo)) {
       return traduzirErroCriacaoSetor({ sqlState: '23505', constraint: 'Setor_codigo_key' });
     }
-    const setor: Setor = { id: String(this.setores.length + 1), ...dados, createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
+    const setor: Setor = { id: `00000000-0000-4000-8000-${String(this.setores.length + 1).padStart(12, '0')}`, ...dados, ativo: true, createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
     this.setores.push(setor);
+    return setor;
+  }
+  async definirAtivo(id: string, ativo: boolean) {
+    const setor = this.setores.find((item) => item.id === id);
+    if (!setor) return null;
+    Object.assign(setor, { ativo, updatedAt: '2026-10-22T12:00:00Z' });
     return setor;
   }
 }
 
 const post = (corpo: unknown) => new Request('http://localhost/api/setores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+const patch = (corpo: unknown) => new Request('http://localhost/api/setores/id/status', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
 const conflito = (erro: unknown) => erro instanceof ErroDeSetor && erro.codigo === 'CONFLITO';
 
 test('setor: trim preserva caixa, acentos e espaços internos, retornando somente o contrato', async () => {
@@ -35,7 +42,8 @@ test('setor: trim preserva caixa, acentos e espaços internos, retornando soment
   const setor = await service.criar({ nome: '  Produção  Final  ', descricao: '  Área  de montagem\nmanual  ' });
   assert.equal(setor.nome, 'Produção  Final');
   assert.equal(setor.descricao, 'Área  de montagem\nmanual');
-  assert.deepEqual(Object.keys(setor).sort(), ['codigo', 'createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
+  assert.deepEqual(Object.keys(setor).sort(), ['ativo', 'codigo', 'createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
+  assert.equal(setor.ativo, true);
   await service.criar({ nome: 'produção  Final' });
   assert.equal((await service.listar()).length, 2);
 });
@@ -113,10 +121,11 @@ test('setor: JSON inválido, tipos incorretos e campos extras são rejeitados an
 test('setor: autorização rejeita sessão ausente/inválida e conta inativa antes de ler ou gravar', async () => {
   let acessos = 0;
   for (const codigo of ['NAO_AUTENTICADO', 'SEM_AUTORIZACAO', 'NAO_ENCONTRADO'] as const) {
-    const handlers = criarHandlersSetores({ autorizar: async () => { throw new ErroDeAcesso(codigo, 'Acesso negado.'); }, setores: { listar: async () => { acessos++; return []; }, criar: async () => { acessos++; throw new Error('Não deve executar'); } } });
+    const handlers = criarHandlersSetores({ autorizar: async () => { throw new ErroDeAcesso(codigo, 'Acesso negado.'); }, setores: { listar: async () => { acessos++; return []; }, criar: async () => { acessos++; throw new Error('Não deve executar'); }, definirStatus: async () => { acessos++; throw new Error('Não deve executar'); } } });
     const esperado = { NAO_AUTENTICADO: 401, SEM_AUTORIZACAO: 403, NAO_ENCONTRADO: 404 }[codigo];
     assert.equal((await handlers.GET()).status, esperado);
     assert.equal((await handlers.POST(post({ nome: 'Costura' }))).status, esperado);
+    assert.equal((await handlers.PATCH_STATUS(patch({ ativo: false }), '00000000-0000-4000-8000-000000000001')).status, esperado);
   }
   assert.equal(acessos, 0);
 });
@@ -124,7 +133,7 @@ test('setor: autorização rejeita sessão ausente/inválida e conta inativa ant
 test('setor: falhas inesperadas de autorização, leitura e escrita retornam 500 sem detalhes internos', async () => {
   const falhar = async (): Promise<never> => { throw new Error('detalhe-interno-nao-publico'); };
   for (const autorizar of [async () => undefined, falhar]) {
-    const handlers = criarHandlersSetores({ autorizar, setores: { listar: falhar, criar: falhar } });
+    const handlers = criarHandlersSetores({ autorizar, setores: { listar: falhar, criar: falhar, definirStatus: falhar } });
     for (const resposta of [await handlers.GET(), await handlers.POST(post({ nome: 'Costura' }))]) {
       assert.equal(resposta.status, 500);
       assert.deepEqual(await resposta.json(), { erro: { codigo: 'ERRO_INTERNO', mensagem: 'Não foi possível concluir a solicitação.' } });
@@ -134,7 +143,7 @@ test('setor: falhas inesperadas de autorização, leitura e escrita retornam 500
 
 test('setor: busca por nome/descrição ignora caixa e acentos e ordenação não modifica os dados', () => {
   const base = { createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
-  const setores: Setor[] = [{ ...base, id: '1', codigo: 'COS1', nome: 'Costura', descricao: 'Produção' }, { ...base, id: '2', codigo: 'ACA1', nome: 'Acabamento', descricao: null, createdAt: '2026-10-12T12:00:00Z' }];
+  const setores: Setor[] = [{ ...base, id: '1', codigo: 'COS1', nome: 'Costura', descricao: 'Produção', ativo: true }, { ...base, id: '2', codigo: 'ACA1', nome: 'Acabamento', descricao: null, ativo: false, createdAt: '2026-10-12T12:00:00Z' }];
   const original = structuredClone(setores);
   assert.equal(filtrarOrdenarSetores(setores, 'PRODUCAO', { coluna: 'nome', direcao: 'asc' })[0].id, '1');
   assert.equal(filtrarOrdenarSetores(setores, '  COSTURA ', { coluna: 'nome', direcao: 'asc' })[0].id, '1');
@@ -143,6 +152,27 @@ test('setor: busca por nome/descrição ignora caixa e acentos e ordenação nã
   assert.deepEqual(filtrarOrdenarSetores(setores, '', { coluna: 'nome', direcao: 'desc' }).map((item) => item.id), ['1', '2']);
   assert.deepEqual(filtrarOrdenarSetores(setores, '', { coluna: 'descricao', direcao: 'asc' }).map((item) => item.id), ['2', '1']);
   assert.deepEqual(filtrarOrdenarSetores(setores, '', { coluna: 'createdAt', direcao: 'desc' }).map((item) => item.id), ['1', '2']);
+  assert.deepEqual(filtrarOrdenarSetores(setores, '', { coluna: 'nome', direcao: 'asc' }, 'ativos').map((item) => item.id), ['1']);
+  assert.deepEqual(filtrarOrdenarSetores(setores, '', { coluna: 'nome', direcao: 'asc' }, 'inativos').map((item) => item.id), ['2']);
+  assert.deepEqual(filtrarOrdenarSetores(setores, '', { coluna: 'ativo', direcao: 'asc' }).map((item) => item.id), ['1', '2']);
   assert.deepEqual(setores, original);
   assert.ok(formatarDataCadastro('2026-10-13T01:00:00Z').includes('12/10/2026'));
+});
+
+test('setor: inativa e reativa sem mudar código nem nome; handler valida o corpo', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new SetoresService(repo);
+  const criado = await service.criar({ nome: 'Pesponto' });
+  const inativo = await service.definirStatus(criado.id, false);
+  assert.deepEqual([inativo.ativo, inativo.codigo, inativo.nome], [false, criado.codigo, 'Pesponto']);
+  assert.equal((await service.definirStatus(criado.id, true)).ativo, true);
+  await assert.rejects(() => service.definirStatus('00000000-0000-4000-8000-0000000000ff', false), (erro: unknown) => erro instanceof ErroDeSetor && erro.codigo === 'NAO_ENCONTRADO');
+  await assert.rejects(() => service.definirStatus('setor-1', false), (erro: unknown) => erro instanceof ErroDeSetor && erro.codigo === 'NAO_ENCONTRADO');
+  const handlers = criarHandlersSetores({ autorizar: async () => ({}), setores: service });
+  const resposta = await handlers.PATCH_STATUS(patch({ ativo: false }), criado.id);
+  assert.equal(resposta.status, 200);
+  assert.equal((await resposta.json()).ativo, false);
+  for (const corpo of [{}, { ativo: 'false' }, { ativo: true, codigo: 'X' }, []]) assert.equal((await handlers.PATCH_STATUS(patch(corpo), criado.id)).status, 400);
+  assert.equal((await handlers.PATCH_STATUS(patch({ ativo: true }), '00000000-0000-4000-8000-0000000000ff')).status, 404);
+  assert.equal(repo.setores[0].ativo, false);
 });

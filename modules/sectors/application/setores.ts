@@ -1,5 +1,5 @@
 import { gerarCodigoSetor } from '../domain/codigo-setor.ts';
-import { ErroCodigoSetorReservado, ErroDeSetor, validarCadastroSetor, type CadastroSetor, type Setor } from '../domain/setor.ts';
+import { ehIdentificadorValido, ErroCodigoSetorReservado, ErroDeSetor, validarCadastroSetor, type CadastroSetor, type Setor } from '../domain/setor.ts';
 import type { SetorRepository } from './contracts.ts';
 
 export class SetoresService {
@@ -24,5 +24,15 @@ export class SetoresService {
       catch (erro) { if (!(erro instanceof ErroCodigoSetorReservado)) throw erro; }
     }
     throw new ErroCodigoSetorReservado();
+  }
+
+  // Inativo sai da escolha de setor para postos e operadores novos; quem já está nele continua.
+  async definirStatus(id: string, ativo: boolean): Promise<Setor> {
+    const naoEncontrado = () => new ErroDeSetor('NAO_ENCONTRADO', 'Setor não encontrado.');
+    if (!ehIdentificadorValido(id)) throw naoEncontrado();
+    if (typeof ativo !== 'boolean') throw new ErroDeSetor('ENTRADA_INVALIDA', 'ativo deve ser verdadeiro ou falso.');
+    const alterado = await this.setores.definirAtivo(id, ativo);
+    if (!alterado) throw naoEncontrado();
+    return alterado;
   }
 }

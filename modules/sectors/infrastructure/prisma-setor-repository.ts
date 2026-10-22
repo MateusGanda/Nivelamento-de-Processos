@@ -4,7 +4,7 @@ import type { NovoSetor, Setor } from '../domain/setor.ts';
 import { traduzirErroCriacaoSetor } from './persistence-errors.ts';
 
 function mapear(setor: Setor): Setor {
-  return { id: setor.id, codigo: setor.codigo, nome: setor.nome, descricao: setor.descricao, createdAt: setor.createdAt, updatedAt: setor.updatedAt };
+  return { id: setor.id, codigo: setor.codigo, nome: setor.nome, descricao: setor.descricao, ativo: setor.ativo, createdAt: setor.createdAt, updatedAt: setor.updatedAt };
 }
 
 export class PrismaSetorRepository implements SetorRepository {
@@ -24,9 +24,14 @@ export class PrismaSetorRepository implements SetorRepository {
 
   async criar(dados: NovoSetor): Promise<Setor> {
     try {
-      return mapear(await db.orm.public.Setor.create({ codigo: dados.codigo, nome: dados.nome, descricao: dados.descricao }));
+      return mapear(await db.orm.public.Setor.create({ codigo: dados.codigo, nome: dados.nome, descricao: dados.descricao, ativo: true }));
     } catch (erro) {
       return traduzirErroCriacaoSetor(erro);
     }
+  }
+
+  async definirAtivo(id: string, ativo: boolean): Promise<Setor | null> {
+    const setor = await db.orm.public.Setor.where({ id }).update({ ativo, updatedAt: new Date().toISOString() });
+    return setor ? mapear(setor) : null;
   }
 }

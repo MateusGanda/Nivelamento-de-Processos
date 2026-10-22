@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cadastrarSetor, listarSetores, ErroApiSetores } from '../../../modules/sectors/presentation/api-client.ts';
 
-const setor = { id: '1', codigo: 'COS1', nome: 'Costura', descricao: null, createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
+const setor = { id: '1', codigo: 'COS1', nome: 'Costura', descricao: null, ativo: true, createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
 
 test('setor: cliente usa REST da mesma origem, GET sem cache e POST somente com os campos permitidos', async (t) => {
   const pedidos: RequestInit[] = [];

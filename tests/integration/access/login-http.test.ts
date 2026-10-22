@@ -171,7 +171,7 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
     assert.equal(respostaSetores.headers.get('Cache-Control'), 'no-store');
     const setores = await respostaSetores.json();
     assert.ok(Array.isArray(setores));
-    for (const setor of setores) assert.deepEqual(Object.keys(setor).sort(), ['codigo', 'createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
+    for (const setor of setores) assert.deepEqual(Object.keys(setor).sort(), ['ativo', 'codigo', 'createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
     const invalida = await fetch(url('/api/setores'), { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ nome: 'Não persistir', senha: 'campo-proibido' }) });
     assert.equal(invalida.status, 400);
   });
@@ -187,7 +187,7 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
     assert.equal(resposta.headers.get('Cache-Control'), 'no-store');
     const operacoes = await resposta.json();
     assert.ok(Array.isArray(operacoes));
-    for (const operacao of operacoes) assert.deepEqual(Object.keys(operacao).sort(), ['createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
+    for (const operacao of operacoes) assert.deepEqual(Object.keys(operacao).sort(), ['ativo', 'createdAt', 'descricao', 'id', 'nome', 'updatedAt']);
     for (const [caminho, method] of [['/api/operacoes', 'POST'], [`/api/operacoes/${randomUUID()}`, 'PATCH']]) {
       const invalida = await fetch(url(caminho), { method, headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ nome: 'Não persistir', ativo: true }) });
       assert.equal(invalida.status, 400);

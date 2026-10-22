@@ -10,7 +10,8 @@ import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
 import { filtrarOrdenarOperadores, formatarDataCadastro } from '../../../modules/operators/presentation/listing.ts';
 
 const id = (n: number) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
-const setores: SetorPrincipal[] = [{ id: id(1), codigo: 'PES1', nome: 'Pesponto' }, { id: id(2), codigo: 'COS1', nome: 'Costura' }];
+const setores: SetorPrincipal[] = [{ id: id(1), codigo: 'PES1', nome: 'Pesponto' }, { id: id(2), codigo: 'COS1', nome: 'Costura' }, { id: id(3), codigo: 'ANT1', nome: 'Antigo' }];
+const setoresInativos = new Set([id(3)]);
 const entrada = (nome = 'Luis Gustavo Nunes dos Santos'): CadastroOperador => ({ nome, setorPrincipalId: id(1) });
 const linha = (nome: string, matricula: string, extras: Partial<Operador> = {}): Operador => ({
   id: id(200), nome, matricula, ativo: true, funcao: null, setorPrincipal: null,
@@ -22,7 +23,7 @@ class RepositorioEmMemoria implements OperadorRepository {
   escritas = 0;
   async listar() { this.leituras++; return [...this.operadores]; }
   async buscarPorId(id: string) { this.leituras++; return this.operadores.find((o) => o.id === id) ?? null; }
-  async buscarSetorPrincipal(id: string) { this.leituras++; return setores.find((s) => s.id === id) ?? null; }
+  async buscarSetorPrincipal(id: string) { this.leituras++; const setor = setores.find((s) => s.id === id); return setor ? { ...setor, ativo: !setoresInativos.has(id) } : null; }
   async matriculasReservadas() { this.leituras++; return this.operadores.map((o) => o.matricula); }
   async criar(dados: NovoOperador) {
     if (this.operadores.some((o) => o.matricula === dados.matricula)) {
@@ -43,7 +44,7 @@ class RepositorioEmMemoria implements OperadorRepository {
     const alterado = { ...antigo, updatedAt: '2026-10-21T12:00:00Z' };
     if (dados.nome !== undefined) alterado.nome = dados.nome;
     if (dados.funcao !== undefined) alterado.funcao = dados.funcao;
-    if (dados.setorPrincipalId !== undefined) alterado.setorPrincipal = await this.buscarSetorPrincipal(dados.setorPrincipalId);
+    if (dados.setorPrincipalId !== undefined) alterado.setorPrincipal = setores.find((s) => s.id === dados.setorPrincipalId) ?? null;
     this.operadores[indice] = alterado;
     this.escritas++;
     return alterado;
@@ -229,4 +230,15 @@ test('operador: busca por função/setor/código, status e ordenação tratam le
   assert.equal(filtrarOrdenarOperadores(operadores, 'inexistente', 'todos', { coluna: 'nome', direcao: 'asc' }).length, 0);
   assert.deepEqual(operadores, copia);
   assert.ok(formatarDataCadastro('2026-10-13T01:00:00Z').includes('12/10/2026'));
+});
+
+test('operador: setor inativo não pode ser escolhido, mas o operador que já está nele continua', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new OperadoresService(repo);
+  await assert.rejects(() => service.criar({ nome: 'Ana Souza', setorPrincipalId: id(3) }), (erro: unknown) => erro instanceof ErroDeOperador && erro.codigo === 'ENTRADA_INVALIDA' && /inativo/.test(erro.message));
+  repo.operadores.push(linha('Bia Lima', 'BL-ANT1', { id: id(50), setorPrincipal: setores[2] }));
+  const mantido = await service.alterar(id(50), { nome: 'Bia Lima Souza', setorPrincipalId: id(3) });
+  assert.deepEqual([mantido.nome, mantido.matricula, mantido.setorPrincipal?.id], ['Bia Lima Souza', 'BL-ANT1', id(3)]);
+  const operador = await service.criar(entrada('Caio Reis'));
+  await assert.rejects(() => service.alterar(operador.id, { setorPrincipalId: id(3) }), (erro: unknown) => erro instanceof ErroDeOperador && /inativo/.test(erro.message));
 });
