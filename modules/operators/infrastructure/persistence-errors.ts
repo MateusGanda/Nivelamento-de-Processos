@@ -1,4 +1,4 @@
-import { ErroDeOperador } from '../domain/operador.ts';
+import { ErroDeOperador, ErroMatriculaReservada } from '../domain/operador.ts';
 
 export function traduzirErroCriacaoOperador(erro: unknown): never {
   let atual = erro;
@@ -7,7 +7,10 @@ export function traduzirErroCriacaoOperador(erro: unknown): never {
     visitados.add(atual);
     const dados = atual as { sqlState?: unknown; code?: unknown; constraint?: unknown; cause?: unknown };
     if ((dados.sqlState === '23505' || dados.code === '23505') && dados.constraint === 'Operador_matricula_key') {
-      throw new ErroDeOperador('CONFLITO', 'Matrícula já cadastrada.');
+      throw new ErroMatriculaReservada();
+    }
+    if ((dados.sqlState === '23503' || dados.code === '23503') && dados.constraint === 'Operador_setorPrincipalId_fkey') {
+      throw new ErroDeOperador('ENTRADA_INVALIDA', 'Setor principal não encontrado.');
     }
     atual = dados.cause;
   }
