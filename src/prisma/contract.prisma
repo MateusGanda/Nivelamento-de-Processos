@@ -170,13 +170,19 @@ model Operador {
   matricula String            @unique
   nome      String
   ativo     Boolean           @default(true)
+  funcao    String?
+  setorPrincipalId Uuid?
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
 
+  setorPrincipal Setor? @relation(fields: [setorPrincipalId], references: [id])
   execucoes Execucao[]
+
+  @@index([setorPrincipalId])
 }
 
 model Setor {
+  codigo    String            @unique
   id        Uuid              @id @default(uuid())
   nome      String            @unique
   descricao String?
@@ -184,6 +190,7 @@ model Setor {
   updatedAt TimestamptzString @default(now())
 
   postos Posto[]
+  operadores Operador[]
 }
 
 model Posto {

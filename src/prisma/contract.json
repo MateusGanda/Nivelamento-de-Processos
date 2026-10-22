@@ -863,6 +863,13 @@
                   "kind": "scalar"
                 }
               },
+              "funcao": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -881,6 +888,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "setorPrincipalId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/uuid@1",
                   "kind": "scalar"
                 }
               },
@@ -907,6 +921,22 @@
                   "model": "Execucao",
                   "namespace": "public"
                 }
+              },
+              "setorPrincipal": {
+                "cardinality": "N:1",
+                "nullable": true,
+                "on": {
+                  "localFields": [
+                    "setorPrincipalId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Setor",
+                  "namespace": "public"
+                }
               }
             },
             "storage": {
@@ -917,6 +947,9 @@
                 "createdAt": {
                   "column": "createdAt"
                 },
+                "funcao": {
+                  "column": "funcao"
+                },
                 "id": {
                   "column": "id"
                 },
@@ -925,6 +958,9 @@
                 },
                 "nome": {
                   "column": "nome"
+                },
+                "setorPrincipalId": {
+                  "column": "setorPrincipalId"
                 },
                 "updatedAt": {
                   "column": "updatedAt"
@@ -1766,6 +1802,13 @@
           },
           "Setor": {
             "fields": {
+              "codigo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -1803,6 +1846,21 @@
               }
             },
             "relations": {
+              "operadores": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "setorPrincipalId"
+                  ]
+                },
+                "to": {
+                  "model": "Operador",
+                  "namespace": "public"
+                }
+              },
               "postos": {
                 "cardinality": "1:N",
                 "on": {
@@ -1821,6 +1879,9 @@
             },
             "storage": {
               "fields": {
+                "codigo": {
+                  "column": "codigo"
+                },
                 "createdAt": {
                   "column": "createdAt"
                 },
@@ -2616,6 +2677,11 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
+                "funcao": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/uuid@1",
                   "nativeType": "uuid",
@@ -2631,6 +2697,11 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "setorPrincipalId": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": true
+                },
                 "updatedAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
@@ -2641,8 +2712,34 @@
                   "nullable": false
                 }
               },
-              "foreignKeys": [],
-              "indexes": [],
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "setorPrincipalId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Operador"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Setor"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "setorPrincipalId"
+                  ],
+                  "name": "Operador_setorPrincipalId_idx_80dd2e96",
+                  "prefix": "Operador_setorPrincipalId_idx",
+                  "unique": false
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -3302,6 +3399,11 @@
             },
             "Setor": {
               "columns": {
+                "codigo": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
                 "createdAt": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
@@ -3344,6 +3446,11 @@
                 ]
               },
               "uniques": [
+                {
+                  "columns": [
+                    "codigo"
+                  ]
+                },
                 {
                   "columns": [
                     "nome"
@@ -3486,7 +3593,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "5fde7334195dc549b10382e9f435e10755efc5ea2f95c99ec17771f9bbe59d9d"
+    "storageHash": "6507e3fa65abcbf7b1dc0bd72285c300577ac65f833cd0606497475ffe88b1a1"
   },
   "execution": {
     "executionHash": "d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33",
