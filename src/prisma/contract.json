@@ -1822,6 +1822,13 @@
           },
           "Setor": {
             "fields": {
+              "ativo": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "codigo": {
                 "nullable": false,
                 "type": {
@@ -1899,6 +1906,9 @@
             },
             "storage": {
               "fields": {
+                "ativo": {
+                  "column": "ativo"
+                },
                 "codigo": {
                   "column": "codigo"
                 },
@@ -3437,6 +3447,15 @@
             },
             "Setor": {
               "columns": {
+                "ativo": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
                 "codigo": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -3631,7 +3650,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "72bd4da3a9b4a2614d957d6d0d4ea57a813fa4bfe40252f50103c1fc89ad7428"
+    "storageHash": "dae99b37a9f2e5d95a706ae93d1b64e94f15f1f4b19b0e67000805a5579000c4"
   },
   "execution": {
     "executionHash": "d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33",

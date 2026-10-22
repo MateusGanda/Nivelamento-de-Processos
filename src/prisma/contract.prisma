@@ -188,6 +188,7 @@ model Setor {
   id        Uuid              @id @default(uuid())
   nome      String            @unique
   descricao String?
+  ativo     Boolean           @default(true)
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
 

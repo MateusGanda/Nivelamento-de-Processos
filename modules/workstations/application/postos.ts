@@ -19,9 +19,9 @@ export class PostosService {
 
   async criar(input: CadastroPosto): Promise<Posto> {
     const dados = validarCadastroPosto(input);
-    if (!await this.postos.buscarSetor(dados.setorId)) {
-      throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor não encontrado.');
-    }
+    const setor = await this.postos.buscarSetor(dados.setorId);
+    if (!setor) throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor não encontrado.');
+    if (!setor.ativo) throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor inativo não pode receber postos novos.');
     if (await this.postos.buscarPorCodigo(dados.codigo)) {
       throw new ErroDePosto('CONFLITO', 'Código de posto já cadastrado.');
     }
@@ -31,9 +31,13 @@ export class PostosService {
   async alterar(id: string, input: AlteracaoPosto): Promise<Posto> {
     if (!ehIdentificadorValido(id)) throw naoEncontrado();
     const dados = validarAlteracaoPosto(input);
-    if (!await this.postos.buscarPorId(id)) throw naoEncontrado();
-    if (dados.setorId !== undefined && !await this.postos.buscarSetor(dados.setorId)) {
-      throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor não encontrado.');
+    const atual = await this.postos.buscarPorId(id);
+    if (!atual) throw naoEncontrado();
+    // Manter o setor atual é sempre permitido; trocar só para um setor ativo.
+    if (dados.setorId !== undefined && dados.setorId !== atual.setor.id) {
+      const setor = await this.postos.buscarSetor(dados.setorId);
+      if (!setor) throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor não encontrado.');
+      if (!setor.ativo) throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor inativo não pode receber postos.');
     }
     if (dados.codigo !== undefined) {
       const outro = await this.postos.buscarPorCodigo(dados.codigo);

@@ -3,7 +3,7 @@ import type { AlteracaoOperador, NovoOperador, Operador, SetorPrincipal } from '
 export interface OperadorRepository {
   listar(): Promise<Operador[]>;
   buscarPorId(id: string): Promise<Operador | null>;
-  buscarSetorPrincipal(id: string): Promise<SetorPrincipal | null>;
+  buscarSetorPrincipal(id: string): Promise<(SetorPrincipal & { ativo: boolean }) | null>;
   matriculasReservadas(): Promise<string[]>;
   criar(dados: NovoOperador): Promise<Operador>;
   alterar(id: string, dados: AlteracaoOperador): Promise<Operador | null>;

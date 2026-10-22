@@ -1,0 +1,44 @@
+[
+  {
+    "id": "column.public.Setor.ativo",
+    "label": "Add column \"ativo\" to \"Setor\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "ativo",
+        "table": "Setor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"ativo\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Setor",
+          "ativo"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"ativo\"",
+        "sql": "ALTER TABLE \"public\".\"Setor\" ADD COLUMN \"ativo\" bool DEFAULT true NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"ativo\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Setor",
+          "ativo"
+        ]
+      }
+    ]
+  }
+]

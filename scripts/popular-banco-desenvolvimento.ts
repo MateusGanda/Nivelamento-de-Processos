@@ -156,7 +156,7 @@ try {
         const codigo = gerarCodigoSetor(s.nome, codigosReservados);
         codigosReservados.push(codigo);
         id.set(`codigo-setor:${s.nome}`, codigo);
-        id.set(`setor:${s.nome}`, (await t.Setor.create({ ...s, codigo })).id);
+        id.set(`setor:${s.nome}`, (await t.Setor.create({ ...s, codigo, ativo: true })).id);
       }
       for (const p of POSTOS) id.set(`posto:${p.codigo}`, (await t.Posto.create({ codigo: p.codigo, nome: p.nome, setorId: id.get(`setor:${p.setor}`)!, ativo: true })).id);
       for (const op of OPERACOES) id.set(`operacao:${op.nome}`, (await t.Operacao.create({ ...op, ativo: true })).id);

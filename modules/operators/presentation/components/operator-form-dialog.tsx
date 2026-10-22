@@ -102,7 +102,8 @@ export function OperatorFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: 
           <label htmlFor="operador-setor" className="block text-sm font-medium">Setor principal {edicao && !operador?.setorPrincipal && <span className="font-normal text-muted">(cadastro antigo sem setor)</span>}</label>
           <select id="operador-setor" name="setorPrincipalId" required={!edicao} value={setorPrincipalId} onChange={(event) => setSetorPrincipalId(event.target.value)} disabled={enviando || carregandoSetores || !!erroSetores} className={campo} aria-describedby="operador-setor-ajuda">
             <option value="" disabled={!edicao || !!operador?.setorPrincipal}>{carregandoSetores ? 'Carregando setores…' : edicao ? 'Sem setor definido' : 'Selecione um setor'}</option>
-            {setores.map((setor) => <option key={setor.id} value={setor.id}>{setor.codigo} — {setor.nome}</option>)}
+            {/* Setor inativo só aparece quando já é o setor principal deste operador. */}
+            {setores.filter((setor) => setor.ativo || setor.id === operador?.setorPrincipal?.id).map((setor) => <option key={setor.id} value={setor.id}>{setor.codigo} — {setor.nome}{setor.ativo ? '' : ' (inativo)'}</option>)}
           </select>
           <p id="operador-setor-ajuda" className="mt-2 text-xs leading-5 text-muted">O setor principal informa a lotação habitual e não limita os postos de trabalho.</p>
           {!carregandoSetores && !erroSetores && setores.length === 0 && <p role="status" className="mt-2 text-sm text-muted">Nenhum setor cadastrado. Cadastre um setor antes de adicionar operadores.</p>}

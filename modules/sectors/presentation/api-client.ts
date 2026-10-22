@@ -23,7 +23,7 @@ async function lerResposta(resposta: Response): Promise<unknown> {
 function ehSetor(valor: unknown): valor is Setor {
   if (!valor || typeof valor !== 'object') return false;
   const dados = valor as Record<string, unknown>;
-  return typeof dados.id === 'string' && typeof dados.codigo === 'string' && typeof dados.nome === 'string' &&
+  return typeof dados.id === 'string' && typeof dados.codigo === 'string' && typeof dados.nome === 'string' && typeof dados.ativo === 'boolean' &&
     (dados.descricao === null || typeof dados.descricao === 'string') &&
     typeof dados.createdAt === 'string' && Number.isFinite(Date.parse(dados.createdAt)) &&
     typeof dados.updatedAt === 'string' && Number.isFinite(Date.parse(dados.updatedAt));
@@ -41,5 +41,13 @@ export async function cadastrarSetor(dados: CadastroSetor): Promise<Setor> {
     body: JSON.stringify({ nome: dados.nome, descricao: dados.descricao }),
   }));
   if (!ehSetor(setor)) throw new ErroApiSetores(500, 'Não foi possível confirmar o cadastro. Verifique a lista antes de tentar novamente.');
+  return setor;
+}
+
+export async function definirStatusSetor(id: string, ativo: boolean): Promise<Setor> {
+  const setor = await lerResposta(await fetch(`/api/setores/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo }),
+  }));
+  if (!ehSetor(setor)) throw new ErroApiSetores(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
   return setor;
 }

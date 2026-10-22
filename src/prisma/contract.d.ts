@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'72bd4da3a9b4a2614d957d6d0d4ea57a813fa4bfe40252f50103c1fc89ad7428'>;
+  StorageHashBase<'dae99b37a9f2e5d95a706ae93d1b64e94f15f1f4b19b0e67000805a5579000c4'>;
 export type ExecutionHash =
   ExecutionHashBase<'d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33'>;
 export type ProfileHash =
@@ -371,6 +371,7 @@ export type FieldOutputTypes = {
       readonly versao: CodecTypes['pg/int4@1']['output'];
     };
     readonly Setor: {
+      readonly ativo: CodecTypes['pg/bool@1']['output'];
       readonly codigo: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly descricao: CodecTypes['pg/text@1']['output'] | null;
@@ -514,6 +515,7 @@ export type FieldInputTypes = {
       readonly versao: CodecTypes['pg/int4@1']['input'];
     };
     readonly Setor: {
+      readonly ativo: CodecTypes['pg/bool@1']['input'];
       readonly codigo: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly descricao: CodecTypes['pg/text@1']['input'] | null;
@@ -657,6 +659,7 @@ export type StorageColumnTypes = {
       readonly versao: CodecTypes['pg/int4@1']['output'];
     };
     readonly Setor: {
+      readonly ativo: CodecTypes['pg/bool@1']['output'];
       readonly codigo: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly descricao: CodecTypes['pg/text@1']['output'] | null;
@@ -800,6 +803,7 @@ export type StorageColumnInputTypes = {
       readonly versao: CodecTypes['pg/int4@1']['input'];
     };
     readonly Setor: {
+      readonly ativo: CodecTypes['pg/bool@1']['input'];
       readonly codigo: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly descricao: CodecTypes['pg/text@1']['input'] | null;
@@ -994,6 +998,7 @@ export namespace Models {
     readonly [RelationKeys]?: 'etapas' | 'ordensProducao' | 'produtos';
   };
   export type public_Setor = {
+    ativo: CodecTypes['pg/bool@1']['output'];
     codigo: CodecTypes['pg/text@1']['output'];
     createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
     descricao: CodecTypes['pg/text@1']['output'] | null;
@@ -2068,6 +2073,15 @@ type ContractBase = Omit<
             };
             readonly Setor: {
               columns: {
+                readonly ativo: {
+                  readonly nativeType: 'bool';
+                  readonly codecId: 'pg/bool@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/bool@1', true>;
+                  };
+                };
                 readonly codigo: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -3389,6 +3403,10 @@ type ContractBase = Omit<
           };
           readonly Setor: {
             readonly fields: {
+              readonly ativo: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
+              };
               readonly codigo: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -3448,6 +3466,7 @@ type ContractBase = Omit<
               readonly table: 'Setor';
               readonly namespaceId: 'public';
               readonly fields: {
+                readonly ativo: { readonly column: 'ativo' };
                 readonly codigo: { readonly column: 'codigo' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly descricao: { readonly column: 'descricao' };
