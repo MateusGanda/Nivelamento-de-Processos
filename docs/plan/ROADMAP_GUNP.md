@@ -158,12 +158,13 @@ Entrega de listagem, criação e edição em `/painel/operacoes`, com GET/POST `
 
 ## 7.3 Setores
 
-Entrega parcial: criação/listagem em `/painel/setores` e GET/POST `/api/setores`, com nome obrigatório e único, descrição opcional, busca e ordenação. Edição continua pendente. Sem alterações de schema, migrations ou vínculo com operadores nesta entrega. Escritas dos testes são limitadas a repositórios de teste.
+Criação/listagem em /painel/setores e GET/POST /api/setores, com código automático permanente, nome único, descrição opcional, busca e ordenação. Migration de backfill preparada e validada em PostgreSQL isolado; aplicação no banco da equipe separada. Contrato: specs/contratos/operadores-setores.md.
 
 - [x] Listar
 - [x] Criar
 - [ ] Editar
 - [x] Validar nome único
+- [x] Gerar código funcional único automaticamente
 
 ## 7.4 Postos
 
@@ -176,13 +177,14 @@ Entrega parcial: criação/listagem em `/painel/setores` e GET/POST `/api/setore
 
 ## 7.5 Operadores
 
-Entrega parcial: criação/listagem em `/painel/operadores` e GET/POST `/api/operadores`, com busca, filtro de status e ordenação. Edição e ativação/inativação continuam pendentes; não considerar o cadastro completo por essa entrega. As evidências de validação devem acompanhar cada implementação.
+Criação, listagem e edição em /painel/operadores e GET/POST /api/operadores + PATCH /api/operadores/[id]. Matrícula automática permanente, setor principal nos novos cadastros, função opcional, preservação dos legados e filtro de status. Migration aditiva preparada e validada em PostgreSQL isolado; aplicação no banco da equipe separada.
 
-- [ ] Listar
-- [ ] Criar
-- [ ] Editar
+- [x] Listar
+- [x] Criar
+- [x] Editar nome, setor e função
 - [ ] Ativar/inativar
-- [ ] Validar matrícula única
+- [x] Gerar matrícula única automaticamente
+- [x] Preservar matrícula após transferência e edição do nome
 
 ## 7.6 Motivos de pausa
 

@@ -1,6 +1,6 @@
 # Pendências e fundamentos do modelo de dados
 
-Atualizado em 13/10/2026. Responsável: Mateus.
+Atualizado em 21/10/2026. Responsável: Mateus.
 
 O modelo de dados está em `src/prisma/contract.prisma` e as regras consolidadas em `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md` e `docs/CONTEXTO_DO_PROJETO.md`; este documento não os repete. Ele guarda duas coisas que não estão em outro lugar do repositório: as respostas da empresa que fundamentaram o modelo e a lista de decisões ainda abertas.
 
@@ -27,7 +27,6 @@ As recomendações da seção "Decisões em aberto" são sugestões para a equip
 | 6 | **Inativação de cadastros.** `Produto`, `Operacao` e `Setor` não têm `ativo`. | Cadastros usados em ordens não podem ser apagados. | Avaliar `ativo` nos três. | Equipe |
 | 7 | **Categoria do motivo de pausa.** `MotivoPausa` só tem nome. | O painel não separa pausa prevista de interrupção. | Avaliar um campo de categoria. | Equipe |
 | 8 | **Linha de produção.** O setor é o nível mais alto. | Com mais de uma linha, falta um agrupador. | Deixar para depois do piloto. | Equipe |
-| 9 | **Setor principal do operador e matrícula automática.** Estão planejados em `docs/design/SETORES_GUNP.md` para uma entrega posterior e não existem no contrato atual. | O vínculo cria um relacionamento novo entre `Operador` e `Setor`, o que muda o contrato, o script SQL e os diagramas. | Definir o relacionamento e a regra de geração da matrícula antes de implementar. | Equipe (altera o contrato) |
 
 ## Regra definida, falta implementar
 
@@ -49,3 +48,5 @@ As duas regras abaixo estão no modelo conceitual, no `CONTEXTO_DO_PROJETO.md`, 
 - `status` da execução e `tipo` do evento são enumerações.
 - `Roteiro(nome, versao)`, `EtapaRoteiro(roteiroId, ordem)`, `ProdutoRoteiro(produtoId, roteiroId)` e `ProdutoEtapa(produtoId, etapaRoteiroId)` são únicos.
 - **Usuários administrativos (12/10).** A tabela `Usuario`, com o papel `ADMIN`, entrou no contrato. `Usuario` e `Operador` são entidades distintas. O acesso operacional do terminal continua pendente, conforme o `CONTEXTO_DO_PROJETO.md`.
+
+- **Setor principal, função e matrícula automática (21/10).** Decisões e implementação em `contratos/operadores-setores.md`: Setor.codigo permanente; Operador.funcao e setorPrincipalId opcionais no banco para legados, setor obrigatório nos novos cadastros, matrícula automática permanente. Migrations preparadas e testadas em PostgreSQL isolado, sem aplicação ao banco da equipe.
