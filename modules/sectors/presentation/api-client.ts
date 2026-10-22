@@ -23,7 +23,7 @@ async function lerResposta(resposta: Response): Promise<unknown> {
 function ehSetor(valor: unknown): valor is Setor {
   if (!valor || typeof valor !== 'object') return false;
   const dados = valor as Record<string, unknown>;
-  return typeof dados.id === 'string' && typeof dados.nome === 'string' &&
+  return typeof dados.id === 'string' && typeof dados.codigo === 'string' && typeof dados.nome === 'string' &&
     (dados.descricao === null || typeof dados.descricao === 'string') &&
     typeof dados.createdAt === 'string' && Number.isFinite(Date.parse(dados.createdAt)) &&
     typeof dados.updatedAt === 'string' && Number.isFinite(Date.parse(dados.updatedAt));

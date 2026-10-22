@@ -69,6 +69,7 @@ export function SectorCreateDialog({ dialogRef, botaoRef, aoCadastrado }: {
       <form onSubmit={cadastrar} aria-busy={enviando} className="space-y-5 p-6">
         <p id="cadastro-setor-descricao" className="text-sm leading-6 text-muted">Informe o nome do setor e, se desejar, uma descrição da área de produção.</p>
         <div>
+          <p className="mb-4 text-sm text-muted">O código do setor será gerado automaticamente após cadastrar.</p>
           <label htmlFor="setor-nome" className="block text-sm font-medium">Nome</label>
           <input id="setor-nome" name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={`${campo} h-12`} aria-describedby={erro ? 'cadastro-setor-erro' : 'setor-nome-ajuda'} />
           <p id="setor-nome-ajuda" className="mt-2 text-xs leading-5 text-muted">Use um nome único para identificar o setor.</p>

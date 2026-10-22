@@ -9,7 +9,7 @@ import { filtrarOrdenarSetores, formatarDataCadastro, type ColunaSetor, type Ord
 import { SectorCreateDialog } from './sector-create-dialog';
 
 const colunas: ReadonlyArray<{ campo: ColunaSetor; titulo: string }> = [
-  { campo: 'nome', titulo: 'Nome' }, { campo: 'descricao', titulo: 'Descrição' }, { campo: 'createdAt', titulo: 'Cadastrado em' },
+  { campo: 'codigo', titulo: 'Código' }, { campo: 'nome', titulo: 'Nome' }, { campo: 'descricao', titulo: 'Descrição' }, { campo: 'createdAt', titulo: 'Cadastrado em' },
 ];
 const mensagemSucesso = 'Setor cadastrado com sucesso.';
 const mensagemFalhaAtualizacao = 'Setor cadastrado, mas não foi possível atualizar a lista. Use Tentar novamente para recarregar, sem repetir o cadastro.';
@@ -95,7 +95,7 @@ export function SectorsScreen() {
           <div className="min-w-0 flex-1">
             <label htmlFor="setores-busca" className="mb-2 block text-sm font-medium">Buscar setores</label>
             <div className="relative"><Search aria-hidden="true" size={20} strokeWidth={2} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-              <input id="setores-busca" type="search" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Nome ou descrição" className="h-11 w-full rounded-lg border border-[#3b454e] bg-background pr-3 pl-10 text-base outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20" />
+              <input id="setores-busca" type="search" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Código, nome ou descrição" className="h-11 w-full rounded-lg border border-[#3b454e] bg-background pr-3 pl-10 text-base outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20" />
             </div>
           </div>
           <button type="button" onClick={() => setBusca('')} className="min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Limpar busca</button>
@@ -122,11 +122,12 @@ export function SectorsScreen() {
                 </tr></thead>
                 <tbody className="divide-y divide-white/5">
                   {visiveis.map((setor) => <tr key={setor.id} className="hover:bg-white/[0.025]">
+                    <td className="px-5 py-4 font-medium">{setor.codigo}</td>
                     <td className="max-w-80 px-5 py-4 font-medium break-words [overflow-wrap:anywhere]">{setor.nome}</td>
                     <td className="max-w-lg px-5 py-4 whitespace-pre-wrap break-words text-[#c1c8cf] [overflow-wrap:anywhere]">{setor.descricao ?? <span className="text-muted">Sem descrição</span>}</td>
                     <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={setor.createdAt}>{formatarDataCadastro(setor.createdAt)}</time></td>
                   </tr>)}
-                  {visiveis.length === 0 && <tr><td colSpan={3} className="px-5 py-12 text-center text-muted"><Factory aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />{setores.length === 0 ? 'Nenhum setor cadastrado.' : 'Nenhum setor encontrado para a busca informada.'}</td></tr>}
+                  {visiveis.length === 0 && <tr><td colSpan={4} className="px-5 py-12 text-center text-muted"><Factory aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />{setores.length === 0 ? 'Nenhum setor cadastrado.' : 'Nenhum setor encontrado para a busca informada.'}</td></tr>}
                 </tbody>
               </table>
             </div>
