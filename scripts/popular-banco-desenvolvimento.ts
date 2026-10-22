@@ -4,6 +4,8 @@
 // Grava tudo numa transação: se algo falhar, nada fica gravado. Se algum registro
 // do cenário já existir (mesmo código, nome ou matrícula), não grava nada.
 import 'dotenv/config';
+import { gerarMatriculaOperador } from '../modules/operators/domain/matricula.ts';
+import { gerarCodigoSetor } from '../modules/sectors/domain/codigo-setor.ts';
 import postgres from '@prisma/orm-postgres/runtime';
 import type { Numeric } from '@prisma/orm-postgres/target/codec-types';
 import type { Contract } from '../src/prisma/contract.d';
@@ -44,12 +46,12 @@ const OPERACOES = [
   { nome: 'Inspeção', descricao: 'Inspeção de qualidade' },
 ];
 const OPERADORES = [
-  { matricula: '1001', nome: 'Operador Fictício 1' },
-  { matricula: '1002', nome: 'Operador Fictício 2' },
-  { matricula: '1003', nome: 'Operador Fictício 3' },
-  { matricula: '1004', nome: 'Operador Fictício 4' },
-  { matricula: '1005', nome: 'Operador Fictício 5' },
-  { matricula: '1006', nome: 'Operador Fictício 6' },
+  { matricula: '1001', nome: 'Operador Fictício 1', setor: 'Preparação', funcao: 'Operador de corte' },
+  { matricula: '1002', nome: 'Operador Fictício 2', setor: 'Montagem', funcao: 'Montador' },
+  { matricula: '1003', nome: 'Operador Fictício 3', setor: 'Acabamento', funcao: 'Operador de acabamento' },
+  { matricula: '1004', nome: 'Operador Fictício 4', setor: 'Acabamento', funcao: 'Inspetor' },
+  { matricula: '1005', nome: 'Operador Fictício 5', setor: 'Montagem', funcao: 'Montador' },
+  { matricula: '1006', nome: 'Operador Fictício 6', setor: 'Montagem', funcao: 'Auxiliar de montagem' },
 ];
 const MOTIVOS = [
   { nome: 'Falta de material', descricao: 'Material não disponível no posto' },
@@ -127,15 +129,15 @@ try {
   const existentes = (lista: { [k: string]: unknown }[], campo: string, procurados: string[]) =>
     procurados.filter((v) => lista.some((r) => r[campo] === v));
   const [setores, postos, operacoes, operadores, motivos, produtos, planos, ordens, roteiros] = await Promise.all([
-    o.Setor.select('nome').all(), o.Posto.select('codigo').all(), o.Operacao.select('nome').all(),
-    o.Operador.select('matricula').all(), o.MotivoPausa.select('nome').all(), o.Produto.select('codigo').all(),
+    o.Setor.select('nome', 'codigo').all(), o.Posto.select('codigo').all(), o.Operacao.select('nome').all(),
+    o.Operador.select('matricula', 'nome').all(), o.MotivoPausa.select('nome').all(), o.Produto.select('codigo').all(),
     o.PlanoProducao.select('codigo').all(), o.OrdemProducao.select('numero').all(), o.Roteiro.select('nome').all(),
   ]);
   const conflitos = [
     ...existentes(setores, 'nome', SETORES.map((s) => s.nome)).map((v) => `setor ${v}`),
     ...existentes(postos, 'codigo', POSTOS.map((p) => p.codigo)).map((v) => `posto ${v}`),
     ...existentes(operacoes, 'nome', OPERACOES.map((p) => p.nome)).map((v) => `operação ${v}`),
-    ...existentes(operadores, 'matricula', OPERADORES.map((p) => p.matricula)).map((v) => `operador ${v}`),
+    ...existentes(operadores, 'nome', OPERADORES.map((p) => p.nome)).map((v) => `operador ${v}`),
     ...existentes(motivos, 'nome', MOTIVOS.map((p) => p.nome)).map((v) => `motivo de pausa ${v}`),
     ...existentes(produtos, 'codigo', PRODUTOS.map((p) => p.codigo)).map((v) => `produto ${v}`),
     ...existentes(planos, 'codigo', [PLANO.codigo]).map((v) => `plano ${v}`),
@@ -149,10 +151,24 @@ try {
     await db.transaction(async (tx) => {
       const t = tx.orm.public;
       const id = new Map<string, string>();
-      for (const s of SETORES) id.set(`setor:${s.nome}`, (await t.Setor.create(s)).id);
+      const codigosReservados = setores.map((s) => s.codigo);
+      for (const s of SETORES) {
+        const codigo = gerarCodigoSetor(s.nome, codigosReservados);
+        codigosReservados.push(codigo);
+        id.set(`codigo-setor:${s.nome}`, codigo);
+        id.set(`setor:${s.nome}`, (await t.Setor.create({ ...s, codigo })).id);
+      }
       for (const p of POSTOS) id.set(`posto:${p.codigo}`, (await t.Posto.create({ codigo: p.codigo, nome: p.nome, setorId: id.get(`setor:${p.setor}`)!, ativo: true })).id);
       for (const op of OPERACOES) id.set(`operacao:${op.nome}`, (await t.Operacao.create(op)).id);
-      for (const op of OPERADORES) id.set(`operador:${op.matricula}`, (await t.Operador.create({ ...op, ativo: true })).id);
+      const matriculasReservadas = operadores.map((op) => op.matricula);
+      for (const op of OPERADORES) {
+        const matricula = gerarMatriculaOperador(op.nome, id.get(`codigo-setor:${op.setor}`)!, matriculasReservadas);
+        matriculasReservadas.push(matricula);
+        // A matrícula antiga aqui é só a chave interna dos apontamentos fictícios.
+        id.set(`operador:${op.matricula}`, (await t.Operador.create({
+          nome: op.nome, matricula, funcao: op.funcao, setorPrincipalId: id.get(`setor:${op.setor}`)!, ativo: true,
+        })).id);
+      }
       for (const m of MOTIVOS) id.set(`motivo:${m.nome}`, (await t.MotivoPausa.create({ ...m, ativo: true })).id);
       const plano = await t.PlanoProducao.create(PLANO);
 

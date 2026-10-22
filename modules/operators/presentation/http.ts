@@ -1,19 +1,16 @@
 import type { OperadoresService } from '../application/operadores.ts';
-import { ErroDeOperador, type CadastroOperador } from '../domain/operador.ts';
+import { ErroDeOperador, type AlteracaoOperador, type CadastroOperador } from '../domain/operador.ts';
 import { ErroDeAcesso } from '../../access/domain/usuario.ts';
 
 export function respostaErroOperadores(erro: unknown): Response {
-  if (erro instanceof ErroDeOperador) {
-    return Response.json({ erro: { codigo: erro.codigo, mensagem: erro.message } }, { status: erro.codigo === 'CONFLITO' ? 409 : 400 });
-  }
-  if (erro instanceof ErroDeAcesso) {
+  if (erro instanceof ErroDeOperador || erro instanceof ErroDeAcesso) {
     const status = { ENTRADA_INVALIDA: 400, NAO_AUTENTICADO: 401, SEM_AUTORIZACAO: 403, NAO_ENCONTRADO: 404, CONFLITO: 409 }[erro.codigo];
     return Response.json({ erro: { codigo: erro.codigo, mensagem: erro.message } }, { status });
   }
   return Response.json({ erro: { codigo: 'ERRO_INTERNO', mensagem: 'Não foi possível concluir a solicitação.' } }, { status: 500 });
 }
 
-export async function lerCadastroOperador(request: Request): Promise<CadastroOperador> {
+async function lerCorpo(request: Request): Promise<AlteracaoOperador> {
   let corpo: unknown;
   try { corpo = await request.json(); }
   catch { throw new ErroDeOperador('ENTRADA_INVALIDA', 'Corpo JSON inválido.'); }
@@ -21,20 +18,28 @@ export async function lerCadastroOperador(request: Request): Promise<CadastroOpe
     throw new ErroDeOperador('ENTRADA_INVALIDA', 'Corpo JSON inválido.');
   }
   const dados = corpo as Record<string, unknown>;
-  if (Object.keys(dados).some((campo) => campo !== 'nome' && campo !== 'matricula')) {
-    throw new ErroDeOperador('ENTRADA_INVALIDA', 'Informe somente nome e matrícula.');
+  if (Object.keys(dados).some((campo) => !['nome', 'setorPrincipalId', 'funcao'].includes(campo))) {
+    throw new ErroDeOperador('ENTRADA_INVALIDA', 'Informe somente nome, setor principal e função.');
   }
-  if (typeof dados.nome !== 'string' || typeof dados.matricula !== 'string') {
-    throw new ErroDeOperador('ENTRADA_INVALIDA', 'Nome e matrícula devem ser textos obrigatórios.');
+  if ((dados.nome !== undefined && typeof dados.nome !== 'string') ||
+      (dados.setorPrincipalId !== undefined && typeof dados.setorPrincipalId !== 'string') ||
+      (dados.funcao !== undefined && dados.funcao !== null && typeof dados.funcao !== 'string')) {
+    throw new ErroDeOperador('ENTRADA_INVALIDA', 'Nome e setor devem ser textos; função deve ser texto ou nula.');
   }
-  return { nome: dados.nome, matricula: dados.matricula };
+  return dados as AlteracaoOperador;
 }
 
-// Dependências explícitas permitem testar os handlers sem autenticação real
-// nem acesso ao banco. A rota de produção sempre fornece a autorização real.
+export async function lerCadastroOperador(request: Request): Promise<CadastroOperador> {
+  const dados = await lerCorpo(request);
+  if (typeof dados.nome !== 'string' || typeof dados.setorPrincipalId !== 'string') {
+    throw new ErroDeOperador('ENTRADA_INVALIDA', 'Nome e setor principal são obrigatórios.');
+  }
+  return { nome: dados.nome, setorPrincipalId: dados.setorPrincipalId, funcao: dados.funcao };
+}
+
 export function criarHandlersOperadores({ autorizar, operadores }: {
   autorizar: () => Promise<unknown>;
-  operadores: Pick<OperadoresService, 'listar' | 'criar'>;
+  operadores: Pick<OperadoresService, 'listar' | 'criar' | 'alterar'>;
 }) {
   return {
     async GET(): Promise<Response> {
@@ -47,6 +52,12 @@ export function criarHandlersOperadores({ autorizar, operadores }: {
       try {
         await autorizar();
         return Response.json(await operadores.criar(await lerCadastroOperador(request)), { status: 201 });
+      } catch (erro) { return respostaErroOperadores(erro); }
+    },
+    async PATCH(request: Request, id: string): Promise<Response> {
+      try {
+        await autorizar();
+        return Response.json(await operadores.alterar(id, await lerCorpo(request)));
       } catch (erro) { return respostaErroOperadores(erro); }
     },
   };

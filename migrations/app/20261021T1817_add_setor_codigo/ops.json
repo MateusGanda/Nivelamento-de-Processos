@@ -1,0 +1,163 @@
+[
+  {
+    "id": "column.public.Setor.codigo",
+    "label": "Add column \"codigo\" to \"Setor\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "codigo",
+        "table": "Setor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"codigo\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Setor",
+          "codigo"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"codigo\"",
+        "sql": "ALTER TABLE \"public\".\"Setor\" ADD COLUMN \"codigo\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"codigo\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Setor",
+          "codigo"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data_migration.backfill-Setor-codigo",
+    "label": "Data transform: backfill-Setor-codigo",
+    "operationClass": "data",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [
+      {
+        "description": "Check backfill-Setor-codigo has work to do",
+        "sql": "SELECT EXISTS (SELECT id FROM public.\"Setor\" WHERE codigo IS NULL LIMIT 1) AS ok",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "Run backfill-Setor-codigo",
+        "sql": "\n          WITH bases AS (\n            SELECT id, \"createdAt\",\n              COALESCE(NULLIF(left(regexp_replace(normalize(upper(nome), NFD), '[^[:alpha:]]', '', 'g'), 3), ''), 'SET') AS base\n            FROM public.\"Setor\"\n          ), numerados AS (\n            SELECT id, base || row_number() OVER (PARTITION BY base ORDER BY \"createdAt\", id)::text AS codigo\n            FROM bases\n          )\n          UPDATE public.\"Setor\" AS setor SET codigo = numerados.codigo\n          FROM numerados WHERE setor.id = numerados.id AND setor.codigo IS NULL\n        ",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "Verify backfill-Setor-codigo resolved all violations",
+        "sql": "SELECT NOT EXISTS (SELECT id FROM public.\"Setor\" WHERE codigo IS NULL LIMIT 1) AS ok",
+        "params": []
+      }
+    ]
+  },
+  {
+    "id": "alterNullability.setNotNull.Setor.codigo",
+    "label": "Set NOT NULL on \"Setor\".\"codigo\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "codigo",
+        "table": "Setor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"codigo\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Setor",
+          "codigo"
+        ]
+      },
+      {
+        "description": "ensure no NULL values in \"codigo\"",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"public\".\"Setor\" WHERE \"codigo\" IS NULL) AS \"result\"",
+        "params": []
+      }
+    ],
+    "execute": [
+      {
+        "description": "set NOT NULL on \"codigo\"",
+        "sql": "ALTER TABLE \"public\".\"Setor\" ALTER COLUMN \"codigo\" SET NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"codigo\" is NOT NULL",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3 AND \"is_nullable\" = $4)) AS \"result\"",
+        "params": [
+          "public",
+          "Setor",
+          "codigo",
+          "NO"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Setor.Setor_codigo_key",
+    "label": "Add unique constraint on \"Setor\" (codigo)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Setor_codigo_key",
+        "table": "Setor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Setor_codigo_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Setor_codigo_key",
+          "public",
+          "\"public\".\"Setor\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Setor_codigo_key\"",
+        "sql": "ALTER TABLE \"public\".\"Setor\" ADD CONSTRAINT \"Setor_codigo_key\" UNIQUE (\"codigo\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Setor_codigo_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Setor_codigo_key",
+          "public",
+          "\"public\".\"Setor\""
+        ]
+      }
+    ]
+  }
+]

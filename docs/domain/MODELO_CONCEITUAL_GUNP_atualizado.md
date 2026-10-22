@@ -35,23 +35,34 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Execução → Operador: N:1.
 - Execução → Posto/Recurso: N:1.
 - Setor → Posto/Recurso: 1:N.
+- Setor → Operador: 1:N pelo setor principal; vínculo opcional no banco para legados e obrigatório nos novos cadastros pela aplicação.
 - Etapa do Roteiro ↔ Posto/Recurso: N:N.
 - Execução → Evento de Tempo: 1:N.
 - Evento de Tempo → Motivo de Pausa: N:0..1.
 
 ## Regras de negócio
 
+### Cadastro de operação
+- Nome obrigatório e único; descrição opcional. Remover somente espaços nas extremidades, preservando caixa, acentos e espaços internos, sem novos limites de tamanho.
+- Descrição ausente no cadastro, nula ou vazia após trim é armazenada como `null`. Na edição, campos omitidos permanecem inalterados.
+- A unicidade mantém a comparação do schema/banco: `Corte` e `corte` são distintos. Busca sem caixa/acentos é somente de apresentação.
+- A entrega permite criação, listagem e edição de nome/descrição, preservando o identificador e os vínculos das etapas. Não inclui exclusão nem ativação/inativação; `Operacao` não possui `ativo` no contrato atual.
+- Operação não possui tempo padrão universal; ele continua na combinação produto + etapa do roteiro.
+
 ### Cadastro de setor
-- Nome obrigatório e único; descrição opcional. Remover espaços nas extremidades, preservando caixa, acentos e espaços internos.
-- Descrição ausente, nula ou vazia após trim é armazenada como `null`. Não há novos limites de tamanho.
-- A unicidade mantém a comparação atual do schema/banco: `Costura` e `costura` são distintos. A busca sem acentos/caixa é apenas de apresentação.
-- Entrega inicial somente de criação/listagem, sem edição, exclusão, código numérico ou status. O vínculo de setor principal ao operador permanece uma adaptação futura; não existe no schema atual.
+- Nome obrigatório e único; descrição opcional, trim nas extremidades e sem novos limites de tamanho. Descrição ausente/nula/vazia vira null.
+- A unicidade do nome mantém o banco atual: Costura e costura são distintos.
+- Código funcional automático, único e permanente: primeiras três letras normalizadas e sequência (PES1, PES2). Nomes curtos usam as letras disponíveis; sem letras, base SET.
+- Criação/listagem disponíveis com busca pelo código. Sem edição, exclusão ou status nesta entrega.
 
 ### Cadastro de operador
-- Nome e matrícula são obrigatórios, com remoção apenas de espaços nas extremidades.
-- A matrícula é única inclusive entre operadores inativos; letras maiúsculas/minúsculas, espaços internos e zeros iniciais são preservados. `OP-01` e `op-01` são distintos, conforme o schema atual e a decisão aprovada para este cadastro.
-- Nomes repetidos são permitidos. O cadastro inicial cria o operador como ativo.
-- Operador não recebe senha, e-mail ou privilégios administrativos neste cadastro. Edição e ativação/inativação permanecem fora da entrega inicial de criação/listagem.
+- Nome e setor principal obrigatórios nos novos cadastros; função opcional em texto livre.
+- Matrícula gerada no servidor: até quatro iniciais significativas e código do setor; repetições usam número junto às iniciais (LGNS-PES1, LGNS2-PES1). Sem letras, base OP.
+- Matrícula permanente após mudança de nome/setor. Matrículas antigas e de inativos continuam reservadas e não são convertidas.
+- Operadores antigos podem permanecer sem setor ao editar outros campos, ou receber o vínculo posteriormente. Não remover vínculo por null.
+- Nomes repetidos são permitidos; novo cadastro cria como ativo. Edição abrange nome, setor e função; ativação/inativação continua pendente.
+- Setor e função são informativos; o posto efetivo fica na execução. Não atribuem permissões nem restringem operações.
+- Geração, colisões, normalização, fallback e API seguem specs/contratos/operadores-setores.md. Constraints reforçam unicidade; até dez tentativas em colisões concorrentes de identificador.
 
 ### Ordem e quantidade
 - Uma Ordem representa uma quantidade de um único produto.
@@ -116,3 +127,5 @@ Uma Ordem referencia explicitamente a versão do roteiro usada. Mudanças poster
 ## Estado do modelo e próximo passo
 
 O schema Prisma inicial e suas migrações já foram gerados e aplicados. O modelo administrativo `Usuario` foi adicionado em migration versionada, separado de `Operador`, com o único papel `ADMIN`; sua efetiva aplicação ao banco deve seguir o processo de deployment. Não reconstruir o modelo relacional do zero. A representação e o mecanismo de acesso do terminal/ilha continuam pendentes. Qualquer alteração de schema deve ser explicitada, revisada e versionada em migration.
+
+As migrations de código de setor e setor principal/função de operador foram preparadas em 21/10/2026, sem aplicação ao banco da equipe nesta entrega. Preservam IDs, matrículas antigas, timestamps e execuções; backfill dos códigos precede NOT NULL/UNIQUE.

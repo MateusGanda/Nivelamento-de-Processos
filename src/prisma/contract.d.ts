@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'5fde7334195dc549b10382e9f435e10755efc5ea2f95c99ec17771f9bbe59d9d'>;
+  StorageHashBase<'6507e3fa65abcbf7b1dc0bd72285c300577ac65f833cd0606497475ffe88b1a1'>;
 export type ExecutionHash =
   ExecutionHashBase<'d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33'>;
 export type ProfileHash =
@@ -301,9 +301,11 @@ export type FieldOutputTypes = {
     readonly Operador: {
       readonly ativo: CodecTypes['pg/bool@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly funcao: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly matricula: CodecTypes['pg/text@1']['output'];
       readonly nome: CodecTypes['pg/text@1']['output'];
+      readonly setorPrincipalId: CodecTypes['pg/uuid@1']['output'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
     readonly OrdemProducao: {
@@ -367,6 +369,7 @@ export type FieldOutputTypes = {
       readonly versao: CodecTypes['pg/int4@1']['output'];
     };
     readonly Setor: {
+      readonly codigo: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly descricao: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/uuid@1']['output'];
@@ -439,9 +442,11 @@ export type FieldInputTypes = {
     readonly Operador: {
       readonly ativo: CodecTypes['pg/bool@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly funcao: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly matricula: CodecTypes['pg/text@1']['input'];
       readonly nome: CodecTypes['pg/text@1']['input'];
+      readonly setorPrincipalId: CodecTypes['pg/uuid@1']['input'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly OrdemProducao: {
@@ -505,6 +510,7 @@ export type FieldInputTypes = {
       readonly versao: CodecTypes['pg/int4@1']['input'];
     };
     readonly Setor: {
+      readonly codigo: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly descricao: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/uuid@1']['input'];
@@ -577,9 +583,11 @@ export type StorageColumnTypes = {
     readonly Operador: {
       readonly ativo: CodecTypes['pg/bool@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly funcao: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/uuid@1']['output'];
       readonly matricula: CodecTypes['pg/text@1']['output'];
       readonly nome: CodecTypes['pg/text@1']['output'];
+      readonly setorPrincipalId: CodecTypes['pg/uuid@1']['output'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
     readonly OrdemProducao: {
@@ -643,6 +651,7 @@ export type StorageColumnTypes = {
       readonly versao: CodecTypes['pg/int4@1']['output'];
     };
     readonly Setor: {
+      readonly codigo: CodecTypes['pg/text@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly descricao: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/uuid@1']['output'];
@@ -715,9 +724,11 @@ export type StorageColumnInputTypes = {
     readonly Operador: {
       readonly ativo: CodecTypes['pg/bool@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly funcao: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/uuid@1']['input'];
       readonly matricula: CodecTypes['pg/text@1']['input'];
       readonly nome: CodecTypes['pg/text@1']['input'];
+      readonly setorPrincipalId: CodecTypes['pg/uuid@1']['input'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly OrdemProducao: {
@@ -781,6 +792,7 @@ export type StorageColumnInputTypes = {
       readonly versao: CodecTypes['pg/int4@1']['input'];
     };
     readonly Setor: {
+      readonly codigo: CodecTypes['pg/text@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly descricao: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/uuid@1']['input'];
@@ -876,12 +888,15 @@ export namespace Models {
   export type public_Operador = {
     ativo: CodecTypes['pg/bool@1']['output'];
     createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    funcao: CodecTypes['pg/text@1']['output'] | null;
     id: CodecTypes['pg/uuid@1']['output'];
     matricula: CodecTypes['pg/text@1']['output'];
     nome: CodecTypes['pg/text@1']['output'];
+    setorPrincipalId: CodecTypes['pg/uuid@1']['output'] | null;
     updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     execucoes: public_Execucao[];
-    readonly [RelationKeys]?: 'execucoes';
+    setorPrincipal: public_Setor | null;
+    readonly [RelationKeys]?: 'execucoes' | 'setorPrincipal';
   };
   export type public_OrdemProducao = {
     createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -969,13 +984,15 @@ export namespace Models {
     readonly [RelationKeys]?: 'etapas' | 'ordensProducao' | 'produtos';
   };
   export type public_Setor = {
+    codigo: CodecTypes['pg/text@1']['output'];
     createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
     descricao: CodecTypes['pg/text@1']['output'] | null;
     id: CodecTypes['pg/uuid@1']['output'];
     nome: CodecTypes['pg/text@1']['output'];
     updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    operadores: public_Operador[];
     postos: public_Posto[];
-    readonly [RelationKeys]?: 'postos';
+    readonly [RelationKeys]?: 'operadores' | 'postos';
   };
   export type public_Usuario = {
     ativo: CodecTypes['pg/bool@1']['output'];
@@ -1491,6 +1508,11 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                 };
+                readonly funcao: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
                 readonly id: {
                   readonly nativeType: 'uuid';
                   readonly codecId: 'pg/uuid@1';
@@ -1506,6 +1528,11 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
+                readonly setorPrincipalId: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: true;
+                };
                 readonly updatedAt: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
@@ -1515,8 +1542,28 @@ type ContractBase = Omit<
               };
               primaryKey: { readonly columns: readonly ['id'] };
               uniques: readonly [{ readonly columns: readonly ['matricula'] }];
-              indexes: readonly [];
-              foreignKeys: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'Operador_setorPrincipalId_idx_80dd2e96';
+                  readonly prefix: 'Operador_setorPrincipalId_idx';
+                  readonly columns: readonly ['setorPrincipalId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Operador';
+                    readonly columns: readonly ['setorPrincipalId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Setor';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
             };
             readonly OrdemProducao: {
               columns: {
@@ -1993,6 +2040,11 @@ type ContractBase = Omit<
             };
             readonly Setor: {
               columns: {
+                readonly codigo: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
                 readonly createdAt: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
@@ -2022,7 +2074,10 @@ type ContractBase = Omit<
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [{ readonly columns: readonly ['nome'] }];
+              uniques: readonly [
+                { readonly columns: readonly ['codigo'] },
+                { readonly columns: readonly ['nome'] },
+              ];
               indexes: readonly [];
               foreignKeys: readonly [];
             };
@@ -2656,6 +2711,10 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/timestamptz-string@1';
                 };
               };
+              readonly funcao: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
@@ -2667,6 +2726,10 @@ type ContractBase = Omit<
               readonly nome: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly setorPrincipalId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
               };
               readonly updatedAt: {
                 readonly nullable: false;
@@ -2688,6 +2751,18 @@ type ContractBase = Omit<
                   readonly targetFields: readonly ['operadorId'];
                 };
               };
+              readonly setorPrincipal: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Setor';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['setorPrincipalId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
             };
             readonly storage: {
               readonly table: 'Operador';
@@ -2695,9 +2770,11 @@ type ContractBase = Omit<
               readonly fields: {
                 readonly ativo: { readonly column: 'ativo' };
                 readonly createdAt: { readonly column: 'createdAt' };
+                readonly funcao: { readonly column: 'funcao' };
                 readonly id: { readonly column: 'id' };
                 readonly matricula: { readonly column: 'matricula' };
                 readonly nome: { readonly column: 'nome' };
+                readonly setorPrincipalId: { readonly column: 'setorPrincipalId' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
               };
             };
@@ -3274,6 +3351,10 @@ type ContractBase = Omit<
           };
           readonly Setor: {
             readonly fields: {
+              readonly codigo: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly createdAt: {
                 readonly nullable: false;
                 readonly type: {
@@ -3302,6 +3383,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly operadores: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Operador';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['setorPrincipalId'];
+                };
+              };
               readonly postos: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -3318,6 +3410,7 @@ type ContractBase = Omit<
               readonly table: 'Setor';
               readonly namespaceId: 'public';
               readonly fields: {
+                readonly codigo: { readonly column: 'codigo' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly descricao: { readonly column: 'descricao' };
                 readonly id: { readonly column: 'id' };

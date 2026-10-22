@@ -1,10 +1,10 @@
 import { db } from '../../../src/prisma/db.ts';
 import type { SetorRepository } from '../application/contracts.ts';
-import type { DadosSetor, Setor } from '../domain/setor.ts';
+import type { NovoSetor, Setor } from '../domain/setor.ts';
 import { traduzirErroCriacaoSetor } from './persistence-errors.ts';
 
 function mapear(setor: Setor): Setor {
-  return { id: setor.id, nome: setor.nome, descricao: setor.descricao, createdAt: setor.createdAt, updatedAt: setor.updatedAt };
+  return { id: setor.id, codigo: setor.codigo, nome: setor.nome, descricao: setor.descricao, createdAt: setor.createdAt, updatedAt: setor.updatedAt };
 }
 
 export class PrismaSetorRepository implements SetorRepository {
@@ -18,9 +18,13 @@ export class PrismaSetorRepository implements SetorRepository {
     return setor ? mapear(setor) : null;
   }
 
-  async criar(dados: DadosSetor): Promise<Setor> {
+  async codigosReservados(): Promise<string[]> {
+    return (await db.orm.public.Setor.select('codigo').all()).map((setor) => setor.codigo);
+  }
+
+  async criar(dados: NovoSetor): Promise<Setor> {
     try {
-      return mapear(await db.orm.public.Setor.create({ nome: dados.nome, descricao: dados.descricao }));
+      return mapear(await db.orm.public.Setor.create({ codigo: dados.codigo, nome: dados.nome, descricao: dados.descricao }));
     } catch (erro) {
       return traduzirErroCriacaoSetor(erro);
     }

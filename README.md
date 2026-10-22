@@ -82,6 +82,12 @@ npx prisma db migrate         # aplica as migrações pendentes
 
 Os dois primeiros comandos só leem. Não aplique migrações nem altere o modelo no banco da equipe sem combinar antes.
 
+### Evolução de Setores e Operadores — 21/10/2026
+
+Setores recebem código automático (PES1, COS1); novos operadores exigem setor principal e recebem matrícula permanente (LGNS-PES1, LGNS2-PES1). Função é opcional, e a edição preserva a matrícula. Cadastros antigos não são convertidos. Contrato: [operadores-setores.md](specs/contratos/operadores-setores.md).
+
+As migrations add_setor_codigo e add_operador_setor_funcao estão preparadas. Aplicá-las pelo processo de deployment antes de utilizar esta versão com o banco; esta entrega não as executou no banco da equipe. O seed foi ajustado, sem execução automática.
+
 ### Dados fictícios para testes
 
 O comando `npm run seed:desenvolvimento` grava uma fábrica fictícia (setores, postos, operações, operadores, motivos de pausa, produtos com roteiro, um plano, seis ordens e execuções com pausas e baixas) no banco indicado em `SEED_DATABASE_URL`. A equipe usa para isso a branch Indicators do Neon. O comando grava tudo numa transação, recusa rodar no mesmo banco de `DATABASE_URL` e não grava nada se algum registro do cenário já existir.

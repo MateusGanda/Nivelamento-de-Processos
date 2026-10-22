@@ -1,0 +1,167 @@
+[
+  {
+    "id": "column.public.Operador.funcao",
+    "label": "Add column \"funcao\" to \"Operador\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "funcao",
+        "table": "Operador"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"funcao\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Operador",
+          "funcao"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"funcao\"",
+        "sql": "ALTER TABLE \"public\".\"Operador\" ADD COLUMN \"funcao\" text"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"funcao\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Operador",
+          "funcao"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.Operador.setorPrincipalId",
+    "label": "Add column \"setorPrincipalId\" to \"Operador\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "setorPrincipalId",
+        "table": "Operador"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"setorPrincipalId\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Operador",
+          "setorPrincipalId"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"setorPrincipalId\"",
+        "sql": "ALTER TABLE \"public\".\"Operador\" ADD COLUMN \"setorPrincipalId\" uuid"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"setorPrincipalId\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Operador",
+          "setorPrincipalId"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Operador.Operador_setorPrincipalId_idx_80dd2e96",
+    "label": "Create index \"Operador_setorPrincipalId_idx_80dd2e96\" on \"Operador\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Operador_setorPrincipalId_idx_80dd2e96",
+        "table": "Operador"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Operador_setorPrincipalId_idx_80dd2e96\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Operador_setorPrincipalId_idx_80dd2e96\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Operador_setorPrincipalId_idx_80dd2e96\"",
+        "sql": "CREATE INDEX \"Operador_setorPrincipalId_idx_80dd2e96\" ON \"public\".\"Operador\" (\"setorPrincipalId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Operador_setorPrincipalId_idx_80dd2e96\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Operador_setorPrincipalId_idx_80dd2e96\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Operador.Operador_setorPrincipalId_fkey",
+    "label": "Add foreign key \"Operador_setorPrincipalId_fkey\" on \"Operador\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Operador_setorPrincipalId_fkey",
+        "table": "Operador"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Operador_setorPrincipalId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Operador_setorPrincipalId_fkey",
+          "public",
+          "\"public\".\"Operador\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Operador_setorPrincipalId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Operador\"\nADD CONSTRAINT \"Operador_setorPrincipalId_fkey\"\nFOREIGN KEY (\"setorPrincipalId\")\nREFERENCES \"public\".\"Setor\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Operador_setorPrincipalId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Operador_setorPrincipalId_fkey",
+          "public",
+          "\"public\".\"Operador\""
+        ]
+      }
+    ]
+  }
+]
