@@ -45,10 +45,22 @@ export async function lerAlteracaoOperacao(request: Request): Promise<AlteracaoO
   return alteracao;
 }
 
+export async function lerStatusOperacao(request: Request): Promise<boolean> {
+  let corpo: unknown;
+  try { corpo = await request.json(); }
+  catch { throw new ErroDeOperacao('ENTRADA_INVALIDA', 'Corpo JSON inválido.'); }
+  if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo) || Object.keys(corpo).some((campo) => campo !== 'ativo')) {
+    throw new ErroDeOperacao('ENTRADA_INVALIDA', 'Informe somente o campo ativo.');
+  }
+  const { ativo } = corpo as { ativo?: unknown };
+  if (typeof ativo !== 'boolean') throw new ErroDeOperacao('ENTRADA_INVALIDA', 'ativo deve ser verdadeiro ou falso.');
+  return ativo;
+}
+
 // A rota fornece a autorização real; testes usam dependências em memória.
 export function criarHandlersOperacoes({ autorizar, operacoes }: {
   autorizar: () => Promise<unknown>;
-  operacoes: Pick<OperacoesService, 'listar' | 'criar' | 'alterar'>;
+  operacoes: Pick<OperacoesService, 'listar' | 'criar' | 'alterar' | 'definirStatus'>;
 }) {
   return {
     async GET(): Promise<Response> {
@@ -67,6 +79,12 @@ export function criarHandlersOperacoes({ autorizar, operacoes }: {
       try {
         await autorizar();
         return Response.json(await operacoes.alterar(id, await lerAlteracaoOperacao(request)));
+      } catch (erro) { return respostaErroOperacoes(erro); }
+    },
+    async PATCH_STATUS(request: Request, id: string): Promise<Response> {
+      try {
+        await autorizar();
+        return Response.json(await operacoes.definirStatus(id, await lerStatusOperacao(request)));
       } catch (erro) { return respostaErroOperacoes(erro); }
     },
   };

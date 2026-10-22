@@ -6,10 +6,11 @@ export interface RoteiroRepository {
   existeNome(nome: string): Promise<boolean>;
   criar(nome: string): Promise<string>;
   definirAtivo(id: string, ativo: boolean): Promise<boolean>;
+  // Só as operações ativas: são as que podem entrar em etapas novas.
   listarOperacoes(): Promise<OperacaoDoRoteiro[]>;
-  buscarOperacoes(ids: readonly string[]): Promise<string[]>;
+  buscarOperacoes(ids: readonly string[]): Promise<{ id: string; ativo: boolean }[]>;
   buscarPostos(ids: readonly string[]): Promise<{ id: string; ativo: boolean }[]>;
-  existeProduto(id: string): Promise<boolean>;
+  buscarProduto(id: string): Promise<{ id: string; ativo: boolean } | null>;
   // As escritas abaixo são atômicas; substituirEtapas recusa o roteiro que passou a ter ordens.
   substituirEtapas(roteiroId: string, etapas: readonly EtapaInformada[]): Promise<void>;
   definirPostos(etapaId: string, postoIds: readonly string[]): Promise<void>;

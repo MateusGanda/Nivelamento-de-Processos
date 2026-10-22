@@ -23,7 +23,7 @@ async function lerResposta(resposta: Response): Promise<unknown> {
 function ehOperacao(valor: unknown): valor is Operacao {
   if (!valor || typeof valor !== 'object') return false;
   const dados = valor as Record<string, unknown>;
-  return typeof dados.id === 'string' && typeof dados.nome === 'string' &&
+  return typeof dados.id === 'string' && typeof dados.nome === 'string' && typeof dados.ativo === 'boolean' &&
     (dados.descricao === null || typeof dados.descricao === 'string') &&
     typeof dados.createdAt === 'string' && Number.isFinite(Date.parse(dados.createdAt)) &&
     typeof dados.updatedAt === 'string' && Number.isFinite(Date.parse(dados.updatedAt));
@@ -48,6 +48,14 @@ export async function alterarOperacao(id: string, dados: AlteracaoOperacao): Pro
   const operacao = await lerResposta(await fetch(`/api/operacoes/${encodeURIComponent(id)}`, {
     method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ nome: dados.nome, descricao: dados.descricao }),
+  }));
+  if (!ehOperacao(operacao)) throw new ErroApiOperacoes(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
+  return operacao;
+}
+
+export async function definirStatusOperacao(id: string, ativo: boolean): Promise<Operacao> {
+  const operacao = await lerResposta(await fetch(`/api/operacoes/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo }),
   }));
   if (!ehOperacao(operacao)) throw new ErroApiOperacoes(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
   return operacao;

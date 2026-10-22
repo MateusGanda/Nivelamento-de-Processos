@@ -46,7 +46,19 @@ export async function lerAlteracaoProduto(request: Request): Promise<AlteracaoPr
   return alteracao;
 }
 
-type Dependencias = { autorizar: () => Promise<unknown>; produtos: Pick<ProdutosService, 'listar' | 'criar' | 'alterar'> };
+export async function lerStatusProduto(request: Request): Promise<boolean> {
+  let corpo: unknown;
+  try { corpo = await request.json(); }
+  catch { throw new ErroDeProduto('ENTRADA_INVALIDA', 'Corpo JSON inválido.'); }
+  if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo) || Object.keys(corpo).some((campo) => campo !== 'ativo')) {
+    throw new ErroDeProduto('ENTRADA_INVALIDA', 'Informe somente o campo ativo.');
+  }
+  const { ativo } = corpo as { ativo?: unknown };
+  if (typeof ativo !== 'boolean') throw new ErroDeProduto('ENTRADA_INVALIDA', 'ativo deve ser verdadeiro ou falso.');
+  return ativo;
+}
+
+type Dependencias = { autorizar: () => Promise<unknown>; produtos: Pick<ProdutosService, 'listar' | 'criar' | 'alterar' | 'definirStatus'> };
 
 // A rota fornece a autorização real; testes substituem dependências sem usar o banco.
 export function criarHandlersProdutos({ autorizar, produtos }: Dependencias) {
@@ -67,6 +79,12 @@ export function criarHandlersProdutos({ autorizar, produtos }: Dependencias) {
       try {
         await autorizar();
         return Response.json(await produtos.alterar(id, await lerAlteracaoProduto(request)));
+      } catch (erro) { return respostaErroProdutos(erro); }
+    },
+    async PATCH_STATUS(request: Request, id: string): Promise<Response> {
+      try {
+        await autorizar();
+        return Response.json(await produtos.definirStatus(id, await lerStatusProduto(request)));
       } catch (erro) { return respostaErroProdutos(erro); }
     },
   };

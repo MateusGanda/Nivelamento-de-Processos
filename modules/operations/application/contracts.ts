@@ -6,4 +6,5 @@ export interface OperacaoRepository {
   buscarPorNome(nome: string): Promise<Operacao | null>;
   criar(dados: DadosOperacao): Promise<Operacao>;
   alterar(id: string, dados: AlteracaoOperacao): Promise<Operacao | null>;
+  definirAtivo(id: string, ativo: boolean): Promise<Operacao | null>;
 }

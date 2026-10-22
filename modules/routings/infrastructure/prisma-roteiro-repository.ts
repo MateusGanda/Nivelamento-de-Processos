@@ -113,12 +113,12 @@ export class PrismaRoteiroRepository implements RoteiroRepository {
   }
 
   async listarOperacoes(): Promise<OperacaoDoRoteiro[]> {
-    return db.orm.public.Operacao.select('id', 'nome').orderBy((operacao) => operacao.nome.asc()).all();
+    return db.orm.public.Operacao.where({ ativo: true }).select('id', 'nome').orderBy((operacao) => operacao.nome.asc()).all();
   }
 
-  async buscarOperacoes(ids: readonly string[]): Promise<string[]> {
+  async buscarOperacoes(ids: readonly string[]): Promise<{ id: string; ativo: boolean }[]> {
     if (ids.length === 0) return [];
-    return (await db.orm.public.Operacao.where((operacao) => operacao.id.in([...ids])).select('id').all()).map((operacao) => operacao.id);
+    return db.orm.public.Operacao.where((operacao) => operacao.id.in([...ids])).select('id', 'ativo').all();
   }
 
   async buscarPostos(ids: readonly string[]): Promise<{ id: string; ativo: boolean }[]> {
@@ -126,8 +126,8 @@ export class PrismaRoteiroRepository implements RoteiroRepository {
     return db.orm.public.Posto.where((posto) => posto.id.in([...ids])).select('id', 'ativo').all();
   }
 
-  async existeProduto(id: string): Promise<boolean> {
-    return (await db.orm.public.Produto.where({ id }).select('id').first()) !== null;
+  async buscarProduto(id: string): Promise<{ id: string; ativo: boolean } | null> {
+    return db.orm.public.Produto.where({ id }).select('id', 'ativo').first();
   }
 
   async substituirEtapas(roteiroId: string, etapas: readonly EtapaInformada[]): Promise<void> {

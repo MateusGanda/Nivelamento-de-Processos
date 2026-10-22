@@ -159,7 +159,7 @@ try {
         id.set(`setor:${s.nome}`, (await t.Setor.create({ ...s, codigo })).id);
       }
       for (const p of POSTOS) id.set(`posto:${p.codigo}`, (await t.Posto.create({ codigo: p.codigo, nome: p.nome, setorId: id.get(`setor:${p.setor}`)!, ativo: true })).id);
-      for (const op of OPERACOES) id.set(`operacao:${op.nome}`, (await t.Operacao.create(op)).id);
+      for (const op of OPERACOES) id.set(`operacao:${op.nome}`, (await t.Operacao.create({ ...op, ativo: true })).id);
       const matriculasReservadas = operadores.map((op) => op.matricula);
       for (const op of OPERADORES) {
         const matricula = gerarMatriculaOperador(op.nome, id.get(`codigo-setor:${op.setor}`)!, matriculasReservadas);
@@ -173,7 +173,7 @@ try {
       const plano = await t.PlanoProducao.create(PLANO);
 
       for (const p of PRODUTOS) {
-        const produto = await t.Produto.create({ codigo: p.codigo, nome: p.nome });
+        const produto = await t.Produto.create({ codigo: p.codigo, nome: p.nome, ativo: true });
         const roteiro = await t.Roteiro.create({ nome: p.roteiro, versao: 1, ativo: true });
         await t.ProdutoRoteiro.create({ produtoId: produto.id, roteiroId: roteiro.id, vigente: true });
         id.set(`produto:${p.codigo}`, produto.id);
