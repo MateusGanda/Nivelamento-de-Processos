@@ -1,4 +1,5 @@
-import { ErroDeSetor, validarCadastroSetor, type CadastroSetor, type Setor } from '../domain/setor.ts';
+import { gerarCodigoSetor } from '../domain/codigo-setor.ts';
+import { ErroCodigoSetorReservado, ErroDeSetor, validarCadastroSetor, type CadastroSetor, type Setor } from '../domain/setor.ts';
 import type { SetorRepository } from './contracts.ts';
 
 export class SetoresService {
@@ -17,6 +18,11 @@ export class SetoresService {
     if (await this.setores.buscarPorNome(dados.nome)) {
       throw new ErroDeSetor('CONFLITO', 'Nome de setor já cadastrado.');
     }
-    return this.setores.criar(dados);
+    for (let tentativa = 0; tentativa < 10; tentativa++) {
+      const codigo = gerarCodigoSetor(dados.nome, await this.setores.codigosReservados());
+      try { return await this.setores.criar({ ...dados, codigo }); }
+      catch (erro) { if (!(erro instanceof ErroCodigoSetorReservado)) throw erro; }
+    }
+    throw new ErroCodigoSetorReservado();
   }
 }
