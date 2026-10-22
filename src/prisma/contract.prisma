@@ -137,8 +137,8 @@ model PlanoProducao {
   id         Uuid              @id @default(uuid())
   codigo     String            @unique
   descricao  String?
-  dataInicio Date?
-  dataFim    Date?
+  dataInicio DateString?
+  dataFim    DateString?
   createdAt  TimestamptzString @default(now())
   updatedAt  TimestamptzString @default(now())
 
