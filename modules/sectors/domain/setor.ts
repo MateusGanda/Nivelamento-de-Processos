@@ -1,5 +1,6 @@
 export type Setor = {
   id: string;
+  codigo: string;
   nome: string;
   descricao: string | null;
   createdAt: string;
@@ -8,6 +9,7 @@ export type Setor = {
 
 export type CadastroSetor = { nome: string; descricao?: string | null };
 export type DadosSetor = { nome: string; descricao: string | null };
+export type NovoSetor = DadosSetor & { codigo: string };
 
 export class ErroDeSetor extends Error {
   readonly codigo: 'ENTRADA_INVALIDA' | 'CONFLITO';
@@ -17,6 +19,10 @@ export class ErroDeSetor extends Error {
     this.name = 'ErroDeSetor';
     this.codigo = codigo;
   }
+}
+
+export class ErroCodigoSetorReservado extends ErroDeSetor {
+  constructor() { super('CONFLITO', 'Não foi possível reservar o código do setor. Tente novamente.'); }
 }
 
 export function validarCadastroSetor(input: CadastroSetor): DadosSetor {
