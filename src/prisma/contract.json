@@ -2554,6 +2554,15 @@
                 },
                 {
                   "columns": [
+                    "operadorId"
+                  ],
+                  "name": "Execucao_operador_aberta_unica_6ac54f96",
+                  "prefix": "Execucao_operador_aberta_unica",
+                  "unique": true,
+                  "where": "(\"status\" <> 'FINALIZADA')"
+                },
+                {
+                  "columns": [
                     "ordemProducaoId"
                   ],
                   "name": "Execucao_ordemProducaoId_idx_422138c7",
@@ -3650,7 +3659,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "0cd2f58a0afa8654847c19a3cfa7990e8b80882d93262714b6646ca1951b699e"
+    "storageHash": "f3205b33a13d5e1ae51bf72ce1037c0bf6b9ba5d058610e405835df987b5eea4"
   },
   "execution": {
     "executionHash": "d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33",

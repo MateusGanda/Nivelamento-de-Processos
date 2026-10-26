@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'0cd2f58a0afa8654847c19a3cfa7990e8b80882d93262714b6646ca1951b699e'>;
+  StorageHashBase<'f3205b33a13d5e1ae51bf72ce1037c0bf6b9ba5d058610e405835df987b5eea4'>;
 export type ExecutionHash =
   ExecutionHashBase<'d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33'>;
 export type ProfileHash =
@@ -1362,6 +1362,13 @@ type ContractBase = Omit<
                   readonly prefix: 'Execucao_operadorId_idx';
                   readonly columns: readonly ['operadorId'];
                   readonly unique: false;
+                },
+                {
+                  readonly name: 'Execucao_operador_aberta_unica_6ac54f96';
+                  readonly prefix: 'Execucao_operador_aberta_unica';
+                  readonly columns: readonly ['operadorId'];
+                  readonly where: '("status" <> \'FINALIZADA\')';
+                  readonly unique: true;
                 },
                 {
                   readonly name: 'Execucao_ordemProducaoId_idx_422138c7';
