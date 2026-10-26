@@ -19,7 +19,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Evento de Tempo: INICIO, PAUSA, RETOMADA e FINALIZACAO.
 - Motivo de Pausa: classificação padronizada de pausas.
 - Usuario: conta individual para acesso administrativo autenticado. É separado de Operador.
-- Terminal/Ilha de Produção: ponto compartilhado e controlado para realizar apontamentos; sua representação persistida e seu mecanismo de credenciamento ainda precisam ser definidos no schema.
+- Terminal/Ilha de Produção: ponto compartilhado e controlado para realizar apontamentos. Não tem tabela própria; o terminal é liberado pela chave da ilha (ver "Acesso administrativo e ilha de produção").
 
 ## Relações
 
@@ -42,18 +42,34 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 
 ## Regras de negócio
 
+### Ativo e inativo
+- `Produto`, `Operacao`, `Setor`, `Posto`, `Roteiro` e `Operador` têm `ativo`. Cadastros usados por outros registros não são excluídos; são inativados (decisão da equipe de 22/10/2026).
+- Um cadastro inativo não entra em vínculos novos, mas continua nos registros que já o usam:
+  - operação inativa não entra em etapa nova; etapas existentes continuam;
+  - produto inativo não é ligado a roteiro nem recebe ordem nova;
+  - setor inativo não recebe posto nem operador novo, nem é escolhido numa troca de setor; manter o setor atual na edição é permitido;
+  - posto inativo não é ligado a etapa nem recebe execução nova;
+  - operador inativo não é aceito na ilha.
+- A edição comum não altera `ativo`; a mudança de status tem uma ação própria.
+
+### Cadastro de produto
+- Código obrigatório e único; nome obrigatório.
+
 ### Cadastro de operação
 - Nome obrigatório e único; descrição opcional. Remover somente espaços nas extremidades, preservando caixa, acentos e espaços internos, sem novos limites de tamanho.
 - Descrição ausente no cadastro, nula ou vazia após trim é armazenada como `null`. Na edição, campos omitidos permanecem inalterados.
 - A unicidade mantém a comparação do schema/banco: `Corte` e `corte` são distintos. Busca sem caixa/acentos é somente de apresentação.
-- A entrega permite criação, listagem e edição de nome/descrição, preservando o identificador e os vínculos das etapas. Não inclui exclusão nem ativação/inativação; `Operacao` não possui `ativo` no contrato atual.
+- Criação, listagem, edição de nome/descrição e ativação/inativação, preservando o identificador e os vínculos das etapas. Não há exclusão.
 - Operação não possui tempo padrão universal; ele continua na combinação produto + etapa do roteiro.
 
 ### Cadastro de setor
 - Nome obrigatório e único; descrição opcional, trim nas extremidades e sem novos limites de tamanho. Descrição ausente/nula/vazia vira null.
 - A unicidade do nome mantém o banco atual: Costura e costura são distintos.
 - Código funcional automático, único e permanente: primeiras três letras normalizadas e sequência (PES1, PES2). Nomes curtos usam as letras disponíveis; sem letras, base SET.
-- Criação/listagem disponíveis com busca pelo código. Sem edição, exclusão ou status nesta entrega.
+- A edição altera nome e descrição; o código não muda. Ativação/inativação conforme "Ativo e inativo". Não há exclusão.
+
+### Cadastro de posto
+- Código obrigatório e único; nome e setor obrigatórios. Ativação/inativação conforme "Ativo e inativo".
 
 ### Cadastro de operador
 - Nome e setor principal obrigatórios nos novos cadastros; função opcional em texto livre.
@@ -64,12 +80,26 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Setor e função são informativos; o posto efetivo fica na execução. Não atribuem permissões nem restringem operações.
 - Geração, colisões, normalização, fallback e API seguem specs/contratos/operadores-setores.md. Constraints reforçam unicidade; até dez tentativas em colisões concorrentes de identificador.
 
+### Roteiro e tempo padrão
+- Nome e versão identificam o roteiro; a nova versão copia etapas, postos de cada etapa, produtos ligados (sem vigência) e tempos padrão da versão de origem.
+- Cada produto tem uma única versão vigente. Só um roteiro ativo pode ser vigente, e o roteiro vigente de algum produto não pode ser inativado.
+- Quando o roteiro já tem ordens, as etapas ficam travadas e a mudança é feita em uma nova versão. Os postos de cada etapa continuam podendo ser alterados.
+- Os tempos padrão de um produto ficam travados quando esse produto já tem ordens na versão (decisão de 19/10/2026).
+- Tempo padrão maior que zero, em segundos por unidade produzida, com até duas casas decimais. Etapa sem tempo informado fica sem tempo padrão.
+
+### Plano de produção
+- Código obrigatório e único; descrição opcional; período opcional.
+- As datas são gravadas como texto `AAAA-MM-DD`, precisam existir no calendário, e o fim não pode ser anterior ao início, inclusive quando só uma das datas é alterada (decisão de 22/10/2026).
+
 ### Ordem e quantidade
 - Uma Ordem representa uma quantidade de um único produto.
+- Na criação: número único, plano existente, produto ativo, versão do roteiro ligada ao produto, ativa e com etapas, e quantidade maior que zero com até duas casas decimais.
+- Produto e versão do roteiro não mudam depois da criação. Número e plano podem ser editados; quantidade e unidade, somente enquanto a ordem não tem execuções.
 - Não existe baixa parcial.
 - A baixa considera 100% da quantidade da Ordem na etapa.
 - Resultado da baixa: boa, retrabalho e refugo.
 - `boa + retrabalho + refugo = quantidade da Ordem`.
+- As quantidades da baixa não podem ser negativas e têm até duas casas decimais.
 - Não existem registros incrementais de quantidade no MVP.
 
 ### Execução
@@ -80,7 +110,8 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Não há `NAO_INICIADA` persistido. Ausência de execução pode ser apresentada como não iniciada.
 - Execução finalizada é terminal e não recebe novos eventos.
 - Troca de operação finaliza a execução atual e cria outra.
-- Operador não pode manter duas execuções abertas simultaneamente; execução pausada continua ocupando o operador.
+- Operador não pode manter duas execuções abertas simultaneamente; execução pausada continua ocupando o operador. O banco garante a regra com o índice único parcial `Execucao_operador_aberta_unica` (status diferente de `FINALIZADA`).
+- Para iniciar: operador ativo, etapa pertencente ao roteiro da Ordem e ainda sem baixa, e posto ativo e compatível com a etapa.
 - O operador é responsável pelo apontamento, não necessariamente o único trabalhador da célula.
 
 ### Tempo
@@ -99,8 +130,9 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - `Operador` permanece uma entidade de domínio de produção, separada da conta `Usuario`; não presumir que cada operador tenha login individual.
 - A ilha é um terminal compartilhado, com acesso restrito às ações operacionais de apontamento, e não uma conta administrativa compartilhada.
 - QR Code ou código funcional identifica o operador para associar apontamentos; não autentica o usuário nem concede privilégios. A digitação manual deve permanecer como alternativa ao leitor físico.
-- A sessão/identificação operacional temporária e o modo de autorização do terminal precisam ser definidos antes da implementação das rotas de acesso. Não inventar campos, papéis ou mecanismo de autenticação sem decisão registrada.
-- Limpar a identificação na interface por inatividade não deve, por si só, pausar nem finalizar uma execução persistida.
+- O terminal é autorizado pela chave da ilha (decisão de 25/10/2026): informada uma vez, libera o terminal por um cookie derivado da chave. Não há tabela de terminais nem papel novo; a ilha não usa a sessão administrativa.
+- A matrícula age somente sobre as execuções do próprio operador.
+- A identificação na tela é limpa pelo botão Sair. A limpeza por inatividade ainda não tem regra definida e, se adotada, não deve, por si só, pausar nem finalizar uma execução persistida.
 
 ## Roteiro e dependências
 
@@ -126,6 +158,13 @@ Uma Ordem referencia explicitamente a versão do roteiro usada. Mudanças poster
 
 ## Estado do modelo e próximo passo
 
-O schema Prisma inicial e suas migrações já foram gerados e aplicados. O modelo administrativo `Usuario` foi adicionado em migration versionada, separado de `Operador`, com o único papel `ADMIN`; sua efetiva aplicação ao banco deve seguir o processo de deployment. Não reconstruir o modelo relacional do zero. A representação e o mecanismo de acesso do terminal/ilha continuam pendentes. Qualquer alteração de schema deve ser explicitada, revisada e versionada em migration.
+O schema Prisma e suas migrações estão versionados e aplicados no banco do site publicado e no banco de desenvolvimento da equipe. O modelo administrativo `Usuario` é separado de `Operador`, com o único papel `ADMIN`. Não reconstruir o modelo relacional do zero. Qualquer alteração de schema deve ser explicitada, revisada e versionada em migration.
 
-As migrations de código de setor e setor principal/função de operador foram preparadas em 21/10/2026, sem aplicação ao banco da equipe nesta entrega. Preservam IDs, matrículas antigas, timestamps e execuções; backfill dos códigos precede NOT NULL/UNIQUE.
+Migrations de 21/10 a 26/10/2026:
+
+- código de setor e setor principal/função de operador (preservam IDs, matrículas antigas, timestamps e execuções; backfill dos códigos precede NOT NULL/UNIQUE);
+- `ativo` em `Operacao` e `Produto`, e depois em `Setor`, com padrão verdadeiro para os registros existentes;
+- datas do plano como `DateString`, sem mudança na coluna do banco;
+- índice único parcial de uma execução aberta por operador.
+
+Pendências do modelo continuam registradas em `specs/PENDENCIAS_MODELO.md`.

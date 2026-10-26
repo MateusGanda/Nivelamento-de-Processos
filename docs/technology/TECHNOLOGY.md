@@ -12,17 +12,21 @@ Classificação usada:
 
 | Área | Status | Decisão atual |
 | --- | --- | --- |
-| Framework web e servidor | Obrigatório | Next.js (App Router) |
-| Interface | Obrigatório | React |
+| Framework web e servidor | Obrigatório | Next.js 16 (App Router) |
+| Interface | Obrigatório | React 19 |
+| Estilos | Padrão adotado | Tailwind CSS 4 |
 | Ícones | Padrão adotado | Lucide React (`lucide-react`), com imports individuais |
 | Linguagem | Obrigatório | TypeScript |
 | Comunicação UI-servidor | Obrigatório | API REST interna |
 | Persistência | Obrigatório | Prisma 8 e PostgreSQL (Neon no ambiente atual) |
 | Autenticação administrativa | Obrigatório como capacidade | Auth.js (Credentials Provider), JWT de 12 horas e Argon2id |
-| Testes automatizados | Obrigatório | Framework e comandos **A definir** |
-| Qualidade estática | Necessária | Ferramentas e configuração **A definir** |
+| Acesso da ilha | Obrigatório como capacidade | Chave da ilha (`ILHA_CHAVE`) e cookie HttpOnly assinado com HMAC-SHA256 |
+| Testes automatizados | Obrigatório | `node:test`, executado com `npm test` |
+| Qualidade estática | Necessária | ESLint 9 com `eslint-config-next` (`npm run lint`) e `npm run typecheck` |
+| Verificação automática | Padrão adotado | GitHub Actions (`.github/workflows/verificacao.yml`): instalação, lint, tipos, testes e build em Node 22 |
+| Hospedagem | Ambiente atual | Vercel, publicando a branch `develop` |
 
-As versões efetivamente instaladas devem ser verificadas no `package.json` e no lockfile antes de serem alteradas. Prisma 8 é a versão adotada no fluxo atual do projeto. Não inferir versões de outras dependências sem inspecionar os arquivos do repositório.
+As versões efetivamente instaladas devem ser verificadas no `package.json` e no lockfile antes de serem alteradas. Em 26/10/2026 o projeto usa `@prisma/orm-postgres` 8.0.0-rc.14 e a CLI `prisma` 8.0.0-rc.20. O `package-lock.json` deve manter a CLI rc.20: uma versão anterior da CLI falha no `db migrate` com o contrato atual (corrigido no pull request 49). Não inferir versões de outras dependências sem inspecionar os arquivos do repositório.
 
 ## 2. Next.js
 
@@ -56,7 +60,25 @@ Bibliotecas de componentes, gerenciamento de estado global, formulários, gráfi
 
 O padrão de ícones do GUNP é `lucide-react`: imports individuais dos ícones utilizados, traço de espessura 2 e tamanho habitual de 20–24px. A marca provisória usa `Cog` acima de “GUNP”. Ícones decorativos usam `aria-hidden`; controles compostos somente por ícone devem ter nome acessível. Não adicionar outra biblioteca de ícones sem decisão aprovada.
 
-A apresentação administrativa usa `/login` com formulário de matrícula e senha integrado ao NextAuth v4 e `/painel` com menu lateral, cartões de módulos, identificação e logout. O layout e cada página do painel verificam sessão e ADMIN ativo no servidor; a proteção não depende somente do layout reutilizado nas navegações. Operadores tem tela funcional em `/painel/operadores` e API REST em `/api/operadores` (GET/POST) e `/api/operadores/[id]` (PATCH), dentro de `modules/operators`, com matrícula automática permanente, setor principal e função opcional. Setores tem criação/listagem em `/painel/setores` e GET/POST `/api/setores`, dentro de `modules/sectors`, com código funcional automático e permanente. O contrato dos dois cadastros está em `specs/contratos/operadores-setores.md`; aplicar as migrations antes de usar a nova versão com o banco. Operações tem listagem, criação e edição em `/painel/operacoes`, GET/POST `/api/operacoes` e PATCH `/api/operacoes/[id]`, dentro de `modules/operations`, com nome único e descrição opcional; o contrato existente permanece inalterado, sem campo de status. Esses módulos mantêm Prisma somente na Infrastructure. As páginas funcionais e os destinos ainda provisórios estão relacionados em `docs/design/PAINEL_GUNP.md`. A configuração de navegação e os componentes do painel ficam na Presentation do módulo de acesso. Menus e formulários de criação usam dialog nativo, sem nova biblioteca de UI. O fundo industrial do login é um asset local gerado, sem credenciais nem textos embutidos. No mobile, sua coluna institucional fica oculta. Essas telas não definem o mecanismo de acesso da ilha.
+A apresentação administrativa usa `/login` com formulário de matrícula e senha integrado ao NextAuth v4 e `/painel` com menu lateral, cartões de módulos, identificação e logout. O layout e cada página do painel verificam sessão e ADMIN ativo no servidor; a proteção não depende somente do layout reutilizado nas navegações. Operadores tem tela funcional em `/painel/operadores` e API REST em `/api/operadores` (GET/POST) e `/api/operadores/[id]` (PATCH), dentro de `modules/operators`, com matrícula automática permanente, setor principal e função opcional. Setores tem criação/listagem em `/painel/setores` e GET/POST `/api/setores`, dentro de `modules/sectors`, com código funcional automático e permanente. O contrato dos dois cadastros está em `specs/contratos/operadores-setores.md`; aplicar as migrations antes de usar a nova versão com o banco. Operações tem listagem, criação e edição em `/painel/operacoes`, GET/POST `/api/operacoes` e PATCH `/api/operacoes/[id]`, dentro de `modules/operations`, com nome único e descrição opcional. Esses módulos mantêm Prisma somente na Infrastructure. A configuração de navegação e os componentes do painel ficam na Presentation do módulo de acesso. Menus e formulários de criação e edição usam dialog nativo, sem nova biblioteca de UI. O fundo industrial do login é um asset local gerado, sem credenciais nem textos embutidos. No mobile, sua coluna institucional fica oculta.
+
+Telas e rotas do painel em 26/10/2026, todas com sessão de ADMIN ativo:
+
+| Tela | API | Módulo |
+| --- | --- | --- |
+| `/painel/produtos` | `/api/produtos`, `/api/produtos/[id]`, `/api/produtos/[id]/status` | `modules/products` |
+| `/painel/operacoes` | `/api/operacoes`, `/api/operacoes/[id]`, `/api/operacoes/[id]/status` | `modules/operations` |
+| `/painel/setores` | `/api/setores`, `/api/setores/[id]`, `/api/setores/[id]/status` | `modules/sectors` |
+| `/painel/postos` | `/api/postos`, `/api/postos/[id]`, `/api/postos/[id]/status` | `modules/workstations` |
+| `/painel/operadores` | `/api/operadores`, `/api/operadores/[id]` | `modules/operators` |
+| `/painel/roteiros` e `/painel/roteiros/[id]` | `/api/roteiros` e sub-rotas de status, etapas, postos da etapa, versões, produtos, vigente e tempos | `modules/routings` |
+| `/painel/planos-de-producao` | `/api/planos-de-producao`, `/api/planos-de-producao/[id]` | `modules/production-plans` |
+| `/painel/ordens-de-producao` | `/api/ordens-de-producao`, `/api/ordens-de-producao/[id]` | `modules/production-orders` |
+| (sem tela) | `/api/indicadores` | `modules/indicators` |
+
+A edição usa `PATCH /api/<cadastro>/[id]` e a mudança de status usa `PATCH /api/<cadastro>/[id]/status`, com o corpo `{ "ativo": true | false }`. Motivos de Pausa, Execução e Indicadores continuam como destinos provisórios em `/painel/[modulo]`.
+
+A ilha de apontamento fica em `/ilha`, fora do painel, com as rotas `/api/ilha/acesso`, `/api/ilha/operadores/[matricula]`, `/api/ilha/ordens`, `/api/ilha/motivos`, `/api/ilha/execucoes` e `/api/ilha/execucoes/[id]/{pausa,retomada,troca,baixa}`, dentro de `modules/executions`. A tela tem botões e textos grandes para uso no chão de fábrica, mantém o foco no campo de matrícula para o leitor USB e mostra os tempos com as funções de `modules/indicators/domain/tempos.ts`, sem duplicar o cálculo.
 
 ## 4. TypeScript
 
@@ -86,7 +108,7 @@ Papel no projeto:
 
 A API não é substituída por acesso direto ao banco no navegador, mesmo estando no mesmo projeto. O contrato de cada endpoint deve nascer na especificação da task, incluindo entrada, saída, erros e teste esperado.
 
-Formato global de resposta, schema de erro, paginação, versionamento e ferramenta de documentação da API são **A definir**.
+Padrão usado pelas rotas existentes: erros no formato `{ "erro": { "codigo", "mensagem" } }`, com `400` (`ENTRADA_INVALIDA`), `401` (`NAO_AUTENTICADO`), `403`, `404` (`NAO_ENCONTRADO`), `409` (`CONFLITO`), `500` (`ERRO_INTERNO`) e, na ilha sem chave configurada, `503` (`NAO_CONFIGURADO`). Corpos com campos não previstos são recusados. Paginação, versionamento e ferramenta de documentação da API são **A definir**.
 
 ## 6. Prisma 8.0
 
@@ -102,7 +124,14 @@ Papel no projeto:
 
 Prisma deve ficar encapsulado na Infrastructure. Route Handlers, use cases, funções puras de cálculo e componentes React não chamam o cliente Prisma diretamente.
 
-Estratégia de seed, convenções exatas de schema e forma de executar migrações em cada ambiente são **A definir**; a capacidade de recriar o banco por arquivos do projeto é obrigatória.
+A capacidade de recriar o banco por arquivos do projeto é obrigatória. Práticas adotadas até 26/10/2026:
+
+- **Migrations:** editar `src/prisma/contract.prisma`, emitir o contrato (`npm run contract:emit`) e planejar a migration a partir da anterior. Uma migration por vez, avisada à equipe. Depois do merge na `develop`, a migration é aplicada no banco do site com `npx prisma db migrate`; o banco de desenvolvimento da equipe recebe a mesma migration.
+- **Seed:** `npm run seed:desenvolvimento` grava dados fictícios em uma única transação, no banco indicado por `SEED_DATABASE_URL`, e não grava nada se algum registro do cenário já existir. Nunca apontar para o banco do site.
+- **Primeiro administrador:** `npm run bootstrap:admin`, com as variáveis `INITIAL_ADMIN_*` do `.env`.
+- **Datas sem horário:** o tipo `Date` do Prisma 8 depende da API `Temporal`, ausente no Node 22. Por isso as datas do plano usam `DateString` (texto `AAAA-MM-DD`), sem mudar a coluna do banco.
+- **Mudança de estado concorrente:** o `update` condicional do ORM lê e depois grava pelo `id`, sem garantir a condição. Para mudar o status de uma execução somente se ela ainda estiver no estado esperado, usar o SQL builder (`tx.sql.public.Execucao.update(...).where(...)`) e conferir `affectedRows`.
+- **Índices únicos parciais:** o nome no banco recebe um sufixo; para reconhecer a violação, comparar pelo prefixo do nome.
 
 ## 7. PostgreSQL
 
@@ -117,7 +146,7 @@ Papel no projeto:
 
 O banco deve reforçar invariantes que consegue expressar, como unicidade e relacionamentos. Não depender apenas de bloqueios da interface para evitar duplicação ou execução concorrente.
 
-O banco de desenvolvimento atual está hospedado no Neon. A aplicação utiliza `DATABASE_URL` para a conexão, conforme a configuração atual do Prisma. Não registrar valores reais de conexão no repositório. Backup, política de retenção e configuração dos demais ambientes continuam **A definir**. Antes de mudar o provedor ou a estratégia de conexão, inspecionar `prisma.config.ts`, os arquivos Prisma e o `.env.example` (se existente).
+Os bancos estão hospedados no Neon: o banco do site publicado, usado pela aplicação por `DATABASE_URL`, e uma branch de desenvolvimento da equipe, usada pelo seed por `SEED_DATABASE_URL`. Não registrar valores reais de conexão no repositório. Backup, política de retenção e configuração dos demais ambientes continuam **A definir**. Antes de mudar o provedor ou a estratégia de conexão, inspecionar `prisma.config.ts`, os arquivos Prisma e o `.env.example` (se existente).
 
 ## 8. Autenticação e autorização
 
@@ -132,7 +161,15 @@ Modelo de acesso acordado:
 - a autorização deve ser verificada no servidor, não apenas pela visibilidade dos elementos da interface;
 - limpar a identificação temporária na interface por inatividade não deve pausar nem finalizar uma execução.
 
-O modelo de `Usuario`, o papel único `ADMIN`, a estratégia de sessão e a biblioteca de autenticação estão definidos para o MVP administrativo. As rotas administrativas devem consultar o usuário no banco a cada requisição para confirmar que permanece ativo e `ADMIN`. A modelagem e o acesso do terminal/ilha, os papéis adicionais e permissões granulares continuam pendentes. Não implementar criptografia própria de senha nem autenticação customizada sem decisão explícita.
+O modelo de `Usuario`, o papel único `ADMIN`, a estratégia de sessão e a biblioteca de autenticação estão definidos para o MVP administrativo. As rotas administrativas devem consultar o usuário no banco a cada requisição para confirmar que permanece ativo e `ADMIN`. Papéis adicionais e permissões granulares continuam pendentes. Não implementar criptografia própria de senha nem autenticação customizada sem decisão explícita.
+
+Acesso da ilha (decisão de 25/10/2026):
+
+- a chave fica na variável `ILHA_CHAVE`, com pelo menos 16 caracteres; sem ela, ou com uma chave mais curta, a ilha fica desativada;
+- `POST /api/ilha/acesso` confere a chave em tempo constante e, se estiver certa, grava o cookie `gunp_ilha`, HttpOnly, SameSite=Strict, Secure em produção, válido por 30 dias. O cookie guarda um HMAC-SHA256 derivado da chave, não a própria chave;
+- chave errada recebe resposta atrasada; `DELETE /api/ilha/acesso` bloqueia o terminal; trocar a chave bloqueia todos os terminais;
+- as rotas `/api/ilha/*` exigem o cookie e não aceitam a sessão administrativa como substituta;
+- a chave é gerada e guardada fora do repositório e passada à equipe em particular, nunca em grupo.
 
 ## 9. Testes automatizados
 
@@ -148,7 +185,7 @@ Testes mínimos esperados conforme a task:
 - autorização da API para ações sensíveis;
 - migrações, restrições e importação sem duplicação quando aplicável.
 
-Frameworks e comandos de teste devem ser verificados no repositório antes de serem classificados como pendentes. Se ainda não houver ferramenta instalada/configurada, a escolha é **A definir**; não adicionar Jest, Vitest, Playwright, Cypress ou outro framework sem decisão registrada.
+Os testes usam `node:test` e ficam em `tests/`. Não adicionar Jest, Vitest, Playwright, Cypress ou outro framework sem decisão registrada. Em 26/10/2026 o `npm test` executa 205 testes: 198 passam e 7 são opcionais (dependem do sistema em funcionamento).
 
 O teste opt-in de migrations dos cadastros usa PostgreSQL embarcado isolado via `GUNP_PGLITE_MODULE`, sem dependência adicional na aplicação e sem usar DATABASE_URL; instruções no contrato de Operadores e Setores.
 
@@ -160,7 +197,7 @@ O teste de login correto pode reutilizar `INITIAL_ADMIN_MATRICULA` e `INITIAL_AD
 
 **Obrigatório:** antes de concluir uma task, executar as verificações disponíveis para tipo, testes e qualidade afetada pela alteração; registrar falhas que não pertençam à task.
 
-As ferramentas já configuradas no repositório devem ser preservadas e usadas. Ferramentas adicionais de lint, formatação, hooks de Git, CI/CD, cobertura, scanner de segurança e deploy só podem ser consideradas **A definir** após inspeção do projeto; não introduzir ESLint adicional, Prettier, Husky, Sonar, GitHub Actions ou plataforma de deploy sem justificativa e aprovação.
+As ferramentas já configuradas no repositório devem ser preservadas e usadas: ESLint, verificação de tipos, `node:test`, a verificação do GitHub Actions em cada pull request e o deploy da `develop` na Vercel. Outras ferramentas de formatação, hooks de Git, cobertura, scanner de segurança ou deploy não devem ser introduzidas (por exemplo Prettier, Husky ou Sonar) sem justificativa e aprovação.
 
 **Convenção obrigatória de equipe:** cada entrega deve ser executável, ter evidência de teste ou tela demonstrável, manter dados de desenvolvimento fictícios e documentar os comandos necessários para instalar, executar, migrar e testar quando forem definidos.
 

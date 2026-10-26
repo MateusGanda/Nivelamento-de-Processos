@@ -2,10 +2,10 @@
 
 **Projeto:** Desenvolvimento de um Sistema Web para Gerenciamento de Nivelamento de Processos em Linhas de Produção (GUNP)  
 **Equipe:** Mateus, Gustavo e Arthur  
-**Atualizado em:** 21/10/2026
+**Atualizado em:** 26/10/2026
 **Finalidade:** servir como contexto de referência para a equipe e para ferramentas de IA usadas no desenvolvimento. Este documento deve ser lido junto de `MODELO_CONCEITUAL_GUNP_atualizado.md`, `ARCHITECTURE.md`, `TECHNOLOGY.md` e `ROADMAP_GUNP.md`. Em caso de divergência, não inventar uma regra: identificar o conflito e pedir confirmação.
 
-> **Estado das informações:** as decisões de domínio e tecnologia descritas como definidas refletem o entendimento atual da equipe. O esquema Prisma e as migrações iniciais já foram gerados e aplicados ao banco. O acesso administrativo de `Usuario` possui modelo, rotas e migration versionada; a representação e o acesso operacional do terminal/ilha continuam pendentes. Isso não implica que os demais CRUDs ou fluxos de produção estejam implementados.
+> **Estado das informações:** as decisões de domínio e tecnologia descritas como definidas refletem o entendimento atual da equipe. Em 26/10/2026 a `develop` tem os cadastros administrativos (exceto Motivos de Pausa), roteiros, planos, ordens, a API e a tela da ilha de apontamento e a rota de indicadores. Motivos de Pausa, a tela de indicadores, o dashboard e o leitor USB continuam pendentes. O estado detalhado está na seção 8; conferir no código antes de presumir que algo está pronto.
 
 ## 1. Resumo do sistema
 
@@ -43,13 +43,15 @@ O GUNP não deve ser descrito como um otimizador automático de produção. Recu
 | `EventoTempo` | Evento de tempo associado a uma execução, usado para registrar pausas/retomadas e derivar intervalos. |
 | `MotivoPausa` | Motivo cadastrado para uma pausa. |
 | `Usuario` | Conta individual de acesso administrativo. Não substituir nem reutilizar `Operador` como conta de login. |
-| Terminal/ilha de produção | **Conceito de acesso operacional ainda pendente de representação no schema, se necessária**: terminal compartilhado com permissões restritas aos fluxos de apontamento. Não é um usuário humano individual. |
+| Terminal/ilha de produção | Terminal compartilhado com acesso restrito aos fluxos de apontamento. Não é um usuário humano individual nem tem tabela própria: o terminal é liberado pela chave da ilha (`ILHA_CHAVE`), conforme a seção 5. |
 
 Consultar `MODELO_CONCEITUAL_GUNP_atualizado.md` para relações e regras detalhadas. Não criar entidades alternativas ou duplicadas sem antes comparar com esse modelo.
 
 ## 4. Regras de negócio que não podem ser contrariadas
 
-- A ordem congela a versão do roteiro selecionada; alterações posteriores no roteiro não devem mudar silenciosamente uma ordem já criada.
+- A ordem congela a versão do roteiro selecionada; alterações posteriores no roteiro não devem mudar silenciosamente uma ordem já criada. Por isso, quando um roteiro já tem ordens, suas etapas e os tempos padrão dos produtos com ordens nessa versão ficam travados; a mudança é feita em uma nova versão (decisão de 19/10/2026).
+- Depois que a ordem tem execuções, a quantidade e a unidade não podem mudar, porque a baixa é conferida com elas.
+- Cadastros usados por outros registros não são apagados: `Produto`, `Operacao`, `Setor`, `Posto`, `Roteiro` e `Operador` têm `ativo`. Um cadastro inativo não entra em vínculos novos, mas continua nos registros que já o usam (decisão da equipe de 22/10/2026).
 - A sequência das etapas do roteiro é nominal/organizacional no MVP; não presumir um motor de precedências ou otimização que não esteja definido no modelo atual.
 - Não há baixa parcial. No apontamento de baixa, as quantidades finais devem representar a quantidade total da ordem: `boa + retrabalho + refugo = quantidade da OrdemProducao`.
 - Não registrar quantidades incrementais a cada evento de execução. O apontamento final segue a regra do modelo conceitual.
@@ -58,7 +60,7 @@ Consultar `MODELO_CONCEITUAL_GUNP_atualizado.md` para relações e regras detalh
 - Transições previstas: `EM_EXECUCAO → PAUSADA`, `PAUSADA → EM_EXECUCAO` e `EM_EXECUCAO → FINALIZADA`.
 - Não persistir `NAO_INICIADA` como estado de execução; a interface pode inferi-lo quando ainda não há execução.
 - Trocar de operação finaliza a execução atual e inicia outra, de acordo com o fluxo validado.
-- Um operador não pode manter duas execuções abertas simultaneamente, incluindo execuções pausadas.
+- Um operador não pode manter duas execuções abertas simultaneamente, incluindo execuções pausadas. A regra é garantida também pelo banco (índice único parcial `Execucao_operador_aberta_unica`).
 - O operador é responsável pelo apontamento; não presumir que seja a única pessoa trabalhando no posto.
 - O tempo produtivo deve ser calculado considerando intervalos ativos e eventos de pausa/retomada, não simplesmente como `finalização - início` quando houve pausas.
 - Uma etapa pode ser executada em mais de um posto compatível, conforme as associações do modelo.
@@ -72,16 +74,16 @@ A solução de acesso discutida separa autenticação de apontamento operacional
 
 1. **Usuário administrativo (`Usuario`):** conta individual com autenticação e autorização no servidor para acessar funções administrativas. No MVP atual, o único papel é `ADMIN`.
 2. **Operador:** registro de domínio usado para identificar quem está realizando o apontamento. Não precisa ter senha ou login individual no MVP.
-3. **Ilha/terminal compartilhado:** interface em modo operacional controlado, com acesso limitado aos endpoints e ações necessários para apontamentos. Não deve ser uma sessão administrativa aberta nem um usuário humano compartilhado com privilégios amplos.
-4. **Identificação do operador:** QR Code ou código funcional pode identificar o operador para associar os registros. O código é identificação, não autenticação nem concessão de privilégios administrativos.
-5. **Identificação temporária na interface:** deve ser limpa ao concluir o fluxo operacional apropriado ou conforme a política de sessão definida. Uma inatividade da interface, por si só, não pode alterar o estado persistido de uma execução; em especial, não deve pausar ou finalizar automaticamente uma execução sem regra explícita.
-6. **Autorização real:** não confiar apenas em esconder botões no frontend. A API deve verificar as permissões de cada ação. O desenho de cadastro/identidade do terminal e a forma de autorizar o modo ilha ainda precisam ser formalizados antes da implementação.
+3. **Ilha/terminal compartilhado:** interface em `/ilha`, com acesso limitado às rotas `/api/ilha/*`. Não usa a sessão administrativa. O terminal é liberado uma vez com a chave da ilha (variável `ILHA_CHAVE`, decisão de 25/10/2026): o servidor grava um cookie HttpOnly derivado da chave, válido por 30 dias. Trocar a chave bloqueia todos os terminais. Chave errada recebe uma resposta atrasada, para dificultar tentativas em sequência.
+4. **Identificação do operador:** a matrícula (digitada ou lida como código) identifica o operador para associar os registros. É identificação, não autenticação nem concessão de privilégios administrativos. Só operador ativo é aceito, e cada matrícula age somente sobre as próprias execuções.
+5. **Identificação temporária na interface:** a tela da ilha limpa a identificação pelo botão Sair. A limpeza por inatividade ainda não tem regra definida. Uma inatividade da interface, por si só, não pode alterar o estado persistido de uma execução; em especial, não deve pausar ou finalizar automaticamente uma execução sem regra explícita.
+6. **Autorização real:** não confiar apenas em esconder botões no frontend. A API verifica o cookie do terminal em cada rota da ilha e a sessão de ADMIN ativo em cada rota administrativa.
 
-O modelo, login e rotas administrativas de `Usuario` devem ser confirmados no schema e código antes de uma mudança. Cadastro de terminais, acesso operacional da ilha e papéis além de `ADMIN` permanecem pendentes de decisão e implementação.
+Não há cadastro de terminais nem papéis além de `ADMIN`. Se forem necessários, a decisão deve ser tomada pela equipe antes da implementação.
 
 ## 6. QR Code e leitor USB
 
-O QR/código é um meio de identificar operador ou ordem no fluxo de apontamento, não um mecanismo de autenticação. Caso seja utilizado leitor USB em modo teclado (HID/keyboard wedge), a interface recebe o código no campo em foco e envia a informação à API para validação. Não presumir que um leitor específico foi adquirido ou testado. O hardware não deve ser tratado como requisito estrutural do domínio: a aplicação deve permitir validar o fluxo por entrada manual durante desenvolvimento e testes, se compatível com os requisitos acordados.
+O QR/código é um meio de identificar operador ou ordem no fluxo de apontamento, não um mecanismo de autenticação. Caso seja utilizado leitor USB em modo teclado (HID/keyboard wedge), a interface recebe o código no campo em foco e envia a informação à API para validação. A tela da ilha mantém o foco no campo de matrícula quando nenhum outro campo está em uso, e a leitura apenas mostra a situação do operador, sem executar ações. Nenhum leitor foi adquirido ou testado até 26/10/2026. O hardware não deve ser tratado como requisito estrutural do domínio: a aplicação deve permitir validar o fluxo por entrada manual durante desenvolvimento e testes, se compatível com os requisitos acordados.
 
 ## 7. Arquitetura e tecnologias definidas
 
@@ -104,14 +106,23 @@ O QR/código é um meio de identificar operador ou ordem no fluxo de apontamento
 
 ## 8. Estado conhecido da implementação
 
-- O schema Prisma inicial foi definido e revisado.
-- O contrato Prisma foi emitido com sucesso.
-- A migração inicial foi gerada e aplicada ao banco PostgreSQL/Neon.
-- Existem restrições de banco para algumas invariantes, incluindo unicidade de baixa efetiva, vigência de roteiro por produto e consistência entre estado de execução/finalização, conforme o schema atual.
-- Nem todas as invariantes de negócio podem ser garantidas apenas por constraints; as validações de serviço e transações continuam necessárias.
-- A autenticação administrativa, o modelo `Usuario` e suas rotas devem ser verificados no código e schema atuais; a representação/registro do terminal e o acesso operacional continuam **pendentes**.
-- A interface administrativa possui `/login` personalizado e `/painel` com boas-vindas, menu lateral, cartões de módulos, identificação e logout. A raiz redireciona conforme a sessão e a condição de ADMIN ativo. `/painel/operadores` possui criação, listagem e edição por API, com matrícula automática permanente, setor principal, função opcional, busca, filtro de status e ordenação. `/painel/setores` possui criação e listagem por API, com código automático permanente, nome único, descrição opcional, busca e ordenação. `/painel/operacoes` permite criação, listagem e edição de nome/descrição por API, sem ativação/inativação ou mudanças no schema. Produtos, Postos e Roteiros também possuem páginas próprias. Motivos de Pausa, Planos de Produção, Ordens de Produção, Execução e Indicadores permanecem destinos provisórios no painel; dashboards, edição de setores, ativação/inativação de operadores e operações de produção continuam pendentes.
-- O contrato aprovado de códigos de setor e matrículas automáticas está em `specs/contratos/operadores-setores.md`. As duas migrations estão versionadas e validadas em PostgreSQL isolado; aplicação no banco da equipe é separada. Cadastros antigos mantêm matrículas e podem permanecer sem setor até regularização.
+Estado da `develop` em 26/10/2026 (após o pull request 55):
+
+- **Banco:** schema em `src/prisma/contract.prisma` e migrations versionadas em `migrations/app/`. Todas foram aplicadas no banco do site publicado e no banco de desenvolvimento da equipe. Desde 21/10 entraram: código do setor; setor principal e função do operador; `ativo` em `Operacao` e `Produto`; `ativo` em `Setor`; datas do plano como texto `AAAA-MM-DD` (sem mudança de coluna); e o índice que impede duas execuções abertas por operador.
+- **Restrições do banco:** unicidade de baixa efetiva por ordem e etapa, um roteiro vigente por produto, consistência entre estado e finalização, motivo obrigatório na pausa e uma execução aberta por operador. Nem todas as invariantes podem ser garantidas por constraints; as validações de serviço e as transações continuam necessárias.
+- **Acesso administrativo:** `/login` personalizado e `/painel` com menu lateral, identificação e logout. Todas as páginas e rotas administrativas verificam a sessão e o ADMIN ativo no servidor.
+- **Cadastros com página e API:**
+  - Produtos, Operações e Postos: listar, criar, editar e ativar/inativar.
+  - Setores: código automático permanente, edição de nome e descrição e ativar/inativar.
+  - Operadores: matrícula automática permanente, setor principal, função opcional e edição. A ativação/inativação de operadores ainda não tem tela nem rota.
+- **Roteiros:** versões, etapas, postos de cada etapa, produtos, versão vigente por produto e tempo padrão por produto e etapa. A nova versão copia etapas, postos, produtos (sem vigência) e tempos.
+- **Planos de produção:** código, descrição e período opcional validado.
+- **Ordens de produção:** número único (o sistema sugere OP-0001, OP-0002…), plano, produto ativo, versão do roteiro ligada ao produto, quantidade e unidade.
+- **Ilha de apontamento:** `/ilha` e `/api/ilha/*`, com identificação por matrícula, início, pausa com motivo, retomada, troca de operação e baixa com boa, retrabalho e refugo. A tela mostra o tempo produtivo e o de pausa com a mesma regra dos indicadores. Mudanças de estado são condicionais no banco: duas ações simultâneas sobre a mesma execução não passam juntas, e a segunda recebe conflito.
+- **Indicadores:** `GET /api/indicadores` lê o banco e calcula produção, tempos e carga por posto (contrato em `specs/contratos/indicadores.md`). Ainda não há tela; o item Indicadores do painel é provisório.
+- **Dados fictícios:** `npm run seed:desenvolvimento` popula um banco de desenvolvimento com o fluxo completo, incluindo execuções, pausas e baixas. Não usar no banco do site publicado.
+- **Pendentes:** cadastro de Motivos de Pausa (a tabela existe; os itens Motivos de Pausa e Execução do painel são provisórios), tela de indicadores, dashboard, leitor USB, limpeza da identificação da ilha por inatividade e ativação/inativação de operadores.
+- Os contratos de códigos de setor e matrículas automáticas estão em `specs/contratos/operadores-setores.md`. Cadastros antigos mantêm matrículas e podem permanecer sem setor até regularização.
 - Não inferir que uma tarefa está concluída só porque aparece em um plano ou roadmap. Atualizar o status apenas após inspecionar o repositório ou receber confirmação da equipe.
 
 ## 9. Diretrizes para a IA no VS Code/Codex
