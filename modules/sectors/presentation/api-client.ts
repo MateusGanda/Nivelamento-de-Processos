@@ -1,4 +1,4 @@
-import type { CadastroSetor, Setor } from '../domain/setor.ts';
+import type { AlteracaoSetor, CadastroSetor, Setor } from '../domain/setor.ts';
 
 export class ErroApiSetores extends Error {
   readonly status: number;
@@ -47,6 +47,14 @@ export async function cadastrarSetor(dados: CadastroSetor): Promise<Setor> {
 export async function definirStatusSetor(id: string, ativo: boolean): Promise<Setor> {
   const setor = await lerResposta(await fetch(`/api/setores/${encodeURIComponent(id)}/status`, {
     method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo }),
+  }));
+  if (!ehSetor(setor)) throw new ErroApiSetores(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
+  return setor;
+}
+
+export async function alterarSetor(id: string, dados: AlteracaoSetor): Promise<Setor> {
+  const setor = await lerResposta(await fetch(`/api/setores/${encodeURIComponent(id)}`, {
+    method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados),
   }));
   if (!ehSetor(setor)) throw new ErroApiSetores(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
   return setor;

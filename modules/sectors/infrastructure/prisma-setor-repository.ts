@@ -1,6 +1,6 @@
 import { db } from '../../../src/prisma/db.ts';
 import type { SetorRepository } from '../application/contracts.ts';
-import type { NovoSetor, Setor } from '../domain/setor.ts';
+import type { AlteracaoSetor, NovoSetor, Setor } from '../domain/setor.ts';
 import { traduzirErroCriacaoSetor } from './persistence-errors.ts';
 
 function mapear(setor: Setor): Setor {
@@ -11,6 +11,11 @@ export class PrismaSetorRepository implements SetorRepository {
   async listar(): Promise<Setor[]> {
     const setores = await db.orm.public.Setor.orderBy((setor) => setor.nome.asc()).all();
     return setores.map(mapear);
+  }
+
+  async buscarPorId(id: string): Promise<Setor | null> {
+    const setor = await db.orm.public.Setor.where({ id }).first();
+    return setor ? mapear(setor) : null;
   }
 
   async buscarPorNome(nome: string): Promise<Setor | null> {
@@ -25,6 +30,16 @@ export class PrismaSetorRepository implements SetorRepository {
   async criar(dados: NovoSetor): Promise<Setor> {
     try {
       return mapear(await db.orm.public.Setor.create({ codigo: dados.codigo, nome: dados.nome, descricao: dados.descricao, ativo: true }));
+    } catch (erro) {
+      return traduzirErroCriacaoSetor(erro);
+    }
+  }
+
+  async alterar(id: string, dados: AlteracaoSetor): Promise<Setor | null> {
+    try {
+      // O banco só preenche updatedAt na criação; na alteração ele é informado aqui.
+      const setor = await db.orm.public.Setor.where({ id }).update({ ...dados, updatedAt: new Date().toISOString() });
+      return setor ? mapear(setor) : null;
     } catch (erro) {
       return traduzirErroCriacaoSetor(erro);
     }

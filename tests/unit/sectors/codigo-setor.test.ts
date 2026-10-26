@@ -21,7 +21,7 @@ test('setor: colisão do código recalcula; nome duplicado não é repetido', as
   const reservados: string[] = [];
   let tentativas = 0;
   const repo: SetorRepository = {
-    listar: async () => [], buscarPorNome: async () => null, codigosReservados: async () => [...reservados], definirAtivo: async () => null,
+    listar: async () => [], buscarPorId: async () => null, buscarPorNome: async () => null, codigosReservados: async () => [...reservados], alterar: async () => null, definirAtivo: async () => null,
     criar: async (dados) => {
       tentativas++;
       if (tentativas === 1) { reservados.push(dados.codigo); throw new ErroCodigoSetorReservado(); }
@@ -38,7 +38,7 @@ test('setor: colisão do código recalcula; nome duplicado não é repetido', as
 test('setor: esgotamento de dez tentativas retorna conflito recuperável', async () => {
   let tentativas = 0;
   const service = new SetoresService({
-    listar: async () => [], buscarPorNome: async () => null, codigosReservados: async () => [], definirAtivo: async () => null,
+    listar: async () => [], buscarPorId: async () => null, buscarPorNome: async () => null, codigosReservados: async () => [], alterar: async () => null, definirAtivo: async () => null,
     criar: async () => { tentativas++; throw new ErroCodigoSetorReservado(); },
   });
   await assert.rejects(() => service.criar({ nome: 'Pesponto' }), (erro: unknown) => erro instanceof ErroDeSetor && erro.codigo === 'CONFLITO' && /Tente novamente/.test(erro.message));
