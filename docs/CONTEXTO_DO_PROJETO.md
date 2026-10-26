@@ -5,7 +5,7 @@
 **Atualizado em:** 26/10/2026
 **Finalidade:** servir como contexto de referência para a equipe e para ferramentas de IA usadas no desenvolvimento. Este documento deve ser lido junto de `MODELO_CONCEITUAL_GUNP_atualizado.md`, `ARCHITECTURE.md`, `TECHNOLOGY.md` e `ROADMAP_GUNP.md`. Em caso de divergência, não inventar uma regra: identificar o conflito e pedir confirmação.
 
-> **Estado das informações:** as decisões de domínio e tecnologia descritas como definidas refletem o entendimento atual da equipe. Em 26/10/2026 a `develop` tem os cadastros administrativos (exceto Motivos de Pausa), roteiros, planos, ordens, a API e a tela da ilha de apontamento e a rota de indicadores. Motivos de Pausa, a tela de indicadores, o dashboard e o leitor USB continuam pendentes. O estado detalhado está na seção 8; conferir no código antes de presumir que algo está pronto.
+> **Estado das informações:** as decisões de domínio e tecnologia descritas como definidas refletem o entendimento atual da equipe. Em 26/10/2026 a `develop` tem os cadastros administrativos, roteiros, planos, ordens, a API e a tela da ilha de apontamento e a rota de indicadores. A tela de indicadores, o dashboard e o leitor USB continuam pendentes. O estado detalhado está na seção 8; conferir no código antes de presumir que algo está pronto.
 
 ## 1. Resumo do sistema
 
@@ -112,7 +112,7 @@ Estado da `develop` em 26/10/2026 (após o pull request 55):
 - **Restrições do banco:** unicidade de baixa efetiva por ordem e etapa, um roteiro vigente por produto, consistência entre estado e finalização, motivo obrigatório na pausa e uma execução aberta por operador. Nem todas as invariantes podem ser garantidas por constraints; as validações de serviço e as transações continuam necessárias.
 - **Acesso administrativo:** `/login` personalizado e `/painel` com menu lateral, identificação e logout. Todas as páginas e rotas administrativas verificam a sessão e o ADMIN ativo no servidor.
 - **Cadastros com página e API:**
-  - Produtos, Operações e Postos: listar, criar, editar e ativar/inativar.
+  - Produtos, Operações, Postos e Motivos de Pausa: listar, criar, editar e ativar/inativar. Somente motivos ativos aparecem na pausa da ilha.
   - Setores: código automático permanente, edição de nome e descrição e ativar/inativar.
   - Operadores: matrícula automática permanente, setor principal, função opcional e edição. A ativação/inativação de operadores ainda não tem tela nem rota.
 - **Roteiros:** versões, etapas, postos de cada etapa, produtos, versão vigente por produto e tempo padrão por produto e etapa. A nova versão copia etapas, postos, produtos (sem vigência) e tempos.
@@ -121,7 +121,7 @@ Estado da `develop` em 26/10/2026 (após o pull request 55):
 - **Ilha de apontamento:** `/ilha` e `/api/ilha/*`, com identificação por matrícula, início, pausa com motivo, retomada, troca de operação e baixa com boa, retrabalho e refugo. A tela mostra o tempo produtivo e o de pausa com a mesma regra dos indicadores. Mudanças de estado são condicionais no banco: duas ações simultâneas sobre a mesma execução não passam juntas, e a segunda recebe conflito.
 - **Indicadores:** `GET /api/indicadores` lê o banco e calcula produção, tempos e carga por posto (contrato em `specs/contratos/indicadores.md`). Ainda não há tela; o item Indicadores do painel é provisório.
 - **Dados fictícios:** `npm run seed:desenvolvimento` popula um banco de desenvolvimento com o fluxo completo, incluindo execuções, pausas e baixas. Não usar no banco do site publicado.
-- **Pendentes:** cadastro de Motivos de Pausa (a tabela existe; os itens Motivos de Pausa e Execução do painel são provisórios), tela de indicadores, dashboard, leitor USB, limpeza da identificação da ilha por inatividade e ativação/inativação de operadores.
+- **Pendentes:** tela de indicadores (os itens Execução e Indicadores do painel são provisórios), dashboard, leitor USB, limpeza da identificação da ilha por inatividade e ativação/inativação de operadores.
 - Os contratos de códigos de setor e matrículas automáticas estão em `specs/contratos/operadores-setores.md`. Cadastros antigos mantêm matrículas e podem permanecer sem setor até regularização.
 - Não inferir que uma tarefa está concluída só porque aparece em um plano ou roadmap. Atualizar o status apenas após inspecionar o repositório ou receber confirmação da equipe.
 

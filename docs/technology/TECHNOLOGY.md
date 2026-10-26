@@ -68,6 +68,7 @@ Telas e rotas do painel em 26/10/2026, todas com sessão de ADMIN ativo:
 | --- | --- | --- |
 | `/painel/produtos` | `/api/produtos`, `/api/produtos/[id]`, `/api/produtos/[id]/status` | `modules/products` |
 | `/painel/operacoes` | `/api/operacoes`, `/api/operacoes/[id]`, `/api/operacoes/[id]/status` | `modules/operations` |
+| `/painel/motivos-de-pausa` | `/api/motivos-de-pausa`, `/api/motivos-de-pausa/[id]`, `/api/motivos-de-pausa/[id]/status` | `modules/pause-reasons` |
 | `/painel/setores` | `/api/setores`, `/api/setores/[id]`, `/api/setores/[id]/status` | `modules/sectors` |
 | `/painel/postos` | `/api/postos`, `/api/postos/[id]`, `/api/postos/[id]/status` | `modules/workstations` |
 | `/painel/operadores` | `/api/operadores`, `/api/operadores/[id]` | `modules/operators` |
@@ -76,7 +77,7 @@ Telas e rotas do painel em 26/10/2026, todas com sessão de ADMIN ativo:
 | `/painel/ordens-de-producao` | `/api/ordens-de-producao`, `/api/ordens-de-producao/[id]` | `modules/production-orders` |
 | (sem tela) | `/api/indicadores` | `modules/indicators` |
 
-A edição usa `PATCH /api/<cadastro>/[id]` e a mudança de status usa `PATCH /api/<cadastro>/[id]/status`, com o corpo `{ "ativo": true | false }`. Motivos de Pausa, Execução e Indicadores continuam como destinos provisórios em `/painel/[modulo]`.
+A edição usa `PATCH /api/<cadastro>/[id]` e a mudança de status usa `PATCH /api/<cadastro>/[id]/status`, com o corpo `{ "ativo": true | false }`. Execução e Indicadores continuam como destinos provisórios em `/painel/[modulo]`.
 
 A ilha de apontamento fica em `/ilha`, fora do painel, com as rotas `/api/ilha/acesso`, `/api/ilha/operadores/[matricula]`, `/api/ilha/ordens`, `/api/ilha/motivos`, `/api/ilha/execucoes` e `/api/ilha/execucoes/[id]/{pausa,retomada,troca,baixa}`, dentro de `modules/executions`. A tela tem botões e textos grandes para uso no chão de fábrica, mantém o foco no campo de matrícula para o leitor USB e mostra os tempos com as funções de `modules/indicators/domain/tempos.ts`, sem duplicar o cálculo.
 
