@@ -2,7 +2,7 @@
 
 > Roadmap operacional do MVP do GUNP — Sistema Web para Gerenciamento de Nivelamento de Processos em Linhas de Produção.
 >
-> **Estado atual (26/10/2026):** cadastros administrativos, roteiros, planos, ordens, a API e a tela da ilha de apontamento e a rota de indicadores estão na `develop` e no site publicado. Faltam a tela de indicadores, o dashboard, o leitor USB e o teste do fluxo ponta a ponta. As marcações abaixo refletem o código nessa data; conferir o repositório antes de presumir que algo está pronto.
+> **Estado atual (26/10/2026):** cadastros administrativos, roteiros, planos, ordens, a API e a tela da ilha de apontamento e a tela de indicadores estão na `develop`. Faltam o dashboard, o leitor USB e o teste do fluxo ponta a ponta. As marcações abaixo refletem o código nessa data; conferir o repositório antes de presumir que algo está pronto.
 
 ## 1. Objetivo
 
@@ -24,7 +24,7 @@ Este documento organiza o desenvolvimento do GUNP em etapas executáveis, com de
 - [x] Troca de operação
 - [x] Baixa com boa/retrabalho/refugo
 - [x] Cálculo de tempos
-- [ ] Indicadores (cálculo e rota prontos; falta a tela)
+- [x] Indicadores
 - [ ] Dashboard
 - [x] Seed/dados demonstrativos
 - [x] Testes das regras críticas
@@ -422,7 +422,7 @@ O leitor USB HID apenas fornece um identificador; não deve conter regra de neg�
 
 Implementar como funções independentes da UI e do banco.
 
-As funções estão em `modules/indicators/domain` e a rota `GET /api/indicadores` lê o banco (contrato em `specs/contratos/indicadores.md`). Falta a tela; os filtros `setorId` e `postoId` ainda são recusados.
+As funções estão em `modules/indicators/domain` e a rota `GET /api/indicadores` lê o banco (contrato em `specs/contratos/indicadores.md`). A tela `/painel/indicadores` mostra esses blocos com escolha do período (hoje, últimos 7 ou 30 dias, ou datas escolhidas, em dias inteiros do horário de Brasília): resumo, posição das ordens, produção, tempos por posto, tempo por unidade comparado ao padrão e carga pendente, com as pendências explicadas em texto. Os filtros `setorId` e `postoId` ainda são recusados pela API.
 
 Indicadores mínimos:
 
@@ -676,7 +676,7 @@ A divisão abaixo é a orientação original. Na prática, parte das tarefas foi
 
 - [x] Funções de cálculo
 - [x] Testes matemáticos
-- [ ] Indicadores (rota pronta; falta a tela)
+- [x] Indicadores
 - [x] Carga por posto
 - [ ] Dashboard
 - [ ] Filtros
@@ -904,7 +904,7 @@ Uma tarefa está concluída quando:
 
 ## M8 — Gestão
 
-- [ ] Indicadores (rota pronta; falta a tela)
+- [x] Indicadores
 - [ ] Dashboard
 - [ ] Filtros
 

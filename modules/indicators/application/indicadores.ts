@@ -6,6 +6,7 @@ import { calcularPosicao, identificarBaixa, somarResultados } from '../domain/pr
 import type { Resultado } from '../domain/producao.ts';
 import { calcularTempoMedioPorUnidade, calcularTempos, compararComTempoPadrao, derivarIntervalos } from '../domain/tempos.ts';
 import type { Intervalo } from '../domain/tempos.ts';
+import { dataDoInstante, dividirEmDias } from '../domain/dias.ts';
 import type { EtapaRegistrada, ExecucaoRegistrada, IndicadoresRepository, OrdemRegistrada, RegistrosDeProducao } from './contracts.ts';
 
 export type Pendencia =
@@ -91,11 +92,21 @@ export type TempoMedioDaEtapa = {
   percentualDoPadrao: number | null;
 };
 
+/** Um dia do período, no horário de Brasília. */
+export type DiaDoPeriodo = {
+  data: string;
+  produtivoSegundos: number;
+  pausaSegundos: number;
+  baixas: number;
+  tempoPadraoDasBaixasSegundos: number | null;
+};
+
 export type BlocosDoPeriodo = {
   producao: ProducaoDaEtapa[];
   producaoFinal: ProducaoFinal[];
   tempos: TemposDoPosto[];
   tempoMedio: TempoMedioDaEtapa[];
+  porDia: DiaDoPeriodo[];
   pendencias: Pendencia[];
 };
 
@@ -260,6 +271,8 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
   const producao = new Map<string, Grupo & { ordens: number; resultados: Resultado[] }>();
   const final = new Map<string, { produtoCodigo: string; unidade: string; resultados: Resultado[] }>();
   const medio = new Map<string, Grupo & { execucoes: { produtivoSegundos: number; quantidadeBoa: number }[]; resultados: Resultado[] }>();
+  // Baixas válidas por dia: quantidade da ordem vezes o tempo padrão (null quando falta o tempo padrão).
+  const baixasPorDia = new Map<string, { baixas: number; centesimosDeSegundo: number | null }>();
 
   for (const ordem of dados.ordens) {
     const etapas = etapasPorRoteiro.get(ordem.roteiroId) ?? [];
@@ -277,6 +290,14 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
       linha.ordens += 1;
       linha.resultados.push(resultado);
       producao.set(chave, linha);
+
+      const dia = baixasPorDia.get(dataDoInstante(instante)) ?? { baixas: 0, centesimosDeSegundo: 0 };
+      const tempoPadrao = temposPadrao.get(`${ordem.produtoId}|${etapa.id}`);
+      dia.baixas += 1;
+      dia.centesimosDeSegundo = tempoPadrao === undefined || dia.centesimosDeSegundo === null
+        ? null
+        : dia.centesimosDeSegundo + centesimos(ordem.quantidade, 'Quantidade da ordem') * tempoPadrao;
+      baixasPorDia.set(dataDoInstante(instante), dia);
 
       if (ultimaEtapa) {
         const chaveFinal = `${ordem.produtoId}|${ordem.unidade}`;
@@ -298,6 +319,8 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
   const postos = new Map(dados.postos.map((p) => [p.id, p]));
   const motivos = new Map(dados.motivosPausa.map((m) => [m.id, m.nome]));
   const tempos: TemposDoPosto[] = [];
+  // Intervalos fechados de todas as execuções; a série por dia recorta cada um ao seu dia.
+  const todosOsIntervalos: Intervalo[] = [];
   for (const [postoId, execucoes] of agrupar(dados.execucoes, (e) => e.postoId)) {
     const posto = postos.get(postoId);
     if (!posto) throw new Error('Posto da execução não encontrado.');
@@ -314,6 +337,7 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
       if (inicio >= periodo.fimMs || (fim !== null && fim <= periodo.inicioMs)) continue;
       noIntervalo = true;
       intervalos.push(...derivado.intervalos);
+      todosOsIntervalos.push(...derivado.intervalos);
       if (derivado.aberta) {
         abertas += 1;
         pendencias.push({ codigo: 'EXECUCAO_ABERTA', execucaoId: execucao.id, postoId });
@@ -333,6 +357,18 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
       execucoesAbertas: abertas,
     });
   }
+
+  const porDia: DiaDoPeriodo[] = dividirEmDias(periodo).map((dia) => {
+    const t = calcularTempos(todosOsIntervalos, dia);
+    const baixas = baixasPorDia.get(dia.data) ?? { baixas: 0, centesimosDeSegundo: 0 };
+    return {
+      data: dia.data,
+      produtivoSegundos: t.produtivoSegundos,
+      pausaSegundos: t.pausaSegundos,
+      baixas: baixas.baixas,
+      tempoPadraoDasBaixasSegundos: baixas.centesimosDeSegundo === null ? null : baixas.centesimosDeSegundo / 100,
+    };
+  });
 
   const ordenarPorEtapa = (a: Grupo, b: Grupo) => comparar(a.ordem.produtoCodigo, b.ordem.produtoCodigo) || a.etapa.ordem - b.etapa.ordem || comparar(a.ordem.unidade, b.ordem.unidade);
   return {
@@ -373,6 +409,7 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
         percentualDoPadrao: comparacao?.percentualDoPadrao ?? null,
       };
     }),
+    porDia,
     pendencias,
   };
 }
@@ -396,6 +433,7 @@ export class IndicadoresService {
       producaoFinal: doPeriodo.producaoFinal,
       tempos: doPeriodo.tempos,
       tempoMedio: doPeriodo.tempoMedio,
+      porDia: doPeriodo.porDia,
       cargaPendente: situacao.cargaPendente,
       cargaPorPosto: situacao.cargaPorPosto,
       pendencias: [...situacao.pendencias, ...doPeriodo.pendencias],

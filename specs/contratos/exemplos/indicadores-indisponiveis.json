@@ -30,9 +30,10 @@
       "produtoNome": "Outro produto fictício",
       "quantidade": 12.5,
       "unidade": "kg",
-      "planoCodigo": null,
+      "planoCodigo": "PLANO-2026-41",
       "etapasTotal": 1,
       "etapasBaixadas": 0,
+      "etapasInconsistentes": 0,
       "etapaAtual": {
         "etapaRoteiroId": "00000000-0000-4000-8000-000000000411",
         "ordem": 1,
@@ -67,6 +68,15 @@
     }
   ],
   "tempoMedio": [],
+  "porDia": [
+    {
+      "data": "2026-10-06",
+      "produtivoSegundos": 1800,
+      "pausaSegundos": 300,
+      "baixas": 0,
+      "tempoPadraoDasBaixasSegundos": 0
+    }
+  ],
   "cargaPendente": [
     {
       "produtoCodigo": "REF-002",

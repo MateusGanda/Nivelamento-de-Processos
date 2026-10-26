@@ -75,9 +75,9 @@ Telas e rotas do painel em 26/10/2026, todas com sessão de ADMIN ativo:
 | `/painel/roteiros` e `/painel/roteiros/[id]` | `/api/roteiros` e sub-rotas de status, etapas, postos da etapa, versões, produtos, vigente e tempos | `modules/routings` |
 | `/painel/planos-de-producao` | `/api/planos-de-producao`, `/api/planos-de-producao/[id]` | `modules/production-plans` |
 | `/painel/ordens-de-producao` | `/api/ordens-de-producao`, `/api/ordens-de-producao/[id]` | `modules/production-orders` |
-| (sem tela) | `/api/indicadores` | `modules/indicators` |
+| `/painel/indicadores` | `/api/indicadores` | `modules/indicators` |
 
-A edição usa `PATCH /api/<cadastro>/[id]` e a mudança de status usa `PATCH /api/<cadastro>/[id]/status`, com o corpo `{ "ativo": true | false }`. Execução e Indicadores continuam como destinos provisórios em `/painel/[modulo]`.
+A edição usa `PATCH /api/<cadastro>/[id]` e a mudança de status usa `PATCH /api/<cadastro>/[id]/status`, com o corpo `{ "ativo": true | false }`. Execução continua como destino provisório em `/painel/[modulo]`. Os gráficos da tela de indicadores são feitos com HTML e CSS, sem biblioteca de gráficos; as cores foram validadas para daltonismo e contraste contra o fundo dos cartões, e cada gráfico tem uma tabela equivalente.
 
 A ilha de apontamento fica em `/ilha`, fora do painel, com as rotas `/api/ilha/acesso`, `/api/ilha/operadores/[matricula]`, `/api/ilha/ordens`, `/api/ilha/motivos`, `/api/ilha/execucoes` e `/api/ilha/execucoes/[id]/{pausa,retomada,troca,baixa}`, dentro de `modules/executions`. A tela tem botões e textos grandes para uso no chão de fábrica, mantém o foco no campo de matrícula para o leitor USB e mostra os tempos com as funções de `modules/indicators/domain/tempos.ts`, sem duplicar o cálculo.
 
