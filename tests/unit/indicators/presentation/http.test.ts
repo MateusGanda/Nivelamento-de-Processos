@@ -29,7 +29,7 @@ test('responde os blocos e o meta com o período em UTC e as pendências', async
   assert.equal(resposta.status, 200);
   assert.equal(resposta.headers.get('Cache-Control'), 'no-store');
   const corpo = await resposta.json();
-  assert.deepEqual(Object.keys(corpo), ['meta', 'ordens', 'producao', 'producaoFinal', 'tempos', 'tempoMedio', 'cargaPendente', 'cargaPorPosto']);
+  assert.deepEqual(Object.keys(corpo), ['meta', 'ordens', 'producao', 'producaoFinal', 'tempos', 'tempoMedio', 'porDia', 'cargaPendente', 'cargaPorPosto']);
   assert.deepEqual(corpo.meta.filtros, { inicio: '2026-10-06T11:00:00.000Z', fim: '2026-10-06T21:00:00.000Z', setorId: null, postoId: null });
   assert.equal(corpo.meta.consultadoEm, '2026-10-06T21:00:00.000Z');
   assert.equal(corpo.meta.fuso, 'America/Sao_Paulo');

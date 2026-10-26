@@ -1,8 +1,12 @@
 # Contrato de consulta dos indicadores
 
-Versão de trabalho 0.8 — 14/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
+Versão de trabalho 0.9 — 26/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
 
 **Status: proposta para revisão.** A rota `GET /api/indicadores` está implementada e lê o banco, ainda sem os filtros `setorId` e `postoId` e sem `meta.origem` (ver "Implementação"). Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+
+## O que mudou na versão 0.9
+
+- **Série por dia** em `porDia[]`: tempo produtivo e de pausa de cada dia do período, no horário de Brasília, e o tempo padrão das baixas válidas do dia. Usada pelo gráfico de colunas por dia da tela.
 
 ## O que mudou na versão 0.8
 
@@ -77,7 +81,7 @@ Na implementação atual, `inicio` e `fim` precisam de data, hora e fuso (`Z` ou
 
 ## Dois tipos de informação
 
-- **Do período:** `producao`, `producaoFinal`, `tempos` e `tempoMedio` consideram só o que aconteceu entre `inicio` e `fim`.
+- **Do período:** `producao`, `producaoFinal`, `tempos`, `tempoMedio` e `porDia` consideram só o que aconteceu entre `inicio` e `fim`.
 - **Do momento da consulta:** `ordens`, `cargaPendente` e `cargaPorPosto` mostram a situação atual, independentemente do período.
 
 ## Resposta
@@ -159,6 +163,19 @@ Só entram intervalos fechados. Uma execução aberta gera pendência e não rec
 
 É média ponderada pela quantidade, não média de médias. Inclui o tempo gasto em unidades de retrabalho e refugo. Como o tempo padrão também é em segundos por unidade, `segundosPorUnidade` e `tempoPadraoSegundos` são diretamente comparáveis.
 
+### `porDia[]` — por dia do período
+
+Uma linha por dia do horário de Brasília (UTC−3, sem horário de verão) que tem alguma parte dentro do período, em ordem de data. O primeiro e o último dia são recortados ao período. Dia sem registro aparece com zeros, que são zero medido. Com mais de 366 dias a lista vem vazia.
+
+| Campo | Tipo | Significado |
+| --- | --- | --- |
+| `data` | texto | Dia, no formato `AAAA-MM-DD`. |
+| `produtivoSegundos`, `pausaSegundos` | número | Mesma regra de `tempos[]`, somando todos os postos e recortada ao dia. Execução aberta não conta o trecho em andamento; execução com eventos inconsistentes fica de fora. |
+| `baixas` | inteiro | Baixas válidas com `FINALIZACAO` no dia. |
+| `tempoPadraoDasBaixasSegundos` | número \| `null` | Soma, nas baixas válidas do dia, da quantidade da ordem vezes o `tempoPadrao` do produto na etapa. `null` quando alguma dessas baixas não tem tempo padrão; zero quando não houve baixa. |
+
+A comparação entre o tempo do dia e o tempo padrão das baixas do dia é aproximada: uma execução que atravessa dias conta o tempo em cada dia, enquanto o tempo padrão entra no dia da baixa. Execução encerrada por troca de operação conta tempo e não tem baixa.
+
 ### `cargaPendente[]` — por etapa
 
 Trabalho ainda sem baixa, estimado pelo tempo padrão. É a base para comparar a carga entre etapas e apoiar o nivelamento.
@@ -223,6 +240,7 @@ As funções ficam em `modules/indicators/domain/`, são puras e testadas em `te
 | --- | --- | --- |
 | `tempos` | `derivarIntervalos` e `calcularTempos` (`tempos.ts`) | Os intervalos saem dos eventos de cada execução; execução aberta não recebe término presumido. |
 | `tempoMedio` | `calcularTempoMedioPorUnidade` e `compararComTempoPadrao` (`tempos.ts`) | Média ponderada pela quantidade boa, comparada com o tempo padrão. |
+| `porDia` | `dividirEmDias` (`dias.ts`) e `calcularTempos` (`tempos.ts`) | Cada dia é uma janela; os intervalos de todas as execuções são recortados a ela. |
 | `ordens` | `identificarBaixa` e `calcularPosicao` (`producao.ts`) | Aplicam a regra de baixa abaixo. |
 | `producao` | `somarResultados` e `conferirResultado` (`producao.ts`) | Somam as baixas e conferem com a quantidade da ordem. |
 | `producaoFinal` | `identificarBaixa` e `somarResultados` (`producao.ts`) | Quantidade boa das baixas válidas da última etapa do roteiro. |
@@ -235,6 +253,8 @@ As funções ficam em `modules/indicators/domain/`, são puras e testadas em `te
 - **Caso de uso:** `IndicadoresService.consultar` (`modules/indicators/application/indicadores.ts`) lê os registros uma vez pelo contrato `IndicadoresRepository` e monta todos os blocos e as pendências; `consultarSituacaoAtual` devolve só `ordens`, `cargaPendente` e `cargaPorPosto`.
 - **Leitura do banco:** `PrismaIndicadoresRepository` (`modules/indicators/infrastructure/`), somente leitura. Faz uma consulta por tabela e o caso de uso junta em memória, o que basta para o volume do piloto. Converte `numeric` e `timestamptz`, que o Prisma devolve como texto.
 - **Testes:** caso de uso com repositório em memória em `tests/unit/indicators/application/` e handler com autorização e consulta substituídas em `tests/unit/indicators/presentation/`.
+
+- **Tela:** `/painel/indicadores` (`modules/indicators/presentation/components/indicators-screen.tsx`). Usa só esta rota; o cliente em `presentation/api-client.ts` confere o formato da resposta, e os exemplos de `exemplos/` são usados nos testes da tela. Gráficos: tempos e carga por posto em barras, tempo por dia em colunas com a linha do tempo padrão na mesma escala, e a qualidade da última etapa em anel (boa, retrabalho e refugo, a partir de `producao`). Não há gráfico de tempo ocioso: o modelo não tem jornada nem disponibilidade de posto, e ausência de apontamento não é ociosidade.
 
 Falta: filtros `setorId` e `postoId` e `meta.origem`.
 
