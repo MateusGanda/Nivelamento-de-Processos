@@ -48,9 +48,25 @@ export class PrismaOperadorRepository implements OperadorRepository {
   }
 
   async alterar(id: string, dados: AlteracaoOperador): Promise<Operador | null> {
+    return this.gravar(id, dados);
+  }
+
+  async definirAtivo(id: string, ativo: boolean): Promise<Operador | null> {
+    return this.gravar(id, { ativo });
+  }
+
+  async temExecucaoAberta(id: string): Promise<boolean> {
+    const [emExecucao, pausada] = await Promise.all([
+      db.orm.public.Execucao.where({ operadorId: id, status: 'EM_EXECUCAO' }).select('id').first(),
+      db.orm.public.Execucao.where({ operadorId: id, status: 'PAUSADA' }).select('id').first(),
+    ]);
+    return emExecucao !== null || pausada !== null;
+  }
+
+  private async gravar(id: string, campos: AlteracaoOperador | { ativo: boolean }): Promise<Operador | null> {
     try {
       return await db.transaction(async (tx) => {
-        const alterado = await tx.orm.public.Operador.where({ id }).update({ ...dados, updatedAt: new Date().toISOString() });
+        const alterado = await tx.orm.public.Operador.where({ id }).update({ ...campos, updatedAt: new Date().toISOString() });
         if (!alterado) return null;
         const registro = await tx.orm.public.Operador.where({ id })
           .include('setorPrincipal', (setor) => setor.select('id', 'codigo', 'nome')).first();

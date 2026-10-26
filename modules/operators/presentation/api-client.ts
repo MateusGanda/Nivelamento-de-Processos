@@ -52,3 +52,11 @@ export async function alterarOperador(id: string, dados: AlteracaoOperador): Pro
   if (!ehOperador(operador)) throw new ErroApiOperadores(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
   return operador;
 }
+
+export async function definirStatusOperador(id: string, ativo: boolean): Promise<Operador> {
+  const operador = await lerResposta(await fetch(`/api/operadores/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo }),
+  }));
+  if (!ehOperador(operador)) throw new ErroApiOperadores(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
+  return operador;
+}

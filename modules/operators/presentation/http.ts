@@ -37,9 +37,21 @@ export async function lerCadastroOperador(request: Request): Promise<CadastroOpe
   return { nome: dados.nome, setorPrincipalId: dados.setorPrincipalId, funcao: dados.funcao };
 }
 
+export async function lerStatusOperador(request: Request): Promise<boolean> {
+  let corpo: unknown;
+  try { corpo = await request.json(); }
+  catch { throw new ErroDeOperador('ENTRADA_INVALIDA', 'Corpo JSON inválido.'); }
+  if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo) || Object.keys(corpo).some((campo) => campo !== 'ativo')) {
+    throw new ErroDeOperador('ENTRADA_INVALIDA', 'Informe somente o campo ativo.');
+  }
+  const { ativo } = corpo as { ativo?: unknown };
+  if (typeof ativo !== 'boolean') throw new ErroDeOperador('ENTRADA_INVALIDA', 'ativo deve ser verdadeiro ou falso.');
+  return ativo;
+}
+
 export function criarHandlersOperadores({ autorizar, operadores }: {
   autorizar: () => Promise<unknown>;
-  operadores: Pick<OperadoresService, 'listar' | 'criar' | 'alterar'>;
+  operadores: Pick<OperadoresService, 'listar' | 'criar' | 'alterar' | 'definirStatus'>;
 }) {
   return {
     async GET(): Promise<Response> {
@@ -58,6 +70,12 @@ export function criarHandlersOperadores({ autorizar, operadores }: {
       try {
         await autorizar();
         return Response.json(await operadores.alterar(id, await lerCorpo(request)));
+      } catch (erro) { return respostaErroOperadores(erro); }
+    },
+    async PATCH_STATUS(request: Request, id: string): Promise<Response> {
+      try {
+        await autorizar();
+        return Response.json(await operadores.definirStatus(id, await lerStatusOperador(request)));
       } catch (erro) { return respostaErroOperadores(erro); }
     },
   };

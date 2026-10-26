@@ -6,7 +6,7 @@ A tela em /painel/operadores permite listar, criar e editar nome, setor principa
 
 Novos operadores exigem setor principal e recebem matrícula automática e permanente. O administrador não informa nem altera matrícula. A função é texto opcional, sem novo cadastro de cargos. A lotação é informativa; o posto efetivo continua na execução. Operador permanece separado de Usuario.
 
-Não inclui ativação/inativação, exclusão, importação CSV ou QR Code.
+A ativação/inativação usa PATCH /api/operadores/[id]/status com `{ "ativo": true | false }`. Operador com execução aberta (em execução ou pausada) não pode ser inativado, porque a ilha recusa operador inativo e a execução não poderia mais ser encerrada (decisão de 26/10/2026). A recusa aparece acima da lista, sem esconder a tabela. Não inclui exclusão, importação CSV ou QR Code.
 
 ## Regras e API
 
