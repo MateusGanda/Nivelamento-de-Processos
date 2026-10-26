@@ -186,12 +186,12 @@ Página `/painel/postos`, com GET/POST `/api/postos`, PATCH `/api/postos/[id]` e
 
 ## 7.5 Operadores
 
-Criação, listagem e edição em /painel/operadores e GET/POST /api/operadores + PATCH /api/operadores/[id]. Matrícula automática permanente, setor principal nos novos cadastros (somente setor ativo), função opcional, preservação dos legados e filtro de status.
+Criação, listagem, edição e ativação/inativação em /painel/operadores e GET/POST /api/operadores + PATCH /api/operadores/[id] + PATCH /api/operadores/[id]/status. Matrícula automática permanente, setor principal nos novos cadastros (somente setor ativo), função opcional, preservação dos legados e filtro de status.
 
 - [x] Listar
 - [x] Criar
 - [x] Editar nome, setor e função
-- [ ] Ativar/inativar
+- [x] Ativar/inativar (recusado com execução aberta)
 - [x] Gerar matrícula única automaticamente
 - [x] Preservar matrícula após transferência e edição do nome
 

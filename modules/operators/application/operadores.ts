@@ -37,6 +37,20 @@ export class OperadoresService {
     return alterado;
   }
 
+  // Inativo não é aceito na ilha; com execução aberta, ela não poderia mais ser encerrada.
+  async definirStatus(id: string, ativo: boolean): Promise<Operador> {
+    const naoEncontrado = () => new ErroDeOperador('NAO_ENCONTRADO', 'Operador não encontrado.');
+    if (!ehIdentificadorValido(id)) throw naoEncontrado();
+    if (typeof ativo !== 'boolean') throw new ErroDeOperador('ENTRADA_INVALIDA', 'ativo deve ser verdadeiro ou falso.');
+    if (!await this.operadores.buscarPorId(id)) throw naoEncontrado();
+    if (!ativo && await this.operadores.temExecucaoAberta(id)) {
+      throw new ErroDeOperador('CONFLITO', 'O operador tem uma execução aberta. Finalize ou dê baixa na ilha antes de inativar.');
+    }
+    const alterado = await this.operadores.definirAtivo(id, ativo);
+    if (!alterado) throw naoEncontrado();
+    return alterado;
+  }
+
   private async exigirSetor(id: string) {
     const setor = await this.operadores.buscarSetorPrincipal(id);
     if (!setor) throw new ErroDeOperador('ENTRADA_INVALIDA', 'Setor principal não encontrado.');

@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, LoaderCircle, Pencil, Plus, Search, UsersRound } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, LoaderCircle, Pencil, Plus, Power, PowerOff, Search, UsersRound } from 'lucide-react';
 import type { Operador } from '../../domain/operador';
-import { listarOperadores, ErroApiOperadores } from '../api-client';
+import { definirStatusOperador, listarOperadores, ErroApiOperadores } from '../api-client';
 import { filtrarOrdenarOperadores, formatarDataCadastro, type ColunaOperador, type FiltroStatusOperador, type OrdemOperador } from '../listing';
 import { OperatorFormDialog, type PedidoFormularioOperador } from './operator-form-dialog';
 
@@ -23,6 +23,9 @@ export function OperatorsScreen() {
   const [mensagem, setMensagem] = useState('');
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<FiltroStatusOperador>('todos');
+  const [alterandoStatus, setAlterandoStatus] = useState<string | null>(null);
+  // Recusa da mudança de status: aparece acima da lista, sem esconder a tabela.
+  const [erroStatus, setErroStatus] = useState('');
   const [ordem, setOrdem] = useState<OrdemOperador>({ coluna: 'nome', direcao: 'asc' });
   const dialogRef = useRef<HTMLDialogElement>(null);
   const origemFoco = useRef<HTMLButtonElement | null>(null);
@@ -73,14 +76,34 @@ export function OperatorsScreen() {
     setPedido((atual) => ({ operador, seq: (atual?.seq ?? 0) + 1 }));
   }
 
-  function aoConcluir(operador: Operador, acao: 'cadastrado' | 'alterado') {
+  function aoConcluir(operador: Operador, acao: 'cadastrado' | 'alterado' | 'ativado' | 'inativado') {
     ultimaMensagem.current = 'Operador ' + acao + ' com sucesso. Matrícula: ' + operador.matricula + '.';
     setMensagem(ultimaMensagem.current);
+    setErroStatus('');
     setCarregando(true);
     setErro('');
     void carregarLista().then((sucesso) => {
       if (sucesso === false && montado.current) setMensagem(mensagemFalhaAtualizacao);
     });
+  }
+
+  async function alternarStatus(operador: Operador) {
+    if (alterandoStatus) return;
+    setAlterandoStatus(operador.id);
+    setMensagem('');
+    setErroStatus('');
+    try {
+      aoConcluir(await definirStatusOperador(operador.id, !operador.ativo), operador.ativo ? 'inativado' : 'ativado');
+    } catch (falha) {
+      if (falha instanceof ErroApiOperadores && (falha.status === 401 || falha.status === 403)) {
+        router.replace('/login');
+        router.refresh();
+      } else if (montado.current) {
+        setErroStatus(falha instanceof ErroApiOperadores ? falha.message : 'Não foi possível alterar o status. Verifique sua conexão e tente novamente.');
+      }
+    } finally {
+      if (montado.current) setAlterandoStatus(null);
+    }
   }
 
   const visiveis = useMemo(() => filtrarOrdenarOperadores(operadores, busca, status, ordem), [operadores, busca, status, ordem]);
@@ -92,7 +115,7 @@ export function OperatorsScreen() {
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1440px]">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div><h1 className="text-2xl font-semibold tracking-tight">Operadores</h1><p className="mt-2 text-sm leading-6 text-muted">Cadastre, consulte e atualize os operadores e seus setores principais.</p></div>
+        <div><h1 className="text-2xl font-semibold tracking-tight">Operadores</h1><p className="mt-2 text-sm leading-6 text-muted">Cadastre, consulte, atualize e inative os operadores e seus setores principais.</p></div>
         <button
           type="button" aria-haspopup="dialog" aria-controls="cadastro-operador"
           onClick={(event) => abrirFormulario(null, event.currentTarget)}
@@ -101,6 +124,7 @@ export function OperatorsScreen() {
       </header>
 
       {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-lg border border-[#7bcba5]/25 bg-[#7bcba5]/5 p-4 text-sm leading-6 text-[#a6dfbf]"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
+      {erroStatus && <p role="alert" className="mt-6 flex items-start gap-2 rounded-lg border border-[#ffb4a5]/25 bg-[#ffb4a5]/5 p-4 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erroStatus}</p>}
 
       <section aria-label="Listagem de operadores" className="mt-7 min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
         <div className="flex flex-col gap-4 border-b border-white/10 p-4 sm:p-5 lg:flex-row lg:items-end">
@@ -146,7 +170,13 @@ export function OperatorsScreen() {
                     <td className="max-w-64 px-5 py-4 break-words text-muted">{operador.funcao ?? 'Não informada'}</td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${operador.ativo ? 'border-[#7bcba5]/20 bg-[#7bcba5]/10 text-[#a6dfbf]' : 'border-white/10 bg-white/5 text-muted'}`}>{operador.ativo ? 'Ativo' : 'Inativo'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={operador.createdAt}>{formatarDataCadastro(operador.createdAt)}</time></td>
-                    <td className="px-5 py-3 text-right"><button type="button" aria-haspopup="dialog" aria-controls="cadastro-operador" aria-label={'Editar ' + operador.nome} onClick={(event) => abrirFormulario(operador, event.currentTarget)} className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><Pencil aria-hidden="true" size={16} />Editar</button></td>
+                    <td className="px-5 py-3 text-right whitespace-nowrap"><button type="button" aria-haspopup="dialog" aria-controls="cadastro-operador" aria-label={'Editar ' + operador.nome} onClick={(event) => abrirFormulario(operador, event.currentTarget)} className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><Pencil aria-hidden="true" size={16} />Editar</button>
+                      {/* aria-disabled em vez de disabled: o botão mantém o foco durante o envio. */}
+                      <button type="button" aria-label={`${operador.ativo ? 'Inativar' : 'Ativar'} ${operador.nome}`} aria-disabled={alterandoStatus !== null}
+                        onClick={() => void alternarStatus(operador)}
+                        className="ml-2 inline-flex min-h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60"
+                      >{alterandoStatus === operador.id ? <LoaderCircle aria-hidden="true" size={16} strokeWidth={2} className="motion-safe:animate-spin" /> : operador.ativo ? <PowerOff aria-hidden="true" size={16} strokeWidth={2} /> : <Power aria-hidden="true" size={16} strokeWidth={2} />}{operador.ativo ? 'Inativar' : 'Ativar'}</button>
+                    </td>
                   </tr>)}
                   {visiveis.length === 0 && <tr><td colSpan={7} className="px-5 py-12 text-center text-muted"><UsersRound aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />{operadores.length === 0 ? 'Nenhum operador cadastrado.' : 'Nenhum operador encontrado para os filtros selecionados.'}</td></tr>}
                 </tbody>

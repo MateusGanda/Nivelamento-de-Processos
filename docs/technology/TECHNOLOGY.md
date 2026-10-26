@@ -71,7 +71,7 @@ Telas e rotas do painel em 26/10/2026, todas com sessão de ADMIN ativo:
 | `/painel/motivos-de-pausa` | `/api/motivos-de-pausa`, `/api/motivos-de-pausa/[id]`, `/api/motivos-de-pausa/[id]/status` | `modules/pause-reasons` |
 | `/painel/setores` | `/api/setores`, `/api/setores/[id]`, `/api/setores/[id]/status` | `modules/sectors` |
 | `/painel/postos` | `/api/postos`, `/api/postos/[id]`, `/api/postos/[id]/status` | `modules/workstations` |
-| `/painel/operadores` | `/api/operadores`, `/api/operadores/[id]` | `modules/operators` |
+| `/painel/operadores` | `/api/operadores`, `/api/operadores/[id]`, `/api/operadores/[id]/status` | `modules/operators` |
 | `/painel/roteiros` e `/painel/roteiros/[id]` | `/api/roteiros` e sub-rotas de status, etapas, postos da etapa, versões, produtos, vigente e tempos | `modules/routings` |
 | `/painel/planos-de-producao` | `/api/planos-de-producao`, `/api/planos-de-producao/[id]` | `modules/production-plans` |
 | `/painel/ordens-de-producao` | `/api/ordens-de-producao`, `/api/ordens-de-producao/[id]` | `modules/production-orders` |

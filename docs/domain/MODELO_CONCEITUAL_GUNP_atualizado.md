@@ -49,7 +49,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
   - produto inativo não é ligado a roteiro nem recebe ordem nova;
   - setor inativo não recebe posto nem operador novo, nem é escolhido numa troca de setor; manter o setor atual na edição é permitido;
   - posto inativo não é ligado a etapa nem recebe execução nova;
-  - operador inativo não é aceito na ilha.
+  - operador inativo não é aceito na ilha; por isso, operador com execução aberta (em execução ou pausada) não pode ser inativado (decisão de 26/10/2026).
 - A edição comum não altera `ativo`; a mudança de status tem uma ação própria.
 
 ### Cadastro de produto
@@ -81,7 +81,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Matrícula gerada no servidor: até quatro iniciais significativas e código do setor; repetições usam número junto às iniciais (LGNS-PES1, LGNS2-PES1). Sem letras, base OP.
 - Matrícula permanente após mudança de nome/setor. Matrículas antigas e de inativos continuam reservadas e não são convertidas.
 - Operadores antigos podem permanecer sem setor ao editar outros campos, ou receber o vínculo posteriormente. Não remover vínculo por null.
-- Nomes repetidos são permitidos; novo cadastro cria como ativo. Edição abrange nome, setor e função; ativação/inativação continua pendente.
+- Nomes repetidos são permitidos; novo cadastro cria como ativo. Edição abrange nome, setor e função; a ativação/inativação tem ação própria, conforme "Ativo e inativo".
 - Setor e função são informativos; o posto efetivo fica na execução. Não atribuem permissões nem restringem operações.
 - Geração, colisões, normalização, fallback e API seguem specs/contratos/operadores-setores.md. Constraints reforçam unicidade; até dez tentativas em colisões concorrentes de identificador.
 

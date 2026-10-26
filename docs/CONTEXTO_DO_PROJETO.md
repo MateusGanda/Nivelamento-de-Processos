@@ -114,14 +114,14 @@ Estado da `develop` em 26/10/2026 (após o pull request 55):
 - **Cadastros com página e API:**
   - Produtos, Operações, Postos e Motivos de Pausa: listar, criar, editar e ativar/inativar. Somente motivos ativos aparecem na pausa da ilha.
   - Setores: código automático permanente, edição de nome e descrição e ativar/inativar.
-  - Operadores: matrícula automática permanente, setor principal, função opcional e edição. A ativação/inativação de operadores ainda não tem tela nem rota.
+  - Operadores: matrícula automática permanente, setor principal, função opcional, edição e ativar/inativar. Operador com execução aberta (em execução ou pausada) não pode ser inativado, porque a ilha recusa operador inativo e a execução não poderia mais ser encerrada (decisão de 26/10/2026).
 - **Roteiros:** versões, etapas, postos de cada etapa, produtos, versão vigente por produto e tempo padrão por produto e etapa. A nova versão copia etapas, postos, produtos (sem vigência) e tempos.
 - **Planos de produção:** código, descrição e período opcional validado.
 - **Ordens de produção:** número único (o sistema sugere OP-0001, OP-0002…), plano, produto ativo, versão do roteiro ligada ao produto, quantidade e unidade.
 - **Ilha de apontamento:** `/ilha` e `/api/ilha/*`, com identificação por matrícula, início, pausa com motivo, retomada, troca de operação e baixa com boa, retrabalho e refugo. A tela mostra o tempo produtivo e o de pausa com a mesma regra dos indicadores. Mudanças de estado são condicionais no banco: duas ações simultâneas sobre a mesma execução não passam juntas, e a segunda recebe conflito.
 - **Indicadores:** `GET /api/indicadores` lê o banco e calcula produção, tempos e carga por posto (contrato em `specs/contratos/indicadores.md`). Ainda não há tela; o item Indicadores do painel é provisório.
 - **Dados fictícios:** `npm run seed:desenvolvimento` popula um banco de desenvolvimento com o fluxo completo, incluindo execuções, pausas e baixas. Não usar no banco do site publicado.
-- **Pendentes:** tela de indicadores (os itens Execução e Indicadores do painel são provisórios), dashboard, leitor USB, limpeza da identificação da ilha por inatividade e ativação/inativação de operadores.
+- **Pendentes:** tela de indicadores (os itens Execução e Indicadores do painel são provisórios), dashboard, leitor USB, e limpeza da identificação da ilha por inatividade.
 - Os contratos de códigos de setor e matrículas automáticas estão em `specs/contratos/operadores-setores.md`. Cadastros antigos mantêm matrículas e podem permanecer sem setor até regularização.
 - Não inferir que uma tarefa está concluída só porque aparece em um plano ou roadmap. Atualizar o status apenas após inspecionar o repositório ou receber confirmação da equipe.
 
