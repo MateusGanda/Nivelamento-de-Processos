@@ -54,10 +54,14 @@ const OPERADORES = [
   { matricula: '1006', nome: 'Operador Fictício 6', setor: 'Montagem', funcao: 'Auxiliar de montagem' },
 ];
 const MOTIVOS = [
-  { nome: 'Falta de material', descricao: 'Material não disponível no posto' },
-  { nome: 'Ajuste de máquina', descricao: 'Regulagem ou troca de ferramenta' },
-  { nome: 'Intervalo', descricao: 'Pausa prevista na jornada' },
-  { nome: 'Manutenção', descricao: 'Parada para manutenção' },
+  { nome: 'Falta de material', descricao: 'Matéria-prima ou componentes indisponíveis.' },
+  { nome: 'Manutenção corretiva', descricao: 'Quebra ou falha que exige reparo.' },
+  { nome: 'Manutenção preventiva', descricao: 'Inspeções e manutenções programadas.' },
+  { nome: 'Ajuste de máquina/ferramenta', descricao: 'Regulagem, troca de ferramenta ou preparação.' },
+  { nome: 'Setup / troca de produto', descricao: 'Preparação para fabricar outro produto.' },
+  { nome: 'Falta de operador', descricao: 'Ausência ou falta de cobertura no posto.' },
+  { nome: 'Limpeza e organização', descricao: 'Limpeza do posto ou organização necessária.' },
+  { nome: 'Reunião/treinamento', descricao: 'Atividade interna que interrompe a produção.' },
 ];
 // Roteiro de cada produto: operações em ordem e tempo padrão em segundos por unidade.
 const PRODUTOS = [
@@ -86,7 +90,7 @@ const APONTAMENTOS: Apontamento[] = [
   // OP-0001: as quatro etapas baixadas.
   { ordem: 'OP-0001', operacao: 'Corte', posto: 'PRE-01', operador: '1001', fim: 'BAIXA', quantidades: [40, 0, 0], eventos: [['INICIO', '15 08:00'], ['FINALIZACAO', '15 08:25']] },
   { ordem: 'OP-0001', operacao: 'Montagem', posto: 'MON-01', operador: '1002', fim: 'BAIXA', quantidades: [38, 1, 1],
-    eventos: [['INICIO', '15 09:00'], ['PAUSA', '15 09:40', 'Ajuste de máquina'], ['RETOMADA', '15 09:50'], ['FINALIZACAO', '15 10:30']] },
+    eventos: [['INICIO', '15 09:00'], ['PAUSA', '15 09:40', 'Ajuste de máquina/ferramenta'], ['RETOMADA', '15 09:50'], ['FINALIZACAO', '15 10:30']] },
   { ordem: 'OP-0001', operacao: 'Acabamento', posto: 'ACA-01', operador: '1003', fim: 'BAIXA', quantidades: [37, 2, 1], eventos: [['INICIO', '15 13:00'], ['FINALIZACAO', '15 13:45']] },
   { ordem: 'OP-0001', operacao: 'Inspeção', posto: 'INS-01', operador: '1004', fim: 'BAIXA', quantidades: [38, 1, 1], eventos: [['INICIO', '16 08:00'], ['FINALIZACAO', '16 08:15']] },
   // OP-0002: corte baixado; na montagem, uma troca de operação e depois a baixa em outro posto.
@@ -99,7 +103,7 @@ const APONTAMENTOS: Apontamento[] = [
   { ordem: 'OP-0003', operacao: 'Montagem', posto: 'MON-02', operador: '1006', fim: 'EM_EXECUCAO', eventos: [['INICIO', '19 08:00']] },
   // OP-0004: corte baixado; montagem pausada.
   { ordem: 'OP-0004', operacao: 'Corte', posto: 'PRE-02', operador: '1003', fim: 'BAIXA', quantidades: [50, 0, 0], eventos: [['INICIO', '17 09:00'], ['FINALIZACAO', '17 09:40']] },
-  { ordem: 'OP-0004', operacao: 'Montagem', posto: 'MON-01', operador: '1005', fim: 'PAUSADA', eventos: [['INICIO', '19 08:30'], ['PAUSA', '19 09:00', 'Intervalo']] },
+  { ordem: 'OP-0004', operacao: 'Montagem', posto: 'MON-01', operador: '1005', fim: 'PAUSADA', eventos: [['INICIO', '19 08:30'], ['PAUSA', '19 09:00', 'Falta de material']] },
   // OP-0005 e OP-0006: ainda não iniciadas.
 ];
 // O Prisma recebe numeric como texto decimal com a precisão da coluna.

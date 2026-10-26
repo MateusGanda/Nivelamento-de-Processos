@@ -2,7 +2,7 @@
 
 > Roadmap operacional do MVP do GUNP — Sistema Web para Gerenciamento de Nivelamento de Processos em Linhas de Produção.
 >
-> **Estado atual (26/10/2026):** cadastros administrativos (exceto Motivos de Pausa), roteiros, planos, ordens, a API e a tela da ilha de apontamento e a rota de indicadores estão na `develop` e no site publicado. Faltam o cadastro de Motivos de Pausa, a tela de indicadores, o dashboard, o leitor USB e o teste do fluxo ponta a ponta. As marcações abaixo refletem o código nessa data; conferir o repositório antes de presumir que algo está pronto.
+> **Estado atual (26/10/2026):** cadastros administrativos, roteiros, planos, ordens, a API e a tela da ilha de apontamento e a rota de indicadores estão na `develop` e no site publicado. Faltam a tela de indicadores, o dashboard, o leitor USB e o teste do fluxo ponta a ponta. As marcações abaixo refletem o código nessa data; conferir o repositório antes de presumir que algo está pronto.
 
 ## 1. Objetivo
 
@@ -13,7 +13,7 @@ Este documento organiza o desenvolvimento do GUNP em etapas executáveis, com de
 ### Incluído
 
 - [x] Estrutura da aplicação e API
-- [ ] Cadastros de Produtos, Operações, Setores, Postos, Operadores e Motivos de Pausa (falta Motivos de Pausa)
+- [x] Cadastros de Produtos, Operações, Setores, Postos, Operadores e Motivos de Pausa
 - [x] Roteiros versionados e Etapas
 - [x] Produto–Roteiro
 - [x] Tempo padrão por Produto + Etapa
@@ -197,13 +197,13 @@ Criação, listagem e edição em /painel/operadores e GET/POST /api/operadores 
 
 ## 7.6 Motivos de pausa
 
-Pendente. A tabela `MotivoPausa` existe e a ilha já lista os motivos ativos para a pausa; sem o cadastro, a pausa só funciona em bancos com motivos gravados pelo seed.
+Página `/painel/motivos-de-pausa`, com GET/POST `/api/motivos-de-pausa`, PATCH `/api/motivos-de-pausa/[id]` e PATCH `/api/motivos-de-pausa/[id]/status`, em `modules/pause-reasons`. A ilha lista somente os motivos ativos. Lista proposta em `docs/MOTIVOS_DE_PAUSA.md`.
 
-- [ ] Listar
-- [ ] Criar
-- [ ] Editar
-- [ ] Ativar/inativar
-- [ ] Validar nome único
+- [x] Listar
+- [x] Criar
+- [x] Editar
+- [x] Ativar/inativar
+- [x] Validar nome único
 
 **Definition of Done:** cada cadastro possui listagem, criação, edição, validação, tratamento de erro, loading, estado vazio e feedback de sucesso/erro.
 
@@ -396,7 +396,7 @@ Exibir operador, ordem, produto, etapa, operação, posto, tempo decorrido, stat
 
 Implementar estados de loading, vazio, execução ativa, pausada, erro e sucesso.
 
-Implementada em `/ilha` (pull requests 54 e 55). O terminal é liberado pela chave da ilha; o operador é identificado pela matrícula, digitada ou lida. Pendentes: limpar a identificação por inatividade (precisa de regra da equipe), link da ilha a partir do painel e teste do fluxo no site com motivos de pausa cadastrados.
+Implementada em `/ilha` (pull requests 54 e 55). O terminal é liberado pela chave da ilha; o operador é identificado pela matrícula, digitada ou lida. Pendentes: limpar a identificação por inatividade (precisa de regra da equipe), link da ilha a partir do painel e teste do fluxo no site depois de cadastrar os motivos de pausa.
 
 - [x] Identificação por matrícula
 - [x] Escolha de ordem, etapa e posto
@@ -663,7 +663,7 @@ A divisão abaixo é a orientação original. Na prática, parte das tarefas foi
 - [x] Estrutura da aplicação
 - [x] API base
 - [x] Prisma
-- [ ] Cadastros (falta Motivos de Pausa)
+- [x] Cadastros
 - [x] Roteiros
 - [x] Produtos
 - [x] Operações
@@ -864,7 +864,7 @@ Uma tarefa está concluída quando:
 - [x] Setores
 - [x] Postos
 - [x] Operadores
-- [ ] Motivos
+- [x] Motivos
 
 ## M3 — Processo produtivo
 
@@ -937,7 +937,7 @@ Como o banco já está pronto, **não começar pelo dashboard**.
 - [x] Setores
 - [x] Postos
 - [x] Operadores
-- [ ] Motivos de pausa
+- [x] Motivos de pausa
 
 ## Sprint 2 — Roteiros
 

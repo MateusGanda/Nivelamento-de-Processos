@@ -6,7 +6,7 @@
 
 O menu contém Início; Cadastros (Produtos, Operações, Setores, Postos, Operadores e Motivos de Pausa); Produção (Roteiros, Planos de Produção, Ordens de Produção e Execução); e Relatórios (Indicadores). Indicadores aparece somente no menu lateral. Menu, cartões e páginas provisórias usam os metadados de `modules/access/presentation/painel-navigation.ts`.
 
-Produtos, Operações, Setores, Postos, Operadores e Roteiros possuem páginas explícitas sob `/painel`. Operações permite criação, listagem e edição por API, detalhadas em `OPERACOES_GUNP.md`; Operadores e Setores mantêm as entregas descritas em `OPERADORES_GUNP.md` e `SETORES_GUNP.md`. Os cinco destinos ainda provisórios sob `/painel/[modulo]` (Motivos de Pausa, Planos de Produção, Ordens de Produção, Execução e Indicadores) mostram título, ícone, descrição, aviso de implementação futura e link Voltar ao início. Slugs desconhecidos retornam 404. Execução é um destino administrativo provisório, sem acesso operacional à ilha.
+Produtos, Operações, Setores, Postos, Operadores, Motivos de Pausa, Roteiros, Planos de Produção e Ordens de Produção possuem páginas explícitas sob `/painel`. Operações permite criação, listagem e edição por API, detalhadas em `OPERACOES_GUNP.md`; Operadores e Setores mantêm as entregas descritas em `OPERADORES_GUNP.md` e `SETORES_GUNP.md`. Os dois destinos ainda provisórios sob `/painel/[modulo]` (Execução e Indicadores) mostram título, ícone, descrição, aviso de implementação futura e link Voltar ao início. Slugs desconhecidos retornam 404. Execução é um destino administrativo provisório, sem acesso operacional à ilha.
 
 ## Apresentação
 

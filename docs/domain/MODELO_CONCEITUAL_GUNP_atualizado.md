@@ -43,7 +43,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 ## Regras de negócio
 
 ### Ativo e inativo
-- `Produto`, `Operacao`, `Setor`, `Posto`, `Roteiro` e `Operador` têm `ativo`. Cadastros usados por outros registros não são excluídos; são inativados (decisão da equipe de 22/10/2026).
+- `Produto`, `Operacao`, `Setor`, `Posto`, `Roteiro`, `Operador` e `MotivoPausa` têm `ativo`. Cadastros usados por outros registros não são excluídos; são inativados (decisão da equipe de 22/10/2026).
 - Um cadastro inativo não entra em vínculos novos, mas continua nos registros que já o usam:
   - operação inativa não entra em etapa nova; etapas existentes continuam;
   - produto inativo não é ligado a roteiro nem recebe ordem nova;
@@ -70,6 +70,11 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 
 ### Cadastro de posto
 - Código obrigatório e único; nome e setor obrigatórios. Ativação/inativação conforme "Ativo e inativo".
+
+### Cadastro de motivo de pausa
+- Nome obrigatório e único; descrição opcional. Não há exclusão; o motivo é inativado.
+- Motivo inativo não aparece na pausa da ilha e não é aceito em pausa nova; as pausas já registradas continuam com ele.
+- Lista de motivos proposta para o cadastro em `docs/MOTIVOS_DE_PAUSA.md`.
 
 ### Cadastro de operador
 - Nome e setor principal obrigatórios nos novos cadastros; função opcional em texto livre.
