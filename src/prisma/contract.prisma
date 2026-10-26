@@ -273,6 +273,14 @@ model Execucao {
     name: "Execucao_quantidades_finalizacao_check"
   )
 
+  // Um operador não pode ter duas execuções abertas; a pausada também ocupa o operador.
+  @@index(
+    [operadorId],
+    unique: true,
+    where: "(\"status\" <> 'FINALIZADA')",
+    name: "Execucao_operador_aberta_unica"
+  )
+
   @@index([ordemProducaoId])
   @@index([etapaRoteiroId])
   @@index([operadorId])
