@@ -1,5 +1,8 @@
 import { gerarCodigoSetor } from '../domain/codigo-setor.ts';
-import { ehIdentificadorValido, ErroCodigoSetorReservado, ErroDeSetor, validarCadastroSetor, type CadastroSetor, type Setor } from '../domain/setor.ts';
+import {
+  ehIdentificadorValido, ErroCodigoSetorReservado, ErroDeSetor, validarAlteracaoSetor, validarCadastroSetor,
+  type AlteracaoSetor, type CadastroSetor, type Setor,
+} from '../domain/setor.ts';
 import type { SetorRepository } from './contracts.ts';
 
 export class SetoresService {
@@ -24,6 +27,21 @@ export class SetoresService {
       catch (erro) { if (!(erro instanceof ErroCodigoSetorReservado)) throw erro; }
     }
     throw new ErroCodigoSetorReservado();
+  }
+
+  async alterar(id: string, input: AlteracaoSetor): Promise<Setor> {
+    const naoEncontrado = () => new ErroDeSetor('NAO_ENCONTRADO', 'Setor não encontrado.');
+    if (!ehIdentificadorValido(id)) throw naoEncontrado();
+    const dados = validarAlteracaoSetor(input);
+    if (!await this.setores.buscarPorId(id)) throw naoEncontrado();
+    if (dados.nome !== undefined) {
+      const outro = await this.setores.buscarPorNome(dados.nome);
+      if (outro && outro.id !== id) throw new ErroDeSetor('CONFLITO', 'Nome de setor já cadastrado.');
+    }
+    const alterado = await this.setores.alterar(id, dados);
+    // O setor pode ter sido removido entre a consulta e a gravação.
+    if (!alterado) throw naoEncontrado();
+    return alterado;
   }
 
   // Inativo sai da escolha de setor para postos e operadores novos; quem já está nele continua.

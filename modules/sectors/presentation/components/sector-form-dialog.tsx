@@ -1,14 +1,19 @@
 'use client';
 
-import { useRef, useState, type FormEvent, type RefObject } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, LoaderCircle, X } from 'lucide-react';
-import { cadastrarSetor, ErroApiSetores } from '../api-client';
+import type { Setor } from '../../domain/setor';
+import { alterarSetor, cadastrarSetor, ErroApiSetores } from '../api-client';
 
-export function SectorCreateDialog({ dialogRef, botaoRef, aoCadastrado }: {
+// setor nulo abre o cadastro; um setor abre a edição. seq permite reabrir o mesmo setor.
+export type PedidoFormularioSetor = { setor: Setor | null; seq: number };
+
+export function SectorFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
   dialogRef: RefObject<HTMLDialogElement | null>;
-  botaoRef: RefObject<HTMLButtonElement | null>;
-  aoCadastrado: () => void;
+  pedido: PedidoFormularioSetor | null;
+  aoConcluir: (acao: 'cadastrado' | 'alterado') => void;
+  aoFechar: () => void;
 }) {
   const router = useRouter();
   const emEnvio = useRef(false);
@@ -16,12 +21,24 @@ export function SectorCreateDialog({ dialogRef, botaoRef, aoCadastrado }: {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [erro, setErro] = useState('');
+  const setor = pedido?.setor ?? null;
+  const edicao = setor !== null;
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!pedido || !dialog) return;
+    setNome(pedido.setor?.nome ?? '');
+    setDescricao(pedido.setor?.descricao ?? '');
+    setErro('');
+    if (!dialog.open) dialog.showModal();
+    dialog.querySelector<HTMLInputElement>('#setor-nome')?.focus();
+  }, [pedido, dialogRef]);
 
   function fechar() {
     if (!emEnvio.current) dialogRef.current?.close();
   }
 
-  async function cadastrar(event: FormEvent<HTMLFormElement>) {
+  async function enviar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (emEnvio.current) return;
     if (!nome.trim()) {
@@ -32,15 +49,16 @@ export function SectorCreateDialog({ dialogRef, botaoRef, aoCadastrado }: {
     setEnviando(true);
     setErro('');
     try {
-      await cadastrarSetor({ nome, descricao });
+      if (setor) await alterarSetor(setor.id, { nome, descricao: descricao || null });
+      else await cadastrarSetor({ nome, descricao });
       dialogRef.current?.close();
-      aoCadastrado();
+      aoConcluir(setor ? 'alterado' : 'cadastrado');
     } catch (falha) {
       if (falha instanceof ErroApiSetores && (falha.status === 401 || falha.status === 403)) {
         router.replace('/login');
         router.refresh();
       } else {
-        setErro(falha instanceof ErroApiSetores ? falha.message : 'Não foi possível confirmar o cadastro. Verifique a lista e sua conexão antes de tentar novamente.');
+        setErro(falha instanceof ErroApiSetores ? falha.message : 'Não foi possível confirmar a gravação. Verifique a lista e sua conexão antes de tentar novamente.');
       }
     } finally {
       emEnvio.current = false;
@@ -59,17 +77,21 @@ export function SectorCreateDialog({ dialogRef, botaoRef, aoCadastrado }: {
         const rect = event.currentTarget.getBoundingClientRect();
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) fechar();
       }}
-      onClose={() => { setNome(''); setDescricao(''); setErro(''); botaoRef.current?.focus(); }}
+      onClose={() => { setNome(''); setDescricao(''); setErro(''); aoFechar(); }}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-[#34404b] bg-[#1b232a] p-0 text-foreground shadow-2xl backdrop:bg-black/65"
     >
       <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
-        <h2 id="cadastro-setor-titulo" className="text-xl font-semibold">Adicionar setor</h2>
-        <button type="button" onClick={fechar} disabled={enviando} aria-label="Fechar cadastro" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
+        <h2 id="cadastro-setor-titulo" className="text-xl font-semibold">{edicao ? 'Editar setor' : 'Adicionar setor'}</h2>
+        <button type="button" onClick={fechar} disabled={enviando} aria-label={edicao ? 'Fechar edição' : 'Fechar cadastro'} className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
       </div>
-      <form onSubmit={cadastrar} aria-busy={enviando} className="space-y-5 p-6">
-        <p id="cadastro-setor-descricao" className="text-sm leading-6 text-muted">Informe o nome do setor e, se desejar, uma descrição da área de produção.</p>
+      <form onSubmit={enviar} aria-busy={enviando} className="space-y-5 p-6">
+        <p id="cadastro-setor-descricao" className="text-sm leading-6 text-muted">
+          {edicao ? 'Altere o nome ou a descrição do setor. O código é permanente e não muda.' : 'Informe o nome do setor e, se desejar, uma descrição da área de produção.'}
+        </p>
         <div>
-          <p className="mb-4 text-sm text-muted">O código do setor será gerado automaticamente após cadastrar.</p>
+          {edicao
+            ? <p className="mb-4 text-sm text-muted">Código: <span className="font-medium text-foreground">{setor.codigo}</span></p>
+            : <p className="mb-4 text-sm text-muted">O código do setor será gerado automaticamente após cadastrar.</p>}
           <label htmlFor="setor-nome" className="block text-sm font-medium">Nome</label>
           <input id="setor-nome" name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={`${campo} h-12`} aria-describedby={erro ? 'cadastro-setor-erro' : 'setor-nome-ajuda'} />
           <p id="setor-nome-ajuda" className="mt-2 text-xs leading-5 text-muted">Use um nome único para identificar o setor.</p>
@@ -82,7 +104,8 @@ export function SectorCreateDialog({ dialogRef, botaoRef, aoCadastrado }: {
         <div className="flex flex-col-reverse justify-end gap-3 border-t border-white/10 pt-5 sm:flex-row">
           <button type="button" onClick={fechar} disabled={enviando} className="min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60">Cancelar</button>
           <button type="submit" disabled={enviando} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70">
-            {enviando && <LoaderCircle aria-hidden="true" size={20} strokeWidth={2} className="motion-safe:animate-spin" />}{enviando ? 'Cadastrando…' : 'Cadastrar setor'}
+            {enviando && <LoaderCircle aria-hidden="true" size={20} strokeWidth={2} className="motion-safe:animate-spin" />}
+            {edicao ? (enviando ? 'Salvando…' : 'Salvar alterações') : (enviando ? 'Cadastrando…' : 'Cadastrar setor')}
           </button>
         </div>
       </form>

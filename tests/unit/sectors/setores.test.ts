@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SetoresService } from '../../../modules/sectors/application/setores.ts';
 import type { SetorRepository } from '../../../modules/sectors/application/contracts.ts';
-import { ErroDeSetor, type CadastroSetor, type NovoSetor, type Setor } from '../../../modules/sectors/domain/setor.ts';
+import { ErroDeSetor, type AlteracaoSetor, type CadastroSetor, type NovoSetor, type Setor } from '../../../modules/sectors/domain/setor.ts';
 import { traduzirErroCriacaoSetor } from '../../../modules/sectors/infrastructure/persistence-errors.ts';
 import { criarHandlersSetores } from '../../../modules/sectors/presentation/http.ts';
 import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
@@ -12,6 +12,7 @@ class RepositorioEmMemoria implements SetorRepository {
   setores: Setor[] = [];
   async listar() { return [...this.setores]; }
   async codigosReservados() { return this.setores.map((setor) => setor.codigo); }
+  async buscarPorId(id: string) { return this.setores.find((setor) => setor.id === id) ?? null; }
   async buscarPorNome(nome: string) { return this.setores.find((setor) => setor.nome === nome) ?? null; }
   async criar(dados: NovoSetor) {
     // Simula a constraint atômica mesmo quando ambas as consultas prévias não encontram o nome.
@@ -23,6 +24,15 @@ class RepositorioEmMemoria implements SetorRepository {
     }
     const setor: Setor = { id: `00000000-0000-4000-8000-${String(this.setores.length + 1).padStart(12, '0')}`, ...dados, ativo: true, createdAt: '2026-10-13T12:00:00Z', updatedAt: '2026-10-13T12:00:00Z' };
     this.setores.push(setor);
+    return setor;
+  }
+  async alterar(id: string, dados: AlteracaoSetor) {
+    const setor = this.setores.find((item) => item.id === id);
+    if (!setor) return null;
+    if (dados.nome !== undefined && this.setores.some((item) => item.id !== id && item.nome === dados.nome)) {
+      return traduzirErroCriacaoSetor({ sqlState: '23505', constraint: 'Setor_nome_key' });
+    }
+    Object.assign(setor, dados, { updatedAt: '2026-10-26T12:00:00Z' });
     return setor;
   }
   async definirAtivo(id: string, ativo: boolean) {
@@ -121,7 +131,7 @@ test('setor: JSON inválido, tipos incorretos e campos extras são rejeitados an
 test('setor: autorização rejeita sessão ausente/inválida e conta inativa antes de ler ou gravar', async () => {
   let acessos = 0;
   for (const codigo of ['NAO_AUTENTICADO', 'SEM_AUTORIZACAO', 'NAO_ENCONTRADO'] as const) {
-    const handlers = criarHandlersSetores({ autorizar: async () => { throw new ErroDeAcesso(codigo, 'Acesso negado.'); }, setores: { listar: async () => { acessos++; return []; }, criar: async () => { acessos++; throw new Error('Não deve executar'); }, definirStatus: async () => { acessos++; throw new Error('Não deve executar'); } } });
+    const handlers = criarHandlersSetores({ autorizar: async () => { throw new ErroDeAcesso(codigo, 'Acesso negado.'); }, setores: { listar: async () => { acessos++; return []; }, criar: async () => { acessos++; throw new Error('Não deve executar'); }, alterar: async () => { acessos++; throw new Error('Não deve executar'); }, definirStatus: async () => { acessos++; throw new Error('Não deve executar'); } } });
     const esperado = { NAO_AUTENTICADO: 401, SEM_AUTORIZACAO: 403, NAO_ENCONTRADO: 404 }[codigo];
     assert.equal((await handlers.GET()).status, esperado);
     assert.equal((await handlers.POST(post({ nome: 'Costura' }))).status, esperado);
@@ -133,7 +143,7 @@ test('setor: autorização rejeita sessão ausente/inválida e conta inativa ant
 test('setor: falhas inesperadas de autorização, leitura e escrita retornam 500 sem detalhes internos', async () => {
   const falhar = async (): Promise<never> => { throw new Error('detalhe-interno-nao-publico'); };
   for (const autorizar of [async () => undefined, falhar]) {
-    const handlers = criarHandlersSetores({ autorizar, setores: { listar: falhar, criar: falhar, definirStatus: falhar } });
+    const handlers = criarHandlersSetores({ autorizar, setores: { listar: falhar, criar: falhar, alterar: falhar, definirStatus: falhar } });
     for (const resposta of [await handlers.GET(), await handlers.POST(post({ nome: 'Costura' }))]) {
       assert.equal(resposta.status, 500);
       assert.deepEqual(await resposta.json(), { erro: { codigo: 'ERRO_INTERNO', mensagem: 'Não foi possível concluir a solicitação.' } });
@@ -175,4 +185,38 @@ test('setor: inativa e reativa sem mudar código nem nome; handler valida o corp
   for (const corpo of [{}, { ativo: 'false' }, { ativo: true, codigo: 'X' }, []]) assert.equal((await handlers.PATCH_STATUS(patch(corpo), criado.id)).status, 400);
   assert.equal((await handlers.PATCH_STATUS(patch({ ativo: true }), '00000000-0000-4000-8000-0000000000ff')).status, 404);
   assert.equal(repo.setores[0].ativo, false);
+});
+
+test('setor: edita nome e descrição sem mudar o código; nome repetido é conflito', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new SetoresService(repo);
+  const pesponto = await service.criar({ nome: 'Pesponto', descricao: 'Costura de peças' });
+  await service.criar({ nome: 'Costura' });
+  const alterado = await service.alterar(pesponto.id, { nome: '  Pesponto e Costura  ' });
+  assert.deepEqual([alterado.nome, alterado.descricao, alterado.codigo], ['Pesponto e Costura', 'Costura de peças', pesponto.codigo]);
+  assert.equal((await service.alterar(pesponto.id, { descricao: '   ' })).descricao, null);
+  assert.equal((await service.alterar(pesponto.id, { nome: 'Pesponto e Costura' })).nome, 'Pesponto e Costura');
+  await assert.rejects(() => service.alterar(pesponto.id, { nome: 'Costura' }), conflito);
+  for (const dados of [{}, { nome: '  ' }, { nome: 5 }, { descricao: 5 }]) {
+    await assert.rejects(() => service.alterar(pesponto.id, dados as never), (erro: unknown) => erro instanceof ErroDeSetor && erro.codigo === 'ENTRADA_INVALIDA');
+  }
+  await assert.rejects(() => service.alterar('00000000-0000-4000-8000-0000000000ff', { nome: 'X' }), (erro: unknown) => erro instanceof ErroDeSetor && erro.codigo === 'NAO_ENCONTRADO');
+  await assert.rejects(() => service.alterar('setor-1', { nome: 'X' }), (erro: unknown) => erro instanceof ErroDeSetor && erro.codigo === 'NAO_ENCONTRADO');
+});
+
+test('setor: PATCH altera com 200 e recusa código, status e campos extras', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new SetoresService(repo);
+  const handlers = criarHandlersSetores({ autorizar: async () => ({}), setores: service });
+  const criado = await service.criar({ nome: 'Pesponto' });
+  const resposta = await handlers.PATCH(patch({ nome: 'Pesponto 2', descricao: null }), criado.id);
+  assert.equal(resposta.status, 200);
+  assert.deepEqual([(await resposta.json()).nome, repo.setores[0].codigo], ['Pesponto 2', criado.codigo]);
+  for (const corpo of [{ codigo: 'XYZ1' }, { ativo: false }, { nome: 'A', postos: [] }, { nome: 1 }, []]) {
+    assert.equal((await handlers.PATCH(patch(corpo), criado.id)).status, 400);
+  }
+  assert.equal((await handlers.PATCH(patch({ nome: 'X' }), '00000000-0000-4000-8000-0000000000ff')).status, 404);
+  const negado = criarHandlersSetores({ autorizar: async () => { throw new ErroDeAcesso('NAO_AUTENTICADO', 'Acesso negado.'); }, setores: service });
+  assert.equal((await negado.PATCH(patch({ nome: 'Outro' }), criado.id)).status, 401);
+  assert.equal(repo.setores[0].nome, 'Pesponto 2');
 });

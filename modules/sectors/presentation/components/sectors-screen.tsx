@@ -2,17 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Factory, LoaderCircle, Plus, Power, PowerOff, Search } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Factory, LoaderCircle, Pencil, Plus, Power, PowerOff, Search } from 'lucide-react';
 import type { Setor } from '../../domain/setor';
 import { definirStatusSetor, listarSetores, ErroApiSetores } from '../api-client';
 import { filtrarOrdenarSetores, formatarDataCadastro, type ColunaSetor, type FiltroStatusSetor, type OrdemSetor } from '../listing';
-import { SectorCreateDialog } from './sector-create-dialog';
+import { SectorFormDialog, type PedidoFormularioSetor } from './sector-form-dialog';
 
 const colunas: ReadonlyArray<{ campo: ColunaSetor; titulo: string }> = [
   { campo: 'codigo', titulo: 'Código' }, { campo: 'nome', titulo: 'Nome' }, { campo: 'descricao', titulo: 'Descrição' }, { campo: 'ativo', titulo: 'Status' }, { campo: 'createdAt', titulo: 'Cadastrado em' },
 ];
-type Acao = 'cadastrado' | 'ativado' | 'inativado';
-const acoes: readonly Acao[] = ['cadastrado', 'ativado', 'inativado'];
+type Acao = 'cadastrado' | 'alterado' | 'ativado' | 'inativado';
+const acoes: readonly Acao[] = ['cadastrado', 'alterado', 'ativado', 'inativado'];
 const mensagemSucesso = (acao: Acao) => `Setor ${acao} com sucesso.`;
 const mensagemFalhaAtualizacao = (acao: Acao) => `Setor ${acao}, mas não foi possível atualizar a lista. Use Tentar novamente para recarregar, sem repetir a operação.`;
 
@@ -27,7 +27,8 @@ export function SectorsScreen() {
   const [status, setStatus] = useState<FiltroStatusSetor>('todos');
   const [alterandoStatus, setAlterandoStatus] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const botaoAdicionarRef = useRef<HTMLButtonElement>(null);
+  const [pedido, setPedido] = useState<PedidoFormularioSetor | null>(null);
+  const origemFoco = useRef<HTMLButtonElement | null>(null);
   const pedidoLista = useRef(0);
   const montado = useRef(false);
 
@@ -79,6 +80,12 @@ export function SectorsScreen() {
     });
   }
 
+  function abrirFormulario(setor: Setor | null, botao: HTMLButtonElement) {
+    if (dialogRef.current?.open) return;
+    origemFoco.current = botao;
+    setPedido((atual) => ({ setor, seq: (atual?.seq ?? 0) + 1 }));
+  }
+
   async function alternarStatus(setor: Setor) {
     if (alterandoStatus) return;
     setAlterandoStatus(setor.id);
@@ -107,9 +114,9 @@ export function SectorsScreen() {
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1440px]">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div><h1 className="text-2xl font-semibold tracking-tight">Setores</h1><p className="mt-2 text-sm leading-6 text-muted">Cadastre, consulte e inative os setores da produção.</p></div>
-        <button ref={botaoAdicionarRef} type="button" aria-haspopup="dialog" aria-controls="cadastro-setor"
-          onClick={() => { if (!dialogRef.current?.open) { dialogRef.current?.showModal(); dialogRef.current?.querySelector<HTMLInputElement>('#setor-nome')?.focus(); } }}
+        <div><h1 className="text-2xl font-semibold tracking-tight">Setores</h1><p className="mt-2 text-sm leading-6 text-muted">Cadastre, consulte, altere e inative os setores da produção.</p></div>
+        <button type="button" aria-haspopup="dialog" aria-controls="cadastro-setor"
+          onClick={(event) => abrirFormulario(null, event.currentTarget)}
           className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
         ><Plus aria-hidden="true" size={20} strokeWidth={2} />Adicionar setor</button>
       </header>
@@ -143,7 +150,7 @@ export function SectorsScreen() {
         ) : (
           <>
             <div className="max-w-full overflow-x-auto rounded-b-xl">
-              <table className="w-full min-w-[880px] text-left text-sm">
+              <table className="w-full min-w-[980px] text-left text-sm">
                 <caption className="sr-only">Setores cadastrados. Use os cabeçalhos para ordenar as colunas.</caption>
                 <thead className="border-b border-white/10 bg-white/[0.025] text-muted"><tr>
                   {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-5 py-3 font-medium">
@@ -161,6 +168,10 @@ export function SectorsScreen() {
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${setor.ativo ? 'border-[#7bcba5]/20 bg-[#7bcba5]/10 text-[#a6dfbf]' : 'border-white/10 bg-white/5 text-muted'}`}>{setor.ativo ? 'Ativo' : 'Inativo'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={setor.createdAt}>{formatarDataCadastro(setor.createdAt)}</time></td>
                     <td className="px-5 py-3 text-right">
+                      <button type="button" aria-haspopup="dialog" aria-controls="cadastro-setor" aria-label={`Editar ${setor.nome}`}
+                        onClick={(event) => abrirFormulario(setor, event.currentTarget)}
+                        className="mr-2 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      ><Pencil aria-hidden="true" size={16} strokeWidth={2} />Editar</button>
                       {/* aria-disabled em vez de disabled: o botão mantém o foco durante o envio. */}
                       <button type="button" aria-label={`${setor.ativo ? 'Inativar' : 'Ativar'} ${setor.nome}`} aria-disabled={alterandoStatus !== null}
                         onClick={() => void alternarStatus(setor)}
@@ -176,7 +187,7 @@ export function SectorsScreen() {
           </>
         )}
       </section>
-      <SectorCreateDialog dialogRef={dialogRef} botaoRef={botaoAdicionarRef} aoCadastrado={() => recarregarApos('cadastrado')} />
+      <SectorFormDialog dialogRef={dialogRef} pedido={pedido} aoConcluir={recarregarApos} aoFechar={() => origemFoco.current?.focus()} />
     </div>
   );
 }
