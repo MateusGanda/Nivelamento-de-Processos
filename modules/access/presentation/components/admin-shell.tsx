@@ -81,9 +81,9 @@ export function AdminShell({ usuario, children }: { usuario: { nome: string; mat
   }, [pathname]);
 
   return (
-    <div className="relative flex h-dvh min-h-0 min-w-0 flex-1 overflow-hidden bg-background">
+    <div className="relative flex h-dvh min-h-0 min-w-0 flex-1 overflow-hidden bg-background print:block print:h-auto print:overflow-visible">
       <a href="#painel-conteudo" className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:font-medium focus:text-[#171b1f]">Ir para o conteúdo</a>
-      <aside aria-label="Menu lateral" className={`hidden h-full shrink-0 flex-col border-r border-white/10 bg-[#11171c] lg:flex ${recolhido ? 'w-20' : 'w-[260px]'}`}>
+      <aside aria-label="Menu lateral" className={`hidden h-full shrink-0 print:hidden! flex-col border-r border-white/10 bg-[#11171c] lg:flex ${recolhido ? 'w-20' : 'w-[260px]'}`}>
         <Link href="/painel" prefetch={false} aria-label="GUNP — Início" className="flex h-16 shrink-0 items-center justify-center border-b border-white/10 px-4 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent">
           <BrandGunp variante="painel" compacta={recolhido} />
         </Link>
@@ -101,8 +101,8 @@ export function AdminShell({ usuario, children }: { usuario: { nome: string; mat
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#11171c]/80 px-4 sm:px-6 lg:px-8">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col print:block">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-3 print:hidden border-b border-white/10 bg-[#11171c]/80 px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
               ref={abrirMenuRef} type="button" aria-label="Abrir menu" aria-haspopup="dialog" aria-controls="menu-mobile"
@@ -140,7 +140,7 @@ export function AdminShell({ usuario, children }: { usuario: { nome: string; mat
             </div>
           </details>
         </header>
-        <main id="painel-conteudo" ref={conteudoRef} tabIndex={-1} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 outline-none sm:px-6 sm:py-8 lg:px-8">{children}</main>
+        <main id="painel-conteudo" ref={conteudoRef} tabIndex={-1} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 outline-none sm:px-6 sm:py-8 lg:px-8 print:overflow-visible print:p-0">{children}</main>
       </div>
 
       <dialog
