@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, AlertTriangle, LoaderCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Download, LoaderCircle, Printer, RefreshCw } from 'lucide-react';
 import { consultarIndicadores, ErroApiIndicadores, type RespostaIndicadores } from '../api-client';
 import { conferirDatas, dataLocal, periodoDoAtalho, periodoEntreDatas, type Atalho, type Periodo } from '../periodo';
 import { formatarDuracao, formatarInstante, formatarPercentual, formatarQuantidade, formatarSegundosPorUnidade, INDISPONIVEL } from '../formatacao';
 import { descreverPendencias } from '../pendencias';
 import { GraficoCargaPorPosto, GraficoTemposPorPosto } from './indicadores-graficos';
-import { GraficoPorDia, GraficoQualidade, type Qualidade } from './graficos-dia-qualidade';
+import { GraficoPorDia, GraficoQualidade } from './graficos-dia-qualidade';
+import { gerarCsvIndicadores, nomeDoArquivo } from '../exportacao';
+import { leituraDoPadrao, qualidadePorUnidade, resumirIndicadores, situacaoDaOrdem } from '../resumo';
 
 type Escolha = Atalho | 'personalizado';
 const ATALHOS: { valor: Escolha; rotulo: string }[] = [
@@ -117,53 +119,41 @@ export function IndicatorsScreen() {
     if (!problema) consultar(periodoEntreDatas(datas.primeiro, datas.ultimo));
   }
 
-  const resumo = useMemo(() => {
-    if (!dados) return null;
-    const producaoPorUnidade = new Map<string, number>();
-    for (const item of dados.producaoFinal) producaoPorUnidade.set(item.unidade, (producaoPorUnidade.get(item.unidade) ?? 0) + item.quantidadeBoa);
-    const pausasPorMotivo = new Map<string, number>();
-    for (const posto of dados.tempos) for (const motivo of posto.pausasPorMotivo) {
-      const nome = motivo.motivoNome ?? 'Sem motivo';
-      pausasPorMotivo.set(nome, (pausasPorMotivo.get(nome) ?? 0) + motivo.segundos);
-    }
-    const maiorPausa = [...pausasPorMotivo].sort((a, b) => b[1] - a[1])[0];
-    const emAndamento = dados.ordens.filter((ordem) => ordem.etapaAtual !== null);
-    return {
-      producao: [...producaoPorUnidade].map(([unidade, total]) => formatarQuantidade(total, unidade)),
-      emAndamento: emAndamento.length,
-      emExecucao: emAndamento.filter((ordem) => ordem.emExecucao).length,
-      produtivo: dados.tempos.reduce((soma, t) => soma + t.produtivoSegundos, 0),
-      pausa: dados.tempos.reduce((soma, t) => soma + t.pausaSegundos, 0),
-      maiorPausa,
-      pendencias: descreverPendencias(dados),
-    };
-  }, [dados]);
+  const resumo = useMemo(() => dados && { ...resumirIndicadores(dados), pendencias: descreverPendencias(dados) }, [dados]);
+  const qualidade = useMemo(() => (dados ? qualidadePorUnidade(dados) : []), [dados]);
 
-  // Composição da última etapa de cada roteiro, por unidade (unidades diferentes não se somam).
-  const qualidade = useMemo(() => {
-    const porUnidade = new Map<string, Qualidade>();
-    for (const item of dados?.producao ?? []) {
-      if (!item.ultimaEtapa) continue;
-      const atual = porUnidade.get(item.unidade) ?? { unidade: item.unidade, boa: 0, retrabalho: 0, refugo: 0 };
-      atual.boa += item.quantidadeBoa;
-      atual.retrabalho += item.quantidadeRetrabalho;
-      atual.refugo += item.quantidadeRefugo;
-      porUnidade.set(item.unidade, atual);
-    }
-    return [...porUnidade.values()].filter((q) => q.boa + q.retrabalho + q.refugo > 0);
-  }, [dados]);
+  // Na impressão, as tabelas recolhidas também saem no papel; depois voltam como estavam.
+  useEffect(() => {
+    const abertos = new Map<HTMLDetailsElement, boolean>();
+    // Guarda só o estado de antes da primeira impressão, mesmo se o evento vier repetido.
+    const antes = () => document.querySelectorAll<HTMLDetailsElement>('.relatorio-indicadores details').forEach((d) => { if (!abertos.has(d)) abertos.set(d, d.open); d.open = true; });
+    const depois = () => { abertos.forEach((aberto, d) => { d.open = aberto; }); abertos.clear(); };
+    window.addEventListener('beforeprint', antes);
+    window.addEventListener('afterprint', depois);
+    return () => { window.removeEventListener('beforeprint', antes); window.removeEventListener('afterprint', depois); };
+  }, []);
+
+  function baixarPlanilha() {
+    if (!dados) return;
+    const url = URL.createObjectURL(new Blob([gerarCsvIndicadores(dados)], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nomeDoArquivo(dados);
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   const pausasDetalhadas = useMemo(() => (dados?.tempos ?? []).flatMap((t) => t.pausasPorMotivo.map((m) => ({ posto: t.posto.codigo, ...m }))), [dados]);
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px]">
+    <div className="relatorio-indicadores mx-auto w-full min-w-0 max-w-[1440px]">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Indicadores</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">Produção, tempos e carga calculados a partir dos apontamentos da ilha. Os indicadores apoiam a análise da distribuição de carga; o tempo é da execução, não mede o desempenho de uma pessoa.</p>
       </header>
 
       <div className="mt-6 flex flex-col gap-4 rounded-xl border border-[#2b353e] bg-[#192128]/65 p-4 sm:p-5">
-        <fieldset className="flex flex-wrap items-center gap-2">
+        <fieldset className="flex flex-wrap items-center gap-2 print:hidden">
           <legend className="sr-only">Período</legend>
           {ATALHOS.map((atalho) => (
             <button key={atalho.valor} type="button" aria-pressed={escolha === atalho.valor} onClick={() => escolher(atalho.valor)}
@@ -171,12 +161,20 @@ export function IndicatorsScreen() {
               {atalho.rotulo}
             </button>
           ))}
-          <button type="button" onClick={() => consultar()} className={`${botaoSecundario} sm:ml-auto`}>
-            <RefreshCw aria-hidden="true" size={16} strokeWidth={2} />Atualizar
-          </button>
+          <div className="flex flex-wrap gap-2 sm:ml-auto">
+            <button type="button" onClick={() => consultar()} className={botaoSecundario}>
+              <RefreshCw aria-hidden="true" size={16} strokeWidth={2} />Atualizar
+            </button>
+            <button type="button" onClick={baixarPlanilha} disabled={!dados} className={`${botaoSecundario} disabled:cursor-not-allowed disabled:opacity-50`}>
+              <Download aria-hidden="true" size={16} strokeWidth={2} />Baixar planilha
+            </button>
+            <button type="button" onClick={() => window.print()} disabled={!dados} className={`${botaoSecundario} disabled:cursor-not-allowed disabled:opacity-50`}>
+              <Printer aria-hidden="true" size={16} strokeWidth={2} />Imprimir
+            </button>
+          </div>
         </fieldset>
         {escolha === 'personalizado' && (
-          <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); aplicarDatas(); }}>
+          <form className="flex flex-wrap items-end gap-3 print:hidden" onSubmit={(event) => { event.preventDefault(); aplicarDatas(); }}>
             <div><label htmlFor="indicadores-de" className="mb-1.5 block text-sm font-medium">De</label>
               <input id="indicadores-de" type="date" value={datas.primeiro} onChange={(event) => setDatas({ ...datas, primeiro: event.target.value })} className={campoData} /></div>
             <div><label htmlFor="indicadores-ate" className="mb-1.5 block text-sm font-medium">Até</label>
@@ -213,10 +211,10 @@ export function IndicatorsScreen() {
           )}
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Resumo rotulo="Peças boas na última etapa" valor={resumo.producao.length ? resumo.producao.join(' · ') : 'Nenhuma baixa'} detalhe="Baixas da última etapa de cada roteiro no período." />
+            <Resumo rotulo="Peças boas na última etapa" valor={resumo.producaoPorUnidade.length ? resumo.producaoPorUnidade.map((p) => formatarQuantidade(p.quantidade, p.unidade)).join(' · ') : 'Nenhuma baixa'} detalhe="Baixas da última etapa de cada roteiro no período." />
             <Resumo rotulo="Ordens em andamento" valor={resumo.emAndamento} detalhe={resumo.emExecucao === 1 ? '1 em execução agora.' : `${resumo.emExecucao} em execução agora.`} />
-            <Resumo rotulo="Tempo produtivo" valor={formatarDuracao(resumo.produtivo)} detalhe="Soma dos postos no período; execuções abertas ainda não entram." />
-            <Resumo rotulo="Tempo em pausa" valor={formatarDuracao(resumo.pausa)} detalhe={resumo.maiorPausa ? `Maior motivo: ${resumo.maiorPausa[0]}.` : 'Nenhuma pausa no período.'} />
+            <Resumo rotulo="Tempo produtivo" valor={formatarDuracao(resumo.produtivoSegundos)} detalhe="Soma dos postos no período; execuções abertas ainda não entram." />
+            <Resumo rotulo="Tempo em pausa" valor={formatarDuracao(resumo.pausaSegundos)} detalhe={resumo.maiorMotivoDePausa ? `Maior motivo: ${resumo.maiorMotivoDePausa}.` : 'Nenhuma pausa no período.'} />
           </div>
 
           <Secao id="indicadores-por-dia" titulo="Tempo por dia" tipo="periodo" descricao="Tempo produtivo e de pausa apontado em cada dia, com a linha do tempo padrão das peças que tiveram baixa no dia (quantidade da ordem vezes o tempo padrão). A comparação é aproximada: uma execução que passa de um dia para outro conta o tempo em cada dia, e o tempo padrão entra no dia da baixa.">
@@ -253,7 +251,7 @@ export function IndicatorsScreen() {
                     <td className={`${celula} text-muted`}>{ordem.planoCodigo}</td>
                     <td className={numero}>{formatarQuantidade(ordem.quantidade, ordem.unidade)}</td>
                     <td className={numero}>{ordem.etapasBaixadas} de {ordem.etapasTotal}{ordem.etapasInconsistentes > 0 && <span className="block text-xs text-[#ffd77a]">{ordem.etapasInconsistentes} com baixa inconsistente</span>}</td>
-                    <td className={celula}>{ordem.etapaAtual === null ? 'Concluída' : `${ordem.emExecucao ? 'Em execução' : 'Aguardando'}: ${ordem.etapaAtual.ordem}. ${ordem.etapaAtual.operacaoNome}`}</td>
+                    <td className={celula}>{situacaoDaOrdem(ordem)}</td>
                     <td className={`${celula} whitespace-nowrap text-muted`}>{formatarInstante(ordem.ultimaBaixaEm)}</td>
                   </tr>
                 ))}
@@ -335,7 +333,7 @@ export function IndicatorsScreen() {
                     <td className={numero}>{formatarSegundosPorUnidade(item.segundosPorUnidade, item.unidade)}</td>
                     <td className={numero}>{formatarSegundosPorUnidade(item.tempoPadraoSegundos, item.unidade)}</td>
                     <td className={numero}>{formatarPercentual(item.percentualDoPadrao)}</td>
-                    <td className={`${celula} text-muted`}>{item.diferencaSegundos === null ? (item.tempoPadraoSegundos === null ? 'Sem tempo padrão' : 'Sem peças boas') : item.diferencaSegundos > 0 ? 'Acima do padrão' : item.diferencaSegundos < 0 ? 'Abaixo do padrão' : 'Igual ao padrão'}</td>
+                    <td className={`${celula} text-muted`}>{leituraDoPadrao(item)}</td>
                   </tr>
                 ))}
               </Tabela>

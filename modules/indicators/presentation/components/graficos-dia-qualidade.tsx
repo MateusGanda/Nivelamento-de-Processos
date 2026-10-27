@@ -1,6 +1,7 @@
 import type { DiaDoPeriodo } from '../../application/indicadores';
 import { formatarDuracao, formatarPercentual, formatarQuantidade, passoDoEixo } from '../formatacao';
 import { COR_PAUSA, COR_PRODUTIVO } from './indicadores-graficos';
+import type { Qualidade } from '../resumo';
 
 // Linha de referência em tom neutro, para não competir com as colunas.
 const COR_PADRAO = '#e6e9ec';
@@ -47,7 +48,7 @@ export function GraficoPorDia({ dias }: { dias: DiaDoPeriodo[] }) {
       <ul className="flex flex-wrap gap-4 text-xs text-muted" aria-label="Legenda">
         <li className="flex items-center gap-2"><span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: COR_PRODUTIVO }} />Tempo produtivo</li>
         <li className="flex items-center gap-2"><span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: COR_PAUSA }} />Tempo em pausa</li>
-        <li className="flex items-center gap-2"><span aria-hidden="true" className="h-0.5 w-4 rounded-full" style={{ backgroundColor: COR_PADRAO }} />Tempo padrão das peças baixadas</li>
+        <li className="flex items-center gap-2"><span aria-hidden="true" className="marca-padrao h-0.5 w-4 rounded-full" style={{ backgroundColor: COR_PADRAO }} />Tempo padrão das peças baixadas</li>
       </ul>
       <div className="grid grid-cols-[3.25rem_1fr] gap-2">
         <div className="relative text-right text-[11px] tabular-nums text-muted" style={{ height: ALTURA_PX }} aria-hidden="true">
@@ -81,13 +82,13 @@ export function GraficoPorDia({ dias }: { dias: DiaDoPeriodo[] }) {
             </ul>
             <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
               {trechos.filter((t) => t.length > 1).map((t, k) => (
-                <polyline key={k} points={t.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke={COR_PADRAO} strokeWidth={2}
+                <polyline key={k} className="linha-padrao" points={t.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke={COR_PADRAO} strokeWidth={2}
                   strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
               ))}
             </svg>
             {/* Marcador só nos dias com baixa; nos outros a linha passa pelo zero medido. */}
             {dias.map((d, i) => d.tempoPadraoDasBaixasSegundos === null || d.baixas === 0 ? null : (
-              <span key={d.data} aria-hidden="true" className="pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 translate-y-1/2 rounded-full"
+              <span key={d.data} aria-hidden="true" className="marca-padrao pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 translate-y-1/2 rounded-full"
                 style={{ left: `${x(i)}%`, bottom: `${(d.tempoPadraoDasBaixasSegundos / topo) * 100}%`, backgroundColor: COR_PADRAO, boxShadow: `0 0 0 2px ${SUPERFICIE}` }} />
             ))}
           </div>
@@ -109,7 +110,6 @@ export function GraficoPorDia({ dias }: { dias: DiaDoPeriodo[] }) {
 const COR_BOA = '#199e70';
 const COR_RETRABALHO = '#c98500';
 const COR_REFUGO = '#9085e9';
-export type Qualidade = { unidade: string; boa: number; retrabalho: number; refugo: number };
 
 /** Anel com a composição da última etapa: boa, retrabalho e refugo. */
 export function GraficoQualidade({ qualidade }: { qualidade: Qualidade }) {

@@ -114,3 +114,47 @@ test('tela de indicadores: cliente preserva a mensagem de erro e recusa resposta
 test('tela de indicadores: eixo do gráfico por dia usa passos redondos e no máximo quatro marcas', () => {
   assert.deepEqual([60, 200, 2400, 3600, 7200, 14_400, 39_600, 400_000].map(passoDoEixo), [60, 60, 600, 900, 1800, 3600, 10_800, 172_800]);
 });
+
+test('planilha: CSV para o Excel em português com todos os blocos do período', async () => {
+  const { gerarCsvIndicadores, nomeDoArquivo } = await import('../../../../modules/indicators/presentation/exportacao.ts');
+  const dados = exemplo('indicadores-caso-base');
+  const csv = gerarCsvIndicadores(dados);
+  assert.ok(csv.startsWith('﻿Relatório de indicadores - GUNP\r\n'));
+  const linhas = csv.slice(1).split('\r\n');
+  for (const esperada of [
+    'Período;06/10/2026 a 06/10/2026',
+    'Peças boas na última etapa;40;un',
+    'Tempo produtivo;80;min',
+    'Tempo em pausa;10;min',
+    '000123;REF-001;Produto fictício;PLANO-2026-41;40;un;2;2;Concluída;06/10/2026, 09:30',
+    '000124;REF-001;Produto fictício;PLANO-2026-41;24;un;0;2;Aguardando: 1. Corte;',
+    '06/10/2026;80;10;1;66,7',
+    'un;40;0;0;100',
+    'REF-001;2. Costura;Sim;1;40;0;0;un',
+    'P02;Costura (fictício);Setor A (fictício);80;10;90;1;0',
+    'P02;Falta de material;10;1',
+    'REF-001;Costura;1;120;100;120;Acima do padrão;un',
+    'P01;Corte (fictício);12;23,1',
+    'REF-001;1. Corte;1;24;un;30;12;P01',
+  ]) assert.ok(linhas.includes(esperada), esperada);
+  // Bloco vazio fica explícito, sem linha em branco ambígua.
+  const atencao = linhas.indexOf('Atenção aos dados');
+  assert.deepEqual(linhas.slice(atencao, atencao + 3), ['Atenção aos dados', 'Aviso', 'Sem registros']);
+  assert.equal(nomeDoArquivo(dados), 'indicadores_2026-10-06_a_2026-10-06.csv');
+});
+
+test('planilha: indisponível fica vazio e texto dos cadastros não vira fórmula', async () => {
+  const { gerarCsvIndicadores, textoCsv } = await import('../../../../modules/indicators/presentation/exportacao.ts');
+  const linhas = gerarCsvIndicadores(exemplo('indicadores-indisponiveis')).split('\r\n');
+  assert.ok(linhas.includes('P01;Corte (fictício);;'), 'carga sem tempo padrão fica vazia, nunca zero');
+  assert.equal(textoCsv('Produto A'), 'Produto A');
+  assert.equal(textoCsv('=HYPERLINK("x")'), `"'=HYPERLINK(""x"")"`);
+  assert.equal(textoCsv('+1'), "'+1");
+  assert.equal(textoCsv('-5'), "'-5");
+  assert.equal(textoCsv('@SOMA'), "'@SOMA");
+  assert.equal(textoCsv('Corte; acabamento'), '"Corte; acabamento"');
+  assert.equal(textoCsv('linha\nnova'), '"linha\nnova"');
+  const dados = exemplo('indicadores-caso-base');
+  dados.ordens[0].produtoNome = '=1+1';
+  assert.ok(gerarCsvIndicadores(dados).includes(";'=1+1;"));
+});
