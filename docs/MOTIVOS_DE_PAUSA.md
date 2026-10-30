@@ -1,23 +1,10 @@
 # Cadastro de motivos de pausa
 
-A tela `/painel/motivos-de-pausa` usa o padrão visual e arquitetural do cadastro de Operações: listagem, busca, ordenação, filtro por status, formulário modal, edição, ativação/desativação e validação de nome obrigatório e único. O módulo fica em `modules/pause-reasons` e usa o modelo `MotivoPausa` já existente no contrato, sem migration nova.
-
-Rotas, todas com sessão de ADMIN ativo:
-
-- `GET /api/motivos-de-pausa` e `POST /api/motivos-de-pausa` (`{ nome, descricao? }`);
-- `PATCH /api/motivos-de-pausa/[id]` (`{ nome?, descricao? }`);
-- `PATCH /api/motivos-de-pausa/[id]/status` (`{ ativo }`).
-
-Regras:
-
-- nome obrigatório e único, com espaços das extremidades removidos; descrição opcional, vazia vira `null`;
-- não há exclusão: o motivo usado em pausas é inativado;
-- a ilha de apontamento lista somente motivos ativos, e a pausa com motivo inativo é recusada;
-- as pausas já registradas continuam mostrando o motivo, mesmo inativo ou renomeado.
+A tela `/painel/motivos-de-pausa` segue o padrão visual e arquitetural do cadastro de Operações: listagem, busca, ordenação, filtro por status, formulário modal, edição, ativação/desativação e validação de nome obrigatório e único.
 
 ## Lista de motivos
 
-Lista proposta para o cadastro. Os motivos são identificados só pelo nome, sem número: o identificador é gerado pelo banco, e a listagem fica em ordem alfabética.
+Os motivos são identificados **somente pelo nome, sem código ou número no início**. Use estes nomes ao cadastrar pela tela:
 
 | Nome | Descrição |
 |---|---|
@@ -30,10 +17,10 @@ Lista proposta para o cadastro. Os motivos são identificados só pelo nome, sem
 | Limpeza e organização | Limpeza do posto ou organização necessária. |
 | Reunião/treinamento | Atividade interna que interrompe a produção. |
 
-O seed de desenvolvimento (`npm run seed:desenvolvimento`, somente com `SEED_DATABASE_URL`) cria esses oito motivos e os usa nas pausas de exemplo.
+## Cadastro em um banco existente
 
-## Cadastrar a lista em um banco existente
+Cadastre e mantenha os motivos pela própria tela `/painel/motivos-de-pausa`. Não é necessário executar SQL para inserir a lista oficial e não deve ser criada uma migration manual para isso.
 
-Cadastrar os motivos pela própria tela `/painel/motivos-de-pausa`. Motivos antigos que não devam mais ser usados são inativados na tela, sem apagar o histórico das pausas.
+Se já houver motivos com número no início do nome, edite-os pela tela para remover o prefixo. Se houver duplicatas ou motivos que não devam mais ser usados, inative-os pela tela em vez de apagar registros que possam estar associados ao histórico das pausas.
 
-Não colocar scripts SQL dentro de `migrations/`: o Prisma 8 trata cada pasta ali como um espaço de migrations, e uma pasta sem os arquivos do Prisma faz `prisma db migrate`, `prisma migration status` e `prisma migration check` falharem.
+O script opcional `npm run seed:desenvolvimento` cria dados fictícios, incluindo estes motivos sem numeração, apenas no banco de desenvolvimento definido por `SEED_DATABASE_URL`. Não o execute no banco do site publicado.
