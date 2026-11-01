@@ -37,4 +37,13 @@ export class OperacoesService {
     if (!alterada) throw naoEncontrada();
     return alterada;
   }
+
+  // Inativa sai das listas de escolha de novos roteiros, mas continua nos que já a usam.
+  async definirStatus(id: string, ativo: boolean): Promise<Operacao> {
+    if (!ehIdentificadorValido(id)) throw naoEncontrada();
+    if (typeof ativo !== 'boolean') throw new ErroDeOperacao('ENTRADA_INVALIDA', 'ativo deve ser verdadeiro ou falso.');
+    const alterada = await this.operacoes.definirAtivo(id, ativo);
+    if (!alterada) throw naoEncontrada();
+    return alterada;
+  }
 }

@@ -2,6 +2,7 @@ export type Produto = {
   id: string;
   codigo: string;
   nome: string;
+  ativo: boolean;
   createdAt: string;
   updatedAt: string;
 };

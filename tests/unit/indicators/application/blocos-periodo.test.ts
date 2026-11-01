@@ -80,8 +80,34 @@ test('consulta completa lê os registros uma vez e junta as pendências dos dois
   const repositorio = new RepositorioEmMemoria(base());
   const r = await new IndicadoresService(repositorio).consultar(DIA_06);
   assert.equal(repositorio.leituras, 1);
-  assert.deepEqual(Object.keys(r), ['ordens', 'producao', 'producaoFinal', 'tempos', 'tempoMedio', 'cargaPendente', 'cargaPorPosto', 'pendencias']);
+  assert.deepEqual(Object.keys(r), ['ordens', 'producao', 'producaoFinal', 'tempos', 'tempoMedio', 'porDia', 'cargaPendente', 'cargaPorPosto', 'pendencias']);
   assert.deepEqual(r.pendencias.map((p) => p.codigo), ['BAIXA_INCONSISTENTE', 'SEM_TEMPO_PADRAO', 'ETAPA_SEM_POSTO', 'EXECUCAO_ABERTA']);
   await assert.rejects(() => new IndicadoresService(repositorio).consultar({ inicioMs: DIA_06.fimMs, fimMs: DIA_06.inicioMs }), /Janela inválida/);
   assert.equal(repositorio.leituras, 1);
+});
+
+test('PER-DIA-01: série por dia — tempo recortado a cada dia e tempo padrão das baixas válidas', async () => {
+  const { porDia } = await consultar(base(), DIAS_05_06);
+  assert.deepEqual(porDia, [
+    // Dia 05: três execuções da 0003 (1 h, 3 h e 7 h). A etapa 3 não tem tempo padrão, então o total do dia fica indisponível.
+    { data: '2026-10-05', produtivoSegundos: 39_600, pausaSegundos: 0, baixas: 3, tempoPadraoDasBaixasSegundos: null },
+    // Dia 06: 0001 (30 min), troca (20 min), aberta (30 min até a pausa) e 0004 (1 h); pausa de 10 min.
+    // Só a baixa do corte da 0001 é válida: 40 un × 60 s.
+    { data: '2026-10-06', produtivoSegundos: 8_400, pausaSegundos: 600, baixas: 1, tempoPadraoDasBaixasSegundos: 2_400 },
+  ]);
+});
+
+test('PER-DIA-02: execução que passa da meia-noite divide o tempo entre os dias; dia sem registro é zero medido', async () => {
+  const dados = base();
+  dados.execucoes = [{
+    id: 'exec-noite', ordemProducaoId: 'ordem-0002', etapaRoteiroId: 'etapa-1', postoId: 'posto-1', tipoFinalizacao: 'BAIXA',
+    quantidadeBoa: 24, quantidadeRetrabalho: 0, quantidadeRefugo: 0,
+    eventos: [evento('INICIO', '06', '22:00'), evento('FINALIZACAO', '07', '02:00')],
+  }];
+  const { porDia } = await consultar(dados, { inicioMs: instante('06', '00:00'), fimMs: instante('09', '00:00') });
+  assert.deepEqual(porDia, [
+    { data: '2026-10-06', produtivoSegundos: 7_200, pausaSegundos: 0, baixas: 0, tempoPadraoDasBaixasSegundos: 0 },
+    { data: '2026-10-07', produtivoSegundos: 7_200, pausaSegundos: 0, baixas: 1, tempoPadraoDasBaixasSegundos: 1_440 },
+    { data: '2026-10-08', produtivoSegundos: 0, pausaSegundos: 0, baixas: 0, tempoPadraoDasBaixasSegundos: 0 },
+  ]);
 });

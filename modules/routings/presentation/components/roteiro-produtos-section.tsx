@@ -35,7 +35,8 @@ export function RoteiroProdutosSection({ roteiro, etapasPendentes, ocupado, exec
   }, []);
 
   const ligados = new Set(roteiro.produtos.map((produto) => produto.id));
-  const disponiveis = (produtos ?? []).filter((produto) => !ligados.has(produto.id));
+  // Produto inativo não aparece para ligações novas.
+  const disponiveis = (produtos ?? []).filter((produto) => produto.ativo && !ligados.has(produto.id));
   const totalEtapas = roteiro.etapas.length;
 
   async function ligar() {

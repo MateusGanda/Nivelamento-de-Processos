@@ -10,7 +10,8 @@ import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
 import { filtrarOrdenarOperadores, formatarDataCadastro } from '../../../modules/operators/presentation/listing.ts';
 
 const id = (n: number) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
-const setores: SetorPrincipal[] = [{ id: id(1), codigo: 'PES1', nome: 'Pesponto' }, { id: id(2), codigo: 'COS1', nome: 'Costura' }];
+const setores: SetorPrincipal[] = [{ id: id(1), codigo: 'PES1', nome: 'Pesponto' }, { id: id(2), codigo: 'COS1', nome: 'Costura' }, { id: id(3), codigo: 'ANT1', nome: 'Antigo' }];
+const setoresInativos = new Set([id(3)]);
 const entrada = (nome = 'Luis Gustavo Nunes dos Santos'): CadastroOperador => ({ nome, setorPrincipalId: id(1) });
 const linha = (nome: string, matricula: string, extras: Partial<Operador> = {}): Operador => ({
   id: id(200), nome, matricula, ativo: true, funcao: null, setorPrincipal: null,
@@ -22,7 +23,7 @@ class RepositorioEmMemoria implements OperadorRepository {
   escritas = 0;
   async listar() { this.leituras++; return [...this.operadores]; }
   async buscarPorId(id: string) { this.leituras++; return this.operadores.find((o) => o.id === id) ?? null; }
-  async buscarSetorPrincipal(id: string) { this.leituras++; return setores.find((s) => s.id === id) ?? null; }
+  async buscarSetorPrincipal(id: string) { this.leituras++; const setor = setores.find((s) => s.id === id); return setor ? { ...setor, ativo: !setoresInativos.has(id) } : null; }
   async matriculasReservadas() { this.leituras++; return this.operadores.map((o) => o.matricula); }
   async criar(dados: NovoOperador) {
     if (this.operadores.some((o) => o.matricula === dados.matricula)) {
@@ -43,11 +44,20 @@ class RepositorioEmMemoria implements OperadorRepository {
     const alterado = { ...antigo, updatedAt: '2026-10-21T12:00:00Z' };
     if (dados.nome !== undefined) alterado.nome = dados.nome;
     if (dados.funcao !== undefined) alterado.funcao = dados.funcao;
-    if (dados.setorPrincipalId !== undefined) alterado.setorPrincipal = await this.buscarSetorPrincipal(dados.setorPrincipalId);
+    if (dados.setorPrincipalId !== undefined) alterado.setorPrincipal = setores.find((s) => s.id === dados.setorPrincipalId) ?? null;
     this.operadores[indice] = alterado;
     this.escritas++;
     return alterado;
   }
+  comExecucaoAberta = new Set<string>();
+  async definirAtivo(id: string, ativo: boolean) {
+    const operador = this.operadores.find((o) => o.id === id);
+    if (!operador) return null;
+    this.escritas++;
+    Object.assign(operador, { ativo, updatedAt: '2026-10-22T12:00:00Z' });
+    return operador;
+  }
+  async temExecucaoAberta(id: string) { this.leituras++; return this.comExecucaoAberta.has(id); }
 }
 const pedido = (method: 'POST' | 'PATCH', corpo: unknown) => new Request('http://localhost/api/operadores', { method, body: JSON.stringify(corpo), headers: { 'Content-Type': 'application/json' } });
 const erroCom = (codigo: ErroDeOperador['codigo']) => (erro: unknown) => erro instanceof ErroDeOperador && erro.codigo === codigo;
@@ -201,6 +211,7 @@ test('operador: autorização vem antes de parsing, leitura e escrita em todas a
     assert.equal((await handlers.GET()).status, status);
     assert.equal((await handlers.POST(pedido('POST', {}))).status, status);
     assert.equal((await handlers.PATCH(pedido('PATCH', {}), id(99))).status, status);
+    assert.equal((await handlers.PATCH_STATUS(pedido('PATCH', { ativo: false }), id(99))).status, status);
     assert.equal(repo.leituras + repo.escritas, 0);
   }
 });
@@ -208,8 +219,8 @@ test('operador: autorização vem antes de parsing, leitura e escrita em todas a
 test('operador: falhas de infraestrutura na autorização ou serviço retornam 500 genérico', async () => {
   const falha = async (): Promise<never> => { throw new Error('detalhe-interno'); };
   for (const autorizar of [falha, async () => ({})]) {
-    const handlers = criarHandlersOperadores({ autorizar, operadores: { listar: falha, criar: falha, alterar: falha } });
-    for (const resposta of [await handlers.GET(), await handlers.POST(pedido('POST', entrada())), await handlers.PATCH(pedido('PATCH', { funcao: null }), id(99))]) {
+    const handlers = criarHandlersOperadores({ autorizar, operadores: { listar: falha, criar: falha, alterar: falha, definirStatus: falha } });
+    for (const resposta of [await handlers.GET(), await handlers.POST(pedido('POST', entrada())), await handlers.PATCH(pedido('PATCH', { funcao: null }), id(99)), await handlers.PATCH_STATUS(pedido('PATCH', { ativo: false }), id(99))]) {
       assert.equal(resposta.status, 500);
       assert.ok(!(await resposta.text()).includes('detalhe-interno'));
     }
@@ -229,4 +240,59 @@ test('operador: busca por função/setor/código, status e ordenação tratam le
   assert.equal(filtrarOrdenarOperadores(operadores, 'inexistente', 'todos', { coluna: 'nome', direcao: 'asc' }).length, 0);
   assert.deepEqual(operadores, copia);
   assert.ok(formatarDataCadastro('2026-10-13T01:00:00Z').includes('12/10/2026'));
+});
+
+test('operador: setor inativo não pode ser escolhido, mas o operador que já está nele continua', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new OperadoresService(repo);
+  await assert.rejects(() => service.criar({ nome: 'Ana Souza', setorPrincipalId: id(3) }), (erro: unknown) => erro instanceof ErroDeOperador && erro.codigo === 'ENTRADA_INVALIDA' && /inativo/.test(erro.message));
+  repo.operadores.push(linha('Bia Lima', 'BL-ANT1', { id: id(50), setorPrincipal: setores[2] }));
+  const mantido = await service.alterar(id(50), { nome: 'Bia Lima Souza', setorPrincipalId: id(3) });
+  assert.deepEqual([mantido.nome, mantido.matricula, mantido.setorPrincipal?.id], ['Bia Lima Souza', 'BL-ANT1', id(3)]);
+  const operador = await service.criar(entrada('Caio Reis'));
+  await assert.rejects(() => service.alterar(operador.id, { setorPrincipalId: id(3) }), (erro: unknown) => erro instanceof ErroDeOperador && /inativo/.test(erro.message));
+});
+
+test('operador: inativa e reativa sem mudar matrícula, setor e função', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new OperadoresService(repo);
+  const criado = await service.criar({ ...entrada(), funcao: 'Revisão' });
+  const inativo = await service.definirStatus(criado.id, false);
+  assert.deepEqual([inativo.ativo, inativo.matricula, inativo.setorPrincipal?.id, inativo.funcao], [false, 'LGNS-PES1', id(1), 'Revisão']);
+  assert.equal((await service.definirStatus(criado.id, true)).ativo, true);
+  await assert.rejects(() => service.definirStatus(id(99), false), erroCom('NAO_ENCONTRADO'));
+  await assert.rejects(() => service.definirStatus('abc', false), erroCom('NAO_ENCONTRADO'));
+  await assert.rejects(() => service.definirStatus(criado.id, 'nao' as unknown as boolean), erroCom('ENTRADA_INVALIDA'));
+});
+
+test('operador: com execução aberta não é inativado, mas pode ser ativado', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new OperadoresService(repo);
+  const criado = await service.criar(entrada());
+  repo.comExecucaoAberta.add(criado.id);
+  const escritas = repo.escritas;
+  await assert.rejects(() => service.definirStatus(criado.id, false), (erro: unknown) => erroCom('CONFLITO')(erro) && (erro as Error).message.includes('execução aberta'));
+  assert.equal(repo.escritas, escritas);
+  assert.equal(repo.operadores[0].ativo, true);
+  repo.operadores[0].ativo = false;
+  assert.equal((await service.definirStatus(criado.id, true)).ativo, true);
+});
+
+test('operador: rota de status aceita somente o campo ativo booleano', async () => {
+  const repo = new RepositorioEmMemoria();
+  const handlers = criarHandlersOperadores({ autorizar: async () => ({}), operadores: new OperadoresService(repo) });
+  const { id: operadorId } = await (await handlers.POST(pedido('POST', entrada()))).json();
+  const resposta = await handlers.PATCH_STATUS(pedido('PATCH', { ativo: false }), operadorId);
+  assert.equal(resposta.status, 200);
+  assert.equal((await resposta.json()).ativo, false);
+  for (const corpo of [{}, { ativo: 'false' }, { ativo: null }, { ativo: false, nome: 'X' }, [], null]) {
+    assert.equal((await handlers.PATCH_STATUS(pedido('PATCH', corpo), operadorId)).status, 400);
+  }
+  assert.equal((await handlers.PATCH_STATUS(new Request('http://localhost/api/operadores', { method: 'PATCH', body: '{' }), operadorId)).status, 400);
+  assert.equal((await handlers.PATCH_STATUS(pedido('PATCH', { ativo: true }), id(99))).status, 404);
+  repo.comExecucaoAberta.add(operadorId);
+  await handlers.PATCH_STATUS(pedido('PATCH', { ativo: true }), operadorId);
+  const recusa = await handlers.PATCH_STATUS(pedido('PATCH', { ativo: false }), operadorId);
+  assert.equal(recusa.status, 409);
+  assert.equal((await recusa.json()).erro.codigo, 'CONFLITO');
 });

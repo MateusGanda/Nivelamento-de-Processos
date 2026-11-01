@@ -38,4 +38,13 @@ export class ProdutosService {
     if (!alterado) throw naoEncontrado();
     return alterado;
   }
+
+  // Inativo sai das listas de escolha de novos roteiros, mas continua nos que já o usam.
+  async definirStatus(id: string, ativo: boolean): Promise<Produto> {
+    if (!ehIdentificadorValido(id)) throw naoEncontrado();
+    if (typeof ativo !== 'boolean') throw new ErroDeProduto('ENTRADA_INVALIDA', 'ativo deve ser verdadeiro ou falso.');
+    const alterado = await this.produtos.definirAtivo(id, ativo);
+    if (!alterado) throw naoEncontrado();
+    return alterado;
+  }
 }

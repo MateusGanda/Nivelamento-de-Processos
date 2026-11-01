@@ -38,6 +38,7 @@ model Produto {
   id        Uuid                 @id @default(uuid())
   codigo    String               @unique
   nome      String
+  ativo     Boolean              @default(true)
   createdAt TimestamptzString    @default(now())
   updatedAt TimestamptzString    @default(now())
 
@@ -50,6 +51,7 @@ model Operacao {
   id        Uuid              @id @default(uuid())
   nome      String            @unique
   descricao String?
+  ativo     Boolean           @default(true)
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
 
@@ -135,8 +137,8 @@ model PlanoProducao {
   id         Uuid              @id @default(uuid())
   codigo     String            @unique
   descricao  String?
-  dataInicio Date?
-  dataFim    Date?
+  dataInicio DateString?
+  dataFim    DateString?
   createdAt  TimestamptzString @default(now())
   updatedAt  TimestamptzString @default(now())
 
@@ -186,6 +188,7 @@ model Setor {
   id        Uuid              @id @default(uuid())
   nome      String            @unique
   descricao String?
+  ativo     Boolean           @default(true)
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
 
@@ -268,6 +271,14 @@ model Execucao {
   @@check(
     expression: "(\"tipoFinalizacao\" = 'BAIXA' AND \"quantidadeBoa\" IS NOT NULL AND \"quantidadeRetrabalho\" IS NOT NULL AND \"quantidadeRefugo\" IS NOT NULL) OR (\"tipoFinalizacao\" = 'TROCA_OPERACAO' AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL) OR (\"tipoFinalizacao\" IS NULL AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL)",
     name: "Execucao_quantidades_finalizacao_check"
+  )
+
+  // Um operador não pode ter duas execuções abertas; a pausada também ocupa o operador.
+  @@index(
+    [operadorId],
+    unique: true,
+    where: "(\"status\" <> 'FINALIZADA')",
+    name: "Execucao_operador_aberta_unica"
   )
 
   @@index([ordemProducaoId])

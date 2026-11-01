@@ -1,0 +1,86 @@
+[
+  {
+    "id": "column.public.Operacao.ativo",
+    "label": "Add column \"ativo\" to \"Operacao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "ativo",
+        "table": "Operacao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"ativo\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Operacao",
+          "ativo"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"ativo\"",
+        "sql": "ALTER TABLE \"public\".\"Operacao\" ADD COLUMN \"ativo\" bool DEFAULT true NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"ativo\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Operacao",
+          "ativo"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.Produto.ativo",
+    "label": "Add column \"ativo\" to \"Produto\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "ativo",
+        "table": "Produto"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"ativo\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Produto",
+          "ativo"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"ativo\"",
+        "sql": "ALTER TABLE \"public\".\"Produto\" ADD COLUMN \"ativo\" bool DEFAULT true NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"ativo\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "Produto",
+          "ativo"
+        ]
+      }
+    ]
+  }
+]

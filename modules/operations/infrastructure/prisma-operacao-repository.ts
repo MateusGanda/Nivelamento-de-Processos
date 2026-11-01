@@ -4,7 +4,7 @@ import type { AlteracaoOperacao, DadosOperacao, Operacao } from '../domain/opera
 import { traduzirErroGravacaoOperacao } from './persistence-errors.ts';
 
 function mapear(operacao: Operacao): Operacao {
-  return { id: operacao.id, nome: operacao.nome, descricao: operacao.descricao, createdAt: operacao.createdAt, updatedAt: operacao.updatedAt };
+  return { id: operacao.id, nome: operacao.nome, descricao: operacao.descricao, ativo: operacao.ativo, createdAt: operacao.createdAt, updatedAt: operacao.updatedAt };
 }
 
 export class PrismaOperacaoRepository implements OperacaoRepository {
@@ -24,7 +24,7 @@ export class PrismaOperacaoRepository implements OperacaoRepository {
 
   async criar(dados: DadosOperacao): Promise<Operacao> {
     try {
-      return mapear(await db.orm.public.Operacao.create({ nome: dados.nome, descricao: dados.descricao }));
+      return mapear(await db.orm.public.Operacao.create({ nome: dados.nome, descricao: dados.descricao, ativo: true }));
     } catch (erro) {
       return traduzirErroGravacaoOperacao(erro);
     }
@@ -37,5 +37,10 @@ export class PrismaOperacaoRepository implements OperacaoRepository {
     } catch (erro) {
       return traduzirErroGravacaoOperacao(erro);
     }
+  }
+
+  async definirAtivo(id: string, ativo: boolean): Promise<Operacao | null> {
+    const operacao = await db.orm.public.Operacao.where({ id }).update({ ativo, updatedAt: new Date().toISOString() });
+    return operacao ? mapear(operacao) : null;
   }
 }

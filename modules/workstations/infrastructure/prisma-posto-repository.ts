@@ -33,14 +33,15 @@ export class PrismaPostoRepository implements PostoRepository {
     return posto ? mapear(posto, posto.setor) : null;
   }
 
-  async buscarSetor(id: string): Promise<{ id: string; nome: string } | null> {
-    return db.orm.public.Setor.where({ id }).select('id', 'nome').first();
+  async buscarSetor(id: string): Promise<{ id: string; nome: string; ativo: boolean } | null> {
+    return db.orm.public.Setor.where({ id }).select('id', 'nome', 'ativo').first();
   }
 
   async criar(dados: CadastroPosto): Promise<Posto> {
     try {
       const posto = await db.orm.public.Posto.create({ codigo: dados.codigo, nome: dados.nome, setorId: dados.setorId, ativo: true });
-      return mapear(posto, await this.buscarSetor(dados.setorId));
+      const setor = await this.buscarSetor(dados.setorId);
+      return mapear(posto, setor && { id: setor.id, nome: setor.nome });
     } catch (erro) {
       return traduzirErroGravacaoPosto(erro);
     }

@@ -1,0 +1,41 @@
+[
+  {
+    "id": "index.Execucao.Execucao_operador_aberta_unica_6ac54f96",
+    "label": "Create index \"Execucao_operador_aberta_unica_6ac54f96\" on \"Execucao\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Execucao_operador_aberta_unica_6ac54f96",
+        "table": "Execucao"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Execucao_operador_aberta_unica_6ac54f96\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_operador_aberta_unica_6ac54f96\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Execucao_operador_aberta_unica_6ac54f96\"",
+        "sql": "CREATE UNIQUE INDEX \"Execucao_operador_aberta_unica_6ac54f96\" ON \"public\".\"Execucao\" (\"operadorId\") WHERE ((\"status\" <> 'FINALIZADA'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Execucao_operador_aberta_unica_6ac54f96\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Execucao_operador_aberta_unica_6ac54f96\""
+        ]
+      }
+    ]
+  }
+]

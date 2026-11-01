@@ -28,9 +28,25 @@ export class OperadoresService {
     const naoEncontrado = () => new ErroDeOperador('NAO_ENCONTRADO', 'Operador não encontrado.');
     if (!ehIdentificadorValido(id)) throw naoEncontrado();
     const dados = validarAlteracaoOperador(input);
-    if (!await this.operadores.buscarPorId(id)) throw naoEncontrado();
-    if (dados.setorPrincipalId !== undefined) await this.exigirSetor(dados.setorPrincipalId);
+    const atual = await this.operadores.buscarPorId(id);
+    if (!atual) throw naoEncontrado();
+    // Manter o setor atual é sempre permitido; trocar só para um setor ativo.
+    if (dados.setorPrincipalId !== undefined && dados.setorPrincipalId !== atual.setorPrincipal?.id) await this.exigirSetor(dados.setorPrincipalId);
     const alterado = await this.operadores.alterar(id, dados);
+    if (!alterado) throw naoEncontrado();
+    return alterado;
+  }
+
+  // Inativo não é aceito na ilha; com execução aberta, ela não poderia mais ser encerrada.
+  async definirStatus(id: string, ativo: boolean): Promise<Operador> {
+    const naoEncontrado = () => new ErroDeOperador('NAO_ENCONTRADO', 'Operador não encontrado.');
+    if (!ehIdentificadorValido(id)) throw naoEncontrado();
+    if (typeof ativo !== 'boolean') throw new ErroDeOperador('ENTRADA_INVALIDA', 'ativo deve ser verdadeiro ou falso.');
+    if (!await this.operadores.buscarPorId(id)) throw naoEncontrado();
+    if (!ativo && await this.operadores.temExecucaoAberta(id)) {
+      throw new ErroDeOperador('CONFLITO', 'O operador tem uma execução aberta. Finalize ou dê baixa na ilha antes de inativar.');
+    }
+    const alterado = await this.operadores.definirAtivo(id, ativo);
     if (!alterado) throw naoEncontrado();
     return alterado;
   }
@@ -38,6 +54,7 @@ export class OperadoresService {
   private async exigirSetor(id: string) {
     const setor = await this.operadores.buscarSetorPrincipal(id);
     if (!setor) throw new ErroDeOperador('ENTRADA_INVALIDA', 'Setor principal não encontrado.');
+    if (!setor.ativo) throw new ErroDeOperador('ENTRADA_INVALIDA', 'Setor inativo não pode ser o setor principal.');
     return setor;
   }
 }

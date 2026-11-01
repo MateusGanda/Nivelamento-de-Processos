@@ -10,15 +10,17 @@ import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
 
 const MONTAGEM = { id: '00000000-0000-4000-8000-000000000001', nome: 'Montagem' };
 const PREPARACAO = { id: '00000000-0000-4000-8000-000000000002', nome: 'Preparação' };
+const ANTIGO = { id: '00000000-0000-4000-8000-000000000003', nome: 'Setor antigo' };
 const ID_INEXISTENTE = '00000000-0000-4000-8000-0000000000ff';
 
 class RepositorioEmMemoria implements PostoRepository {
   postos: Posto[] = [];
-  setores = [MONTAGEM, PREPARACAO];
+  setores = [MONTAGEM, PREPARACAO, ANTIGO];
+  setoresInativos = new Set([ANTIGO.id]);
   async listar() { return [...this.postos]; }
   async buscarPorId(id: string) { return this.postos.find((posto) => posto.id === id) ?? null; }
   async buscarPorCodigo(codigo: string) { return this.postos.find((posto) => posto.codigo === codigo) ?? null; }
-  async buscarSetor(id: string) { return this.setores.find((setor) => setor.id === id) ?? null; }
+  async buscarSetor(id: string) { const setor = this.setores.find((item) => item.id === id); return setor ? { ...setor, ativo: !this.setoresInativos.has(id) } : null; }
   async criar(dados: CadastroPosto) {
     // Simula a constraint atômica: pode falhar mesmo após a consulta prévia.
     if (this.postos.some((posto) => posto.codigo === dados.codigo)) {
@@ -226,4 +228,16 @@ test('posto: busca por código, nome ou setor ignora caixa e acentos, filtra sta
   assert.deepEqual(filtrarOrdenarPostos(postos, '', 'todos', { coluna: 'createdAt', direcao: 'asc' }).map((p) => p.codigo), ['MON-01', 'PRE-01', 'MON-02']);
   assert.deepEqual(postos, copia);
   assert.equal(formatarDataCadastro('2026-10-19T12:00:00Z'), '19/10/2026, 09:00');
+});
+
+test('posto: setor inativo não recebe posto novo nem troca de setor, mas o posto que já está nele continua', async () => {
+  const repositorio = new RepositorioEmMemoria();
+  const service = new PostosService(repositorio);
+  await assert.rejects(() => service.criar({ codigo: 'ANT-01', nome: 'Antigo', setorId: ANTIGO.id }), erroCom('ENTRADA_INVALIDA', /inativo/));
+  const posto = await service.criar({ codigo: 'MON-01', nome: 'Montagem 1', setorId: MONTAGEM.id });
+  await assert.rejects(() => service.alterar(posto.id, { setorId: ANTIGO.id }), erroCom('ENTRADA_INVALIDA', /inativo/));
+  repositorio.setoresInativos.add(MONTAGEM.id);
+  const mantido = await service.alterar(posto.id, { nome: 'Montagem principal', setorId: MONTAGEM.id });
+  assert.deepEqual([mantido.nome, mantido.setor.id], ['Montagem principal', MONTAGEM.id]);
+  assert.equal((await service.alterar(posto.id, { setorId: PREPARACAO.id })).setor.id, PREPARACAO.id);
 });

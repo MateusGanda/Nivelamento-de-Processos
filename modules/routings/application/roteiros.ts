@@ -71,8 +71,11 @@ export class RoteirosService {
       }
     }
     const operacoes = [...new Set(etapas.map((etapa) => etapa.operacaoId))];
-    if ((await this.roteiros.buscarOperacoes(operacoes)).length !== operacoes.length) {
-      throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Operação não encontrada.');
+    const encontradas = new Map((await this.roteiros.buscarOperacoes(operacoes)).map((operacao) => [operacao.id, operacao]));
+    if (encontradas.size !== operacoes.length) throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Operação não encontrada.');
+    // Etapas já existentes continuam mesmo que a operação tenha sido inativada depois.
+    if (etapas.some((etapa) => etapa.id === undefined && !encontradas.get(etapa.operacaoId)!.ativo)) {
+      throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Operação inativa não pode ser usada em uma etapa nova.');
     }
     await this.roteiros.substituirEtapas(id, etapas);
     return this.buscar(id);
@@ -97,7 +100,9 @@ export class RoteirosService {
   async associarProduto(id: string, produtoId: unknown): Promise<RoteiroDetalhe> {
     const roteiro = await this.buscar(id);
     if (!ehIdentificadorValido(produtoId)) throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Selecione um produto válido.');
-    if (!await this.roteiros.existeProduto(produtoId)) throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Produto não encontrado.');
+    const produto = await this.roteiros.buscarProduto(produtoId);
+    if (!produto) throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Produto não encontrado.');
+    if (!produto.ativo) throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Produto inativo não pode ser ligado a um roteiro.');
     if (roteiro.produtos.some((produto) => produto.id === produtoId)) throw new ErroDeRoteiro('CONFLITO', 'Este produto já está ligado a este roteiro.');
     await this.roteiros.associarProduto(id, produtoId);
     return this.buscar(id);

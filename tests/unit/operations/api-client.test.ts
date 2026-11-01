@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { alterarOperacao, cadastrarOperacao, listarOperacoes, ErroApiOperacoes } from '../../../modules/operations/presentation/api-client.ts';
+import { alterarOperacao, cadastrarOperacao, definirStatusOperacao, listarOperacoes, ErroApiOperacoes } from '../../../modules/operations/presentation/api-client.ts';
 
-const operacao = { id: '1', nome: 'Corte', descricao: null, createdAt: '2026-10-20T12:00:00Z', updatedAt: '2026-10-20T12:00:00Z' };
+const operacao = { id: '1', nome: 'Corte', descricao: null, ativo: true, createdAt: '2026-10-20T12:00:00Z', updatedAt: '2026-10-20T12:00:00Z' };
 
 test('operação: cliente REST usa mesma origem, GET sem cache, abort e corpos permitidos', async (t) => {
   const pedidos: { url: string; options: RequestInit }[] = [];
@@ -22,6 +22,10 @@ test('operação: cliente REST usa mesma origem, GET sem cache, abort e corpos p
   assert.equal(pedidos[2].url, '/api/operacoes/id%2Fcom%20espa%C3%A7o');
   assert.equal(pedidos[2].options.method, 'PATCH');
   assert.deepEqual(JSON.parse(String(pedidos[2].options.body)), { descricao: null });
+  assert.deepEqual(await definirStatusOperacao('1', false), operacao);
+  assert.equal(pedidos[3].url, '/api/operacoes/1/status');
+  assert.equal(pedidos[3].options.method, 'PATCH');
+  assert.deepEqual(JSON.parse(String(pedidos[3].options.body)), { ativo: false });
   assert.ok(pedidos.every((p) => p.options.credentials === 'same-origin'));
 });
 
@@ -39,7 +43,7 @@ test('operação: cliente rejeita HTML, registros incompletos e datas inválidas
   let resposta = new Response('<html>detalhe-interno</html>', { status: 500 });
   t.mock.method(globalThis, 'fetch', async () => resposta.clone());
   await assert.rejects(() => listarOperacoes(), (erro: unknown) => erro instanceof ErroApiOperacoes && !erro.message.includes('detalhe-interno'));
-  for (const corpo of [{}, [null], [{ ...operacao, descricao: 1 }], [{ ...operacao, createdAt: 'inválida' }], [{ ...operacao, updatedAt: null }]]) {
+  for (const corpo of [{}, [null], [{ ...operacao, descricao: 1 }], [{ ...operacao, createdAt: 'inválida' }], [{ ...operacao, updatedAt: null }], [{ ...operacao, ativo: undefined }]]) {
     resposta = Response.json(corpo);
     await assert.rejects(() => listarOperacoes(), /Resposta inválida/);
   }

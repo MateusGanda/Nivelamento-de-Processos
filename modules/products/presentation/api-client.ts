@@ -23,7 +23,7 @@ async function lerResposta(resposta: Response): Promise<unknown> {
 function ehProduto(valor: unknown): valor is Produto {
   if (!valor || typeof valor !== 'object') return false;
   const dados = valor as Record<string, unknown>;
-  return typeof dados.id === 'string' && typeof dados.codigo === 'string' && typeof dados.nome === 'string' &&
+  return typeof dados.id === 'string' && typeof dados.codigo === 'string' && typeof dados.nome === 'string' && typeof dados.ativo === 'boolean' &&
     typeof dados.createdAt === 'string' && Number.isFinite(Date.parse(dados.createdAt)) &&
     typeof dados.updatedAt === 'string' && Number.isFinite(Date.parse(dados.updatedAt));
 }
@@ -45,6 +45,14 @@ export async function cadastrarProduto(dados: CadastroProduto): Promise<Produto>
 export async function alterarProduto(id: string, dados: AlteracaoProduto): Promise<Produto> {
   const produto = await lerResposta(await fetch(`/api/produtos/${encodeURIComponent(id)}`, {
     method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados),
+  }));
+  if (!ehProduto(produto)) throw new ErroApiProdutos(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
+  return produto;
+}
+
+export async function definirStatusProduto(id: string, ativo: boolean): Promise<Produto> {
+  const produto = await lerResposta(await fetch(`/api/produtos/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ativo }),
   }));
   if (!ehProduto(produto)) throw new ErroApiProdutos(500, 'Não foi possível confirmar a alteração. Verifique a lista antes de tentar novamente.');
   return produto;

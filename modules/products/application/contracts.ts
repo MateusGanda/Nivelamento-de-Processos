@@ -6,4 +6,5 @@ export interface ProdutoRepository {
   buscarPorCodigo(codigo: string): Promise<Produto | null>;
   criar(dados: CadastroProduto): Promise<Produto>;
   alterar(id: string, dados: AlteracaoProduto): Promise<Produto | null>;
+  definirAtivo(id: string, ativo: boolean): Promise<Produto | null>;
 }

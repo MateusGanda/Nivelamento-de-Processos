@@ -26,3 +26,28 @@ body {
   background: #ff7a2140;
   color: #ffffff;
 }
+
+/* Impressão do relatório de indicadores: papel branco, texto escuro e cores dos gráficos mantidas. */
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  html, body { background: #fff !important; color: #111 !important; }
+  .relatorio-indicadores { color: #111; font-size: 11px; }
+  .relatorio-indicadores .text-muted,
+  .relatorio-indicadores .text-foreground,
+  .relatorio-indicadores [class*="text-[#"] { color: #333 !important; }
+  .relatorio-indicadores [class*="bg-[#"],
+  .relatorio-indicadores [class*="bg-white"],
+  .relatorio-indicadores [class*="bg-accent"] { background: transparent !important; }
+  .relatorio-indicadores [class*="border"] { border-color: #c8ccd0 !important; }
+  .relatorio-indicadores [style*="background-color"] { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .relatorio-indicadores .marca-padrao { background-color: #333 !important; box-shadow: none !important; }
+  .relatorio-indicadores .linha-padrao { stroke: #333; }
+  .relatorio-indicadores svg text { fill: #111; }
+  .relatorio-indicadores [role="tooltip"] { display: none !important; }
+  .relatorio-indicadores section,
+  .relatorio-indicadores li[tabindex] { break-inside: avoid; }
+  .relatorio-indicadores summary { display: none; }
+  .relatorio-indicadores table { min-width: 0 !important; font-size: 9.5px !important; }
+  .relatorio-indicadores th, .relatorio-indicadores td { padding: 4px 6px !important; }
+  .relatorio-indicadores .overflow-x-auto { overflow: visible !important; }
+}

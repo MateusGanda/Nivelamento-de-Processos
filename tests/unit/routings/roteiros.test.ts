@@ -10,6 +10,7 @@ import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const CORTE = { id: uuid(901), nome: 'Corte' };
+const LIXAMENTO = { id: uuid(904), nome: 'Lixamento' };
 const MONTAGEM = { id: uuid(902), nome: 'Montagem' };
 const INSPECAO = { id: uuid(903), nome: 'Inspeção' };
 const PRE01 = { id: uuid(801), codigo: 'PRE-01', nome: 'Corte 1', ativo: true, setorNome: 'Preparação' };
@@ -18,6 +19,7 @@ const MON09 = { id: uuid(803), codigo: 'MON-09', nome: 'Montagem antiga', ativo:
 const INEXISTENTE = uuid(999);
 const PRD1 = { id: uuid(701), codigo: 'PRD-001', nome: 'Produto A' };
 const PRD2 = { id: uuid(702), codigo: 'PRD-002', nome: 'Produto B' };
+const PRD9 = { id: uuid(709), codigo: 'PRD-009', nome: 'Produto antigo' };
 
 type Linha = { id: string; nome: string; versao: number; ativo: boolean };
 type Etapa = { id: string; roteiroId: string; operacaoId: string; ordem: number };
@@ -30,11 +32,12 @@ class RepositorioEmMemoria implements RoteiroRepository {
   ordens = new Map<string, number>();
   produtosLigados: { roteiroId: string; produtoId: string; vigente: boolean }[] = [];
   tempos: { produtoId: string; etapaId: string; tempoPadrao: number }[] = [];
-  produtos = [PRD1, PRD2];
+  produtos = [PRD1, PRD2, PRD9];
   ordensDoRoteiro(roteiroId: string) {
     return [...this.ordens].filter(([chave]) => chave.startsWith(`${roteiroId}|`)).reduce((soma, [, n]) => soma + n, 0);
   }
-  operacoes = [CORTE, MONTAGEM, INSPECAO];
+  operacoes = [CORTE, MONTAGEM, INSPECAO, LIXAMENTO];
+  inativas = new Set([LIXAMENTO.id, PRD9.id]);
   postos = [PRE01, MON01, MON09];
   private seq = 0;
   private novoId() { return uuid(++this.seq); }
@@ -82,8 +85,8 @@ class RepositorioEmMemoria implements RoteiroRepository {
     if (r) r.ativo = ativo;
     return !!r;
   }
-  async listarOperacoes() { return [...this.operacoes]; }
-  async buscarOperacoes(ids: readonly string[]) { return this.operacoes.filter((o) => ids.includes(o.id)).map((o) => o.id); }
+  async listarOperacoes() { return this.operacoes.filter((o) => !this.inativas.has(o.id)); }
+  async buscarOperacoes(ids: readonly string[]) { return this.operacoes.filter((o) => ids.includes(o.id)).map((o) => ({ id: o.id, ativo: !this.inativas.has(o.id) })); }
   async buscarPostos(ids: readonly string[]) { return this.postos.filter((p) => ids.includes(p.id)).map(({ id, ativo }) => ({ id, ativo })); }
   async substituirEtapas(roteiroId: string, etapas: readonly EtapaInformada[]) {
     if (this.ordensDoRoteiro(roteiroId)) throw new ErroDeRoteiro('CONFLITO', 'Este roteiro já tem ordens de produção.');
@@ -114,7 +117,7 @@ class RepositorioEmMemoria implements RoteiroRepository {
     }
     return id;
   }
-  async existeProduto(id: string) { return this.produtos.some((p) => p.id === id); }
+  async buscarProduto(id: string) { return this.produtos.some((p) => p.id === id) ? { id, ativo: !this.inativas.has(id) } : null; }
   async associarProduto(roteiroId: string, produtoId: string) { this.produtosLigados.push({ roteiroId, produtoId, vigente: false }); }
   async definirVigente(roteiroId: string, produtoId: string) {
     for (const l of this.produtosLigados) if (l.produtoId === produtoId) l.vigente = l.roteiroId === roteiroId;
@@ -447,4 +450,23 @@ test('roteiro: tempo digitado aceita vírgula ou ponto e recusa valores inválid
 test('roteiro: traduz produto repetido e vigência simultânea, inclusive com sufixo no nome do índice', () => {
   assert.throws(() => traduzirErroGravacaoRoteiro({ code: '23505', constraint: 'ProdutoRoteiro_produtoId_roteiroId_key' }), erroCom('CONFLITO', /já está ligado/));
   assert.throws(() => traduzirErroGravacaoRoteiro({ cause: { code: '23505', constraint: 'ProdutoRoteiro_vigente_unica_c7c5c582' } }), erroCom('CONFLITO', /vigência/));
+});
+
+test('roteiro: operação inativa não entra em etapa nova, mas a etapa que já a usa continua', async () => {
+  const { service, roteiro, repositorio } = await roteiroComEtapas();
+  assert.deepEqual((await service.listarOperacoes()).map((o) => o.nome), ['Corte', 'Montagem', 'Inspeção']);
+  await assert.rejects(() => service.salvarEtapas(roteiro.id, [...roteiro.etapas.map((e) => ({ id: e.id, operacaoId: e.operacao.id })), { operacaoId: LIXAMENTO.id }]),
+    erroCom('ENTRADA_INVALIDA', /inativa/));
+  // A Montagem é inativada depois de estar no roteiro: a etapa existente pode ser mantida e reordenada.
+  repositorio.inativas.add(MONTAGEM.id);
+  const [corte, montagem, inspecao] = roteiro.etapas;
+  const reordenado = await service.salvarEtapas(roteiro.id, [{ id: montagem.id, operacaoId: MONTAGEM.id }, { id: corte.id, operacaoId: CORTE.id }, { id: inspecao.id, operacaoId: INSPECAO.id }]);
+  assert.deepEqual(operacoesDe(reordenado), ['1:Montagem', '2:Corte', '3:Inspeção']);
+  await assert.rejects(() => service.salvarEtapas(roteiro.id, [{ operacaoId: MONTAGEM.id }]), erroCom('ENTRADA_INVALIDA', /inativa/));
+});
+
+test('roteiro: produto inativo não pode ser ligado', async () => {
+  const { service, roteiro } = await roteiroComEtapas();
+  await assert.rejects(() => service.associarProduto(roteiro.id, PRD9.id), erroCom('ENTRADA_INVALIDA', /inativo/));
+  assert.deepEqual((await service.buscar(roteiro.id)).produtos, []);
 });

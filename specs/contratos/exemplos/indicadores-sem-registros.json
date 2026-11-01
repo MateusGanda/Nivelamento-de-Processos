@@ -16,6 +16,15 @@
   "producaoFinal": [],
   "tempos": [],
   "tempoMedio": [],
+  "porDia": [
+    {
+      "data": "2026-10-07",
+      "produtivoSegundos": 0,
+      "pausaSegundos": 0,
+      "baixas": 0,
+      "tempoPadraoDasBaixasSegundos": 0
+    }
+  ],
   "cargaPendente": [],
   "cargaPorPosto": []
 }

@@ -1,9 +1,20 @@
 -- Script de criação do banco de dados do GUNP (PostgreSQL)
 --
--- Reúne, na mesma ordem, os comandos SQL das migrações do projeto:
+-- Reúne o resultado das migrações do projeto, organizado por tipo de objeto:
 --   migrations/app/20261008T1833_init (2026-10-08)
 --   migrations/app/20261012T2211_add_usuarios_administrativos (2026-10-12)
+--   migrations/app/20261021T1817_add_setor_codigo (2026-10-21)
+--   migrations/app/20261021T1825_add_operador_setor_funcao (2026-10-21)
+--   migrations/app/20261022T1323_add_ativo_operacao_produto (2026-10-22)
+--   migrations/app/20261022T1349_add_ativo_setor (2026-10-22)
+--   migrations/app/20261022T1404_planos_datas_como_texto (2026-10-22)
+--   migrations/app/20261026T0258_execucao_aberta_unica_por_operador (2026-10-26)
 -- Serve para consulta e para criar o banco manualmente em um PostgreSQL vazio.
+-- Em um banco vazio não há dados a converter: o preenchimento do código dos setores
+-- existentes, feito pela migração de 21/10, não aparece aqui. A migração de 22/10
+-- sobre as datas do plano não muda o banco (só o tipo usado pela aplicação).
+-- O banco oficial é criado pelas migrações (npx prisma db migrate); este arquivo
+-- precisa ser atualizado no mesmo pull request de cada migração nova.
 
 BEGIN;
 
@@ -75,6 +86,7 @@ CREATE TABLE "public"."MotivoPausa" (
 );
 
 CREATE TABLE "public"."Operacao" (
+  "ativo" bool DEFAULT true NOT NULL,
   "createdAt" timestamptz DEFAULT (now()) NOT NULL,
   "descricao" text,
   "id" uuid NOT NULL,
@@ -86,9 +98,11 @@ CREATE TABLE "public"."Operacao" (
 CREATE TABLE "public"."Operador" (
   "ativo" bool DEFAULT true NOT NULL,
   "createdAt" timestamptz DEFAULT (now()) NOT NULL,
+  "funcao" text,
   "id" uuid NOT NULL,
   "matricula" text NOT NULL,
   "nome" text NOT NULL,
+  "setorPrincipalId" uuid,
   "updatedAt" timestamptz DEFAULT (now()) NOT NULL,
   PRIMARY KEY ("id")
 );
@@ -129,6 +143,7 @@ CREATE TABLE "public"."Posto" (
 );
 
 CREATE TABLE "public"."Produto" (
+  "ativo" bool DEFAULT true NOT NULL,
   "codigo" text NOT NULL,
   "createdAt" timestamptz DEFAULT (now()) NOT NULL,
   "id" uuid NOT NULL,
@@ -168,6 +183,8 @@ CREATE TABLE "public"."Roteiro" (
 );
 
 CREATE TABLE "public"."Setor" (
+  "ativo" bool DEFAULT true NOT NULL,
+  "codigo" text NOT NULL,
   "createdAt" timestamptz DEFAULT (now()) NOT NULL,
   "descricao" text,
   "id" uuid NOT NULL,
@@ -216,6 +233,8 @@ ALTER TABLE "public"."ProdutoRoteiro" ADD CONSTRAINT "ProdutoRoteiro_produtoId_r
 
 ALTER TABLE "public"."Roteiro" ADD CONSTRAINT "Roteiro_nome_versao_key" UNIQUE ("nome", "versao");
 
+ALTER TABLE "public"."Setor" ADD CONSTRAINT "Setor_codigo_key" UNIQUE ("codigo");
+
 ALTER TABLE "public"."Setor" ADD CONSTRAINT "Setor_nome_key" UNIQUE ("nome");
 
 ALTER TABLE "public"."Usuario" ADD CONSTRAINT "Usuario_email_key" UNIQUE ("email");
@@ -246,9 +265,14 @@ CREATE INDEX "Execucao_etapaRoteiroId_idx_17d641ff" ON "public"."Execucao" ("eta
 
 CREATE INDEX "Execucao_operadorId_idx_b7d31568" ON "public"."Execucao" ("operadorId");
 
+-- Um operador não pode ter duas execuções abertas, incluindo a pausada.
+CREATE UNIQUE INDEX "Execucao_operador_aberta_unica_6ac54f96" ON "public"."Execucao" ("operadorId") WHERE (("status" <> 'FINALIZADA'));
+
 CREATE INDEX "Execucao_ordemProducaoId_idx_422138c7" ON "public"."Execucao" ("ordemProducaoId");
 
 CREATE INDEX "Execucao_postoId_idx_13be8f3c" ON "public"."Execucao" ("postoId");
+
+CREATE INDEX "Operador_setorPrincipalId_idx_80dd2e96" ON "public"."Operador" ("setorPrincipalId");
 
 CREATE INDEX "OrdemProducao_planoProducaoId_idx_d14976d3" ON "public"."OrdemProducao" ("planoProducaoId");
 
@@ -321,6 +345,11 @@ ALTER TABLE "public"."Execucao"
 ADD CONSTRAINT "Execucao_postoId_fkey"
 FOREIGN KEY ("postoId")
 REFERENCES "public"."Posto" ("id");
+
+ALTER TABLE "public"."Operador"
+ADD CONSTRAINT "Operador_setorPrincipalId_fkey"
+FOREIGN KEY ("setorPrincipalId")
+REFERENCES "public"."Setor" ("id");
 
 ALTER TABLE "public"."OrdemProducao"
 ADD CONSTRAINT "OrdemProducao_planoProducaoId_fkey"

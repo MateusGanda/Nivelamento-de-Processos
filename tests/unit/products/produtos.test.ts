@@ -21,7 +21,7 @@ class RepositorioEmMemoria implements ProdutoRepository {
       return traduzirErroGravacaoProduto({ sqlState: '23505', constraint: 'Produto_codigo_key' });
     }
     const id = `00000000-0000-4000-8000-${String(this.produtos.length + 1).padStart(12, '0')}`;
-    const produto: Produto = { id, ...dados, createdAt: '2026-10-19T12:00:00Z', updatedAt: '2026-10-19T12:00:00Z' };
+    const produto: Produto = { id, ...dados, ativo: true, createdAt: '2026-10-19T12:00:00Z', updatedAt: '2026-10-19T12:00:00Z' };
     this.produtos.push(produto);
     return produto;
   }
@@ -34,6 +34,12 @@ class RepositorioEmMemoria implements ProdutoRepository {
     this.produtos[indice] = { ...this.produtos[indice], ...dados, updatedAt: '2026-10-20T12:00:00Z' };
     return this.produtos[indice];
   }
+  async definirAtivo(id: string, ativo: boolean) {
+    const produto = this.produtos.find((item) => item.id === id);
+    if (!produto) return null;
+    Object.assign(produto, { ativo, updatedAt: '2026-10-21T12:00:00Z' });
+    return produto;
+  }
 }
 
 const pedido = (method: 'POST' | 'PATCH', corpo: unknown) => new Request('http://localhost/api/produtos', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
@@ -44,7 +50,8 @@ test('produto: cria removendo só espaços externos e preservando a caixa', asyn
   const service = new ProdutosService(new RepositorioEmMemoria());
   const produto = await service.criar({ codigo: '  prd-001  ', nome: '  Produto  A  ' });
   assert.deepEqual([produto.codigo, produto.nome], ['prd-001', 'Produto  A']);
-  assert.deepEqual(Object.keys(produto).sort(), ['codigo', 'createdAt', 'id', 'nome', 'updatedAt']);
+  assert.deepEqual(Object.keys(produto).sort(), ['ativo', 'codigo', 'createdAt', 'id', 'nome', 'updatedAt']);
+  assert.equal(produto.ativo, true);
   await service.criar({ codigo: 'PRD-001', nome: 'Produto A' });
   assert.equal((await service.listar()).length, 2);
 });
@@ -149,14 +156,14 @@ test('produto: sem sessão ou sem ADMIN ativo não lê nem grava', async () => {
 
 test('produto: falha inesperada responde 500 sem detalhes internos', async () => {
   const falha = async () => { throw new Error('connect ECONNREFUSED'); };
-  const handlers = criarHandlersProdutos({ autorizar: async () => ({}), produtos: { listar: falha, criar: falha, alterar: falha } });
+  const handlers = criarHandlersProdutos({ autorizar: async () => ({}), produtos: { listar: falha, criar: falha, alterar: falha, definirStatus: falha } });
   const resposta = await handlers.GET();
   assert.equal(resposta.status, 500);
   assert.deepEqual(await resposta.json(), { erro: { codigo: 'ERRO_INTERNO', mensagem: 'Não foi possível concluir a solicitação.' } });
 });
 
 test('produto: busca por código ou nome ignora caixa e acentos e ordena sem alterar a entrada', () => {
-  const base = (id: string, codigo: string, nome: string, createdAt: string, updatedAt = createdAt): Produto => ({ id, codigo, nome, createdAt, updatedAt });
+  const base = (id: string, codigo: string, nome: string, createdAt: string, updatedAt = createdAt, ativo = true): Produto => ({ id, codigo, nome, ativo, createdAt, updatedAt });
   const produtos = [
     base('1', 'PRD-002', 'Calçado B', '2026-10-19T12:00:00Z'),
     base('2', 'PRD-010', 'Bolsa', '2026-10-17T12:00:00Z', '2026-10-20T12:00:00Z'),
@@ -170,4 +177,36 @@ test('produto: busca por código ou nome ignora caixa e acentos e ordena sem alt
   assert.deepEqual(filtrarOrdenarProdutos(produtos, '', { coluna: 'updatedAt', direcao: 'desc' }).map((p) => p.codigo), ['PRD-010', 'PRD-002', 'PRD-001']);
   assert.deepEqual(produtos, copia);
   assert.equal(formatarDataCadastro('2026-10-19T12:00:00Z'), '19/10/2026, 09:00');
+});
+
+test('produto: inativa e reativa sem alterar os outros dados; handler valida o corpo', async () => {
+  const repositorio = new RepositorioEmMemoria();
+  const service = new ProdutosService(repositorio);
+  const criado = await service.criar({ codigo: 'PRD-001', nome: 'Produto A' });
+  const inativo = await service.definirStatus(criado.id, false);
+  assert.deepEqual([inativo.ativo, inativo.codigo, inativo.nome], [false, 'PRD-001', 'Produto A']);
+  assert.equal((await service.definirStatus(criado.id, true)).ativo, true);
+  await assert.rejects(() => service.definirStatus(ID_INEXISTENTE, false), erroCom('NAO_ENCONTRADO'));
+  await assert.rejects(() => service.definirStatus('produto-1', false), erroCom('NAO_ENCONTRADO'));
+  const handlers = criarHandlersProdutos({ autorizar: async () => ({}), produtos: service });
+  const resposta = await handlers.PATCH_STATUS(pedido('PATCH', { ativo: false }), criado.id);
+  assert.equal(resposta.status, 200);
+  assert.equal((await resposta.json()).ativo, false);
+  for (const corpo of [{}, { ativo: 'false' }, { ativo: true, nome: 'X' }, []]) assert.equal((await handlers.PATCH_STATUS(pedido('PATCH', corpo), criado.id)).status, 400);
+  assert.equal((await handlers.PATCH_STATUS(pedido('PATCH', { ativo: true }), ID_INEXISTENTE)).status, 404);
+  // ativo não entra pela rota de edição.
+  assert.equal((await handlers.PATCH(pedido('PATCH', { ativo: true }), criado.id)).status, 400);
+  const negado = criarHandlersProdutos({ autorizar: async () => { throw new ErroDeAcesso('SEM_AUTORIZACAO', 'Acesso negado.'); }, produtos: service });
+  assert.equal((await negado.PATCH_STATUS(pedido('PATCH', { ativo: true }), criado.id)).status, 403);
+  assert.equal(repositorio.produtos[0].ativo, false);
+});
+
+test('produto: filtro de status e ordenação por status', () => {
+  const base = (id: string, codigo: string, ativo: boolean): Produto => ({ id, codigo, nome: codigo, ativo, createdAt: '2026-10-19T12:00:00Z', updatedAt: '2026-10-19T12:00:00Z' });
+  const produtos = [base('1', 'PRD-002', false), base('2', 'PRD-001', true), base('3', 'PRD-003', true)];
+  const ordem = { coluna: 'codigo', direcao: 'asc' } as const;
+  assert.deepEqual(filtrarOrdenarProdutos(produtos, '', ordem, 'ativos').map((p) => p.codigo), ['PRD-001', 'PRD-003']);
+  assert.deepEqual(filtrarOrdenarProdutos(produtos, '', ordem, 'inativos').map((p) => p.codigo), ['PRD-002']);
+  assert.deepEqual(filtrarOrdenarProdutos(produtos, '', ordem).map((p) => p.codigo), ['PRD-001', 'PRD-002', 'PRD-003']);
+  assert.deepEqual(filtrarOrdenarProdutos(produtos, '', { coluna: 'ativo', direcao: 'asc' }).map((p) => p.codigo), ['PRD-001', 'PRD-003', 'PRD-002']);
 });
