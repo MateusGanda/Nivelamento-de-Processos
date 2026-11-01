@@ -139,6 +139,7 @@ Antes de implementar uma tarefa:
 8. Não substituir APIs ausentes por dados mockados para aparentar que a funcionalidade está pronta.
 9. Incluir validações, tratamento de erros e testes relevantes; respeitar transações para operações que alteram vários registros.
 10. Ao terminar, resumir arquivos alterados, decisões tomadas, testes executados e pendências. Não declarar testes executados se não foram realmente executados.
+11. Ao criar ou revisar cadastros, seguir o contrato de identificadores automáticos e o mapeamento dos cadastros. Especificar formato e compatibilidade antes de mudar um código manual; não criar campos ou vínculos apenas para tornar o formulário maior.
 
 ## 10. Organização da equipe
 

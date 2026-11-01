@@ -4,17 +4,23 @@ Sistema web para registrar a produção e os tempos de cada etapa de uma linha d
 
 O sistema está em desenvolvimento. A versão da branch `develop` fica publicada em <https://nivelamento-de-processos.vercel.app>.
 
-## Situação em 14/10/2026
+## Situação do código em 22/10/2026
 
-Pronto:
+Implementado no repositório:
 
 - login com matrícula e senha, e API de usuários administrativos;
 - painel administrativo com menu lateral;
-- cadastro e consulta de operadores e de setores;
+- criação, listagem e edição de Produtos e Operações;
+- criação/listagem de Setores com código automático;
+- criação, listagem e edição de Operadores com matrícula automática, setor principal e função;
+- criação, listagem, edição e ativação/inativação de Postos;
+- Roteiros versionados com etapas, postos compatíveis, produtos, vigência e tempos padrão;
 - banco de dados com 16 tabelas, criado por migrações;
 - indicadores (tempos, produção, posição das ordens e carga pendente por etapa e por posto) na API `GET /api/indicadores`, com testes, ainda sem tela.
 
-Em desenvolvimento: demais cadastros, roteiros, planos e ordens de produção, apontamento da produção (início, pausa, retomada, troca de operação e baixa), leitor USB e painel de indicadores. O acompanhamento das fases está em [`docs/plan/ROADMAP_GUNP.md`](docs/plan/ROADMAP_GUNP.md).
+Motivos de Pausa, Planos e Ordens de Produção, Execução e Indicadores ainda têm páginas provisórias no painel. A API de indicadores já existe; apontamento da produção, leitor USB e evolução dos cadastros permanecem em desenvolvimento. Esta revisão do código não confirma deployment, migrations aplicadas ou aceite em navegador.
+
+O [mapeamento dos cadastros](docs/design/CADASTROS_GUNP.md) descreve o que cada tela tem e o que precisa detalhar. Produtos e Postos ainda exigem código manual; a diretriz para as próximas entregas é manter [identificadores automáticos e permanentes](specs/contratos/identificadores-cadastros.md), com contrato específico e preservação dos legados, uma tela por vez. O acompanhamento das fases está em [`docs/plan/ROADMAP_GUNP.md`](docs/plan/ROADMAP_GUNP.md).
 
 ## Tecnologias
 
@@ -111,7 +117,8 @@ Os testes não usam o banco de dados. Os testes de login por HTTP são opcionais
 
 ```text
 app/          páginas do sistema e rotas da API
-modules/      código por módulo (access, operators, sectors, indicators),
+modules/      código por módulo (access, operators, sectors, operations,
+              products, workstations, routings e indicators),
               dividido em domain, application, infrastructure e presentation
 shared/       validações usadas por mais de um módulo
 src/prisma/   modelo de dados e conexão com o banco
@@ -132,6 +139,9 @@ As regras de cada camada estão em [`docs/architecture/ARCHITECTURE.md`](docs/ar
 - [`docs/domain/diagrama-de-classes.drawio.png`](docs/domain/diagrama-de-classes.drawio.png): diagrama de classes
 - [`docs/domain/diagrama-de-casos-de-uso.drawio.png`](docs/domain/diagrama-de-casos-de-uso.drawio.png): diagrama de casos de uso
 - [`docs/technology/TECHNOLOGY.md`](docs/technology/TECHNOLOGY.md): tecnologias e padrões
+- [`docs/design/CADASTROS_GUNP.md`](docs/design/CADASTROS_GUNP.md): telas existentes, lacunas e fila sugerida de detalhamento
+- [`specs/contratos/identificadores-cadastros.md`](specs/contratos/identificadores-cadastros.md): padrão de geração automática dos próximos cadastros
+- [`specs/contratos/operadores-setores.md`](specs/contratos/operadores-setores.md): formatos e regras já implementados de matrícula e código de setor
 - [`specs/contratos/indicadores.md`](specs/contratos/indicadores.md): contrato da consulta de indicadores
 - [`docs/tcc`](docs/tcc): texto do TCC
 - [`AGENTS.md`](AGENTS.md): regras para o uso de ferramentas de IA no projeto

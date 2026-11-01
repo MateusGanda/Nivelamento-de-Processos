@@ -8,6 +8,8 @@ O menu contém Início; Cadastros (Produtos, Operações, Setores, Postos, Opera
 
 Produtos, Operações, Setores, Postos, Operadores, Motivos de Pausa, Roteiros, Planos de Produção, Ordens de Produção e Indicadores possuem páginas explícitas sob `/painel`. Operações permite criação, listagem e edição por API, detalhadas em `OPERACOES_GUNP.md`; Operadores e Setores mantêm as entregas descritas em `OPERADORES_GUNP.md` e `SETORES_GUNP.md`. O destino ainda provisório sob `/painel/[modulo]` (Execução) mostra título, ícone, descrição, aviso de implementação futura e link Voltar ao início. Slugs desconhecidos retornam 404. Execução é um destino administrativo provisório, sem acesso operacional à ilha.
 
+O [mapeamento e evolução dos cadastros](CADASTROS_GUNP.md), revisado em 22/10/2026, descreve os campos e fluxos implementados, os códigos ainda manuais e as propostas de detalhamento. A diretriz de identificadores automáticos está em [identificadores-cadastros.md](../../specs/contratos/identificadores-cadastros.md); aplicar por contrato e uma tela por entrega.
+
 ## Apresentação
 
 Manter Geist, Lucide, grafite e laranja `#FF7A21`. A marca do painel usa engrenagem à esquerda de GUNP, preservando as variantes do login e da tela de erro. O banner de boas-vindas contém uma engrenagem SVG decorativa, sem outro asset de imagem.

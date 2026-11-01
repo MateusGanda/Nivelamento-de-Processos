@@ -141,6 +141,10 @@ A estrutura adotada no código difere desta sugestão: os módulos ficam em `mod
 
 Esta é a **primeira grande frente funcional**, conforme a estratégia da equipe.
 
+Revisão documental de 22/10/2026: os itens de Produtos, Postos e Roteiros abaixo foram alinhados aos fluxos presentes no código. Isso não confirma deployment nem substitui aceite visual/funcional. O [mapeamento dos cadastros](../design/CADASTROS_GUNP.md) registra campos atuais, lacunas e propostas.
+
+As próximas entregas seguem o [padrão de identificadores automáticos](../../specs/contratos/identificadores-cadastros.md), preservando códigos antigos e definindo o formato por entidade. Produtos e Postos ainda usam códigos manuais. A fila sugerida de revisão é Postos → Produtos → Setores → Operações → Operadores → Roteiros, sempre uma tela por entrega e sem incluir automaticamente novos campos.
+
 ## 7.1 Operações
 
 Entrega de listagem, criação, edição e ativação/inativação em `/painel/operacoes`, com GET/POST `/api/operacoes`, PATCH `/api/operacoes/[id]` e PATCH `/api/operacoes/[id]/status`. Nome obrigatório e único, descrição opcional, busca, filtro de status e ordenação. Detalhes e limites de verificação em `docs/design/OPERACOES_GUNP.md`.
@@ -172,6 +176,7 @@ Página `/painel/setores`, com GET/POST `/api/setores`, PATCH `/api/setores/[id]
 - [x] Ativar/inativar
 - [x] Validar nome único
 - [x] Gerar código funcional único automaticamente
+- [ ] Especificar consulta de postos e operadores vinculados
 
 ## 7.4 Postos
 
