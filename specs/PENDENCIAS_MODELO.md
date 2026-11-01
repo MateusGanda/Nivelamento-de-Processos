@@ -1,6 +1,6 @@
 # Pendências e fundamentos do modelo de dados
 
-Atualizado em 21/10/2026. Responsável: Mateus.
+Atualizado em 22/10/2026. Responsável: Mateus.
 
 O modelo de dados está em `src/prisma/contract.prisma` e as regras consolidadas em `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md` e `docs/CONTEXTO_DO_PROJETO.md`; este documento não os repete. Ele guarda duas coisas que não estão em outro lugar do repositório: as respostas da empresa que fundamentaram o modelo e a lista de decisões ainda abertas.
 
@@ -25,8 +25,9 @@ As recomendações da seção "Decisões em aberto" são sugestões para a equip
 | 4 | **Proteção contra reenvio.** Não há identificador de solicitação em `Execucao` nem em `EventoTempo`. | O `ARCHITECTURE.md` exige que duplo clique ou reenvio não dupliquem evento nem baixa. | Definir junto com os comandos de apontamento. | Equipe |
 | 5 | **Correção de apontamento.** Não há histórico de correção. | Uma baixa errada precisa ser corrigida sem perder o registro original. | Definir antes do piloto. | Equipe |
 | 6 | **Inativação de cadastros.** `Produto`, `Operacao` e `Setor` não têm `ativo`. | Cadastros usados em ordens não podem ser apagados. | Avaliar `ativo` nos três. | Equipe |
-| 7 | **Categoria do motivo de pausa.** `MotivoPausa` só tem nome. | O painel não separa pausa prevista de interrupção. | Avaliar um campo de categoria. | Equipe |
+| 7 | **Categoria do motivo de pausa.** `MotivoPausa` tem nome, descrição opcional e status, sem categoria. | O painel não separa pausa prevista de interrupção. | Avaliar um campo de categoria. | Equipe |
 | 8 | **Linha de produção.** O setor é o nível mais alto. | Com mais de uma linha, falta um agrupador. | Deixar para depois do piloto. | Equipe |
+| 9 | **Formatos dos identificadores dos próximos cadastros.** Geração automática e permanência são a diretriz aprovada, mas Produtos e Postos ainda exigem códigos manuais; formatos dos demais cadastros não estão definidos. | Alterar o significado de um código pode perder referências usadas pela empresa ou afetar login no caso de Usuario. | Fechar contrato por entidade antes de implementar: base, sequência, fallback, preservação de legados e referência externa do produto. Seguir [identificadores-cadastros.md](contratos/identificadores-cadastros.md) e a fila em [CADASTROS_GUNP.md](../docs/design/CADASTROS_GUNP.md). | Equipe; empresa esclarece uso dos códigos atuais |
 
 ## Regra definida, falta implementar
 

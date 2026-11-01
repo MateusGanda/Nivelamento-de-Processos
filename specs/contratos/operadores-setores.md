@@ -2,6 +2,8 @@
 
 Versão 1.0 — 21/10/2026. Decisões aprovadas pela equipe nesta entrega.
 
+Complemento documental de 22/10/2026: este cadastro é a referência implementada para o [padrão de identificadores dos próximos cadastros](identificadores-cadastros.md). Seus formatos específicos permanecem inalterados; o [mapeamento das telas](../../docs/design/CADASTROS_GUNP.md) registra as próximas revisões.
+
 ## Identidade e lotação
 
 O UUID permanece como identidade interna de cada registro. Setor recebe um código funcional automático e único; Operador recebe matrícula automática e única. O administrador não informa nem altera esses identificadores.
@@ -60,7 +62,7 @@ A tabela acrescenta setor principal, função e Editar. Registros antigos mostra
 
 Entrega 1: acrescentar coluna de código, preencher setores em ordem de createdAt e UUID, só então aplicar NOT NULL e UNIQUE. IDs, nomes, descrições, timestamps e relações existentes não mudam.
 
-O Prisma classifica a operação Set NOT NULL como destructive por estreitar a coluna. Ela ocorre após o backfill verificado; a revisão de deployment deve considerar essa classificação e a confirmação exigida pela CLI. Não reclassificar manualmente o pacote gerado. As migrations não contêm remoção ou reconstrução de tabelas.
+O Prisma classifica a operação Set NOT NULL como destructive por estreitar a coluna. Ela ocorre após o backfill verificado; a revisão de deployment deve considerar essa classificação. Na versão Prisma 8 RC adotada, `prisma db migrate --show` permite revisar o plano e `prisma db migrate` aplica diretamente, sem pedir confirmação. Não reclassificar manualmente o pacote gerado. As migrations não contêm remoção ou reconstrução de tabelas.
 
 Entrega 2: adicionar `Operador.funcao` e `Operador.setorPrincipalId` como opcionais, com FK e índice para Setor. A nulidade mantém operadores antigos válidos; novos cadastros exigem setor na aplicação. Preservar matrículas, status, IDs e execuções existentes. Não há conversão nem alias de matrículas antigas.
 

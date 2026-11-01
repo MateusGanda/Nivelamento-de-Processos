@@ -42,6 +42,12 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 
 ## Regras de negócio
 
+### Identificadores dos próximos cadastros
+- Identificadores funcionais internos serão gerados no servidor, únicos e permanentes, separados do UUID. Preservar valores antigos e os de registros inativos; alterações cadastrais não recalculam o identificador.
+- O padrão transversal está em [identificadores-cadastros.md](../../specs/contratos/identificadores-cadastros.md). A máscara e os dados usados na geração pertencem ao contrato de cada entidade; o formato da matrícula de Operador não se aplica automaticamente a Produtos, Postos ou Usuários.
+- Setores e Operadores já seguem o padrão. Produtos e Postos ainda possuem códigos manuais/editáveis; a adequação será especificada por cadastro, esclarecendo eventuais referências externas do produto e preservando dados existentes. Operações não possui código funcional, e Roteiros mantém nome/versão como identificação de negócio.
+- O [mapeamento das telas](../design/CADASTROS_GUNP.md) distingue implementação atual de propostas de detalhamento. Este alinhamento documental não acrescenta atributos ao modelo nem altera as APIs existentes.
+
 ### Cadastro de operação
 - Nome obrigatório e único; descrição opcional. Remover somente espaços nas extremidades, preservando caixa, acentos e espaços internos, sem novos limites de tamanho.
 - Descrição ausente no cadastro, nula ou vazia após trim é armazenada como `null`. Na edição, campos omitidos permanecem inalterados.

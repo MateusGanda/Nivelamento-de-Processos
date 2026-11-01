@@ -138,6 +138,10 @@ No frontend, separar `app`, `components`, `features`, `lib` e `types` conforme a
 
 Esta é a **primeira grande frente funcional**, conforme a estratégia da equipe.
 
+Revisão documental de 22/10/2026: os itens de Produtos, Postos e Roteiros abaixo foram alinhados aos fluxos presentes no código. Isso não confirma deployment nem substitui aceite visual/funcional. O [mapeamento dos cadastros](../design/CADASTROS_GUNP.md) registra campos atuais, lacunas e propostas.
+
+As próximas entregas seguem o [padrão de identificadores automáticos](../../specs/contratos/identificadores-cadastros.md), preservando códigos antigos e definindo o formato por entidade. Produtos e Postos ainda usam códigos manuais. A fila sugerida de revisão é Postos → Produtos → Setores → Operações → Operadores → Roteiros, sempre uma tela por entrega e sem incluir automaticamente novos campos.
+
 ## 7.1 Operações
 
 Entrega de listagem, criação e edição em `/painel/operacoes`, com GET/POST `/api/operacoes` e PATCH `/api/operacoes/[id]`. Nome obrigatório e único, descrição opcional, busca e ordenação. Sem alteração de schema; ativação/inativação permanece pendente porque `Operacao` não possui `ativo`. Detalhes e limites de verificação em `docs/design/OPERACOES_GUNP.md`.
@@ -150,11 +154,16 @@ Entrega de listagem, criação e edição em `/painel/operacoes`, com GET/POST `
 
 ## 7.2 Produtos
 
-- [ ] Listar
-- [ ] Criar
-- [ ] Editar
-- [ ] Validar código único
-- [ ] Validar nome
+Listagem, criação e edição de código/nome em `/painel/produtos`, com GET/POST `/api/produtos` e PATCH `/api/produtos/[id]`. Código ainda manual e editável; não há descrição nem status no modelo. Detalhamento e decisões pendentes no mapeamento dos cadastros.
+
+- [x] Listar, buscar e ordenar
+- [x] Criar
+- [x] Editar código e nome
+- [x] Validar código único
+- [x] Validar nome
+- [ ] Especificar identificação interna automática, esclarecendo referência externa/SKU
+- [ ] Adequar geração e permanência do código, preservando legados
+- [ ] Especificar consulta de roteiros, vigência e situação dos tempos padrão
 
 ## 7.3 Setores
 
@@ -165,15 +174,22 @@ Criação/listagem em /painel/setores e GET/POST /api/setores, com código autom
 - [ ] Editar
 - [x] Validar nome único
 - [x] Gerar código funcional único automaticamente
+- [ ] Especificar consulta de postos e operadores vinculados
 
 ## 7.4 Postos
 
-- [ ] Listar
-- [ ] Criar
-- [ ] Editar
-- [ ] Associar a setor
-- [ ] Ativar/inativar
-- [ ] Validar código único
+Listagem, criação, edição e status em `/painel/postos`, com GET/POST `/api/postos`, PATCH `/api/postos/[id]` e PATCH `/api/postos/[id]/status`. Setor obrigatório, código manual e editável. Primeira revisão recomendada para geração automática e consulta dos vínculos produtivos.
+
+- [x] Listar, buscar, ordenar e filtrar status
+- [x] Criar
+- [x] Editar código, nome e setor
+- [x] Associar a setor
+- [x] Ativar/inativar
+- [x] Validar código único
+- [ ] Fechar contrato do código automático permanente e preservar códigos legados
+- [ ] Adequar geração do código e confirmação após cadastro
+- [ ] Melhorar identificação do setor e nova tentativa de carregamento
+- [ ] Especificar consulta de etapas/roteiros compatíveis
 
 ## 7.5 Operadores
 
@@ -200,40 +216,49 @@ Criação, listagem e edição em /painel/operadores e GET/POST /api/operadores 
 
 O roteiro é uma das partes centrais do domínio.
 
+As telas `/painel/roteiros` e `/painel/roteiros/[id]`, a API e `modules/routings` já possuem os fluxos abaixo. O modal inicial recebe somente nome; a versão é automática e os dados produtivos são definidos na tela de detalhe. A revisão documental não adiciona matrícula/código ao roteiro nem novas regras de prontidão.
+
 ## Criar roteiro
 
-- [ ] Nome
-- [ ] Versão
-- [ ] Ativo/inativo
+- [x] Nome
+- [x] Versão inicial 1 e geração de próximas versões por cópia
+- [x] Ativo/inativo, com impedimento de inativar versão vigente de produto
 
 ## Etapas
 
-- [ ] Adicionar operação
-- [ ] Definir ordem
-- [ ] Reordenar etapas
-- [ ] Validar pertencimento ao roteiro
+- [x] Adicionar operação
+- [x] Definir ordem
+- [x] Reordenar etapas
+- [x] Validar pertencimento ao roteiro
+- [x] Impedir alteração de etapas de versão usada em ordens
 
 ## Produto–Roteiro
 
-- [ ] Associar produto a roteiro
-- [ ] Definir roteiro vigente
-- [ ] Manter histórico
-- [ ] Impedir mais de um vigente por produto
+- [x] Associar produto a roteiro
+- [x] Definir roteiro vigente
+- [x] Manter versões anteriores e impedir remoção de vínculo com ordens
+- [x] Impedir mais de um vigente por produto
 
 ## Tempo padrão
 
 O tempo padrão pertence à combinação **Produto + Etapa do Roteiro**, e não à Operação de forma universal.
 
-- [ ] Cadastrar
-- [ ] Editar
-- [ ] Validar valor
-- [ ] Associar corretamente
+- [x] Cadastrar
+- [x] Editar ou limpar tempo informado
+- [x] Validar valor em segundos por unidade, maior que zero e até duas casas decimais
+- [x] Associar corretamente ao produto e à etapa
+- [x] Impedir mudança de tempos de produto com ordens naquela versão
 
 ## Etapa–Posto
 
-- [ ] Associar etapa a posto
-- [ ] Remover associação
-- [ ] Visualizar postos compatíveis
+- [x] Associar etapa a posto
+- [x] Remover associação
+- [x] Visualizar postos compatíveis
+- [x] Impedir inclusão de posto inativo, preservando vínculos já existentes
+
+## Revisão documental e de consulta
+
+- [ ] Documentar design específico de Roteiros e avaliar resumo das pendências de preenchimento, sem criar novos bloqueios sem contrato
 
 **Concluído quando:** é possível cadastrar Produto → Roteiro → Etapas → Operações → Tempo padrão → Postos sem editar o banco manualmente.
 
@@ -241,6 +266,7 @@ O tempo padrão pertence à combinação **Produto + Etapa do Roteiro**, e não 
 
 ## Plano de Produção
 
+- [ ] Definir contrato e gerar código único automaticamente, conforme padrão dos cadastros
 - [ ] Criar
 - [ ] Editar
 - [ ] Listar
@@ -255,7 +281,7 @@ O tempo padrão pertence à combinação **Produto + Etapa do Roteiro**, e não 
 - [ ] Selecionar roteiro
 - [ ] Informar quantidade/unidade
 - [ ] Associar ao plano
-- [ ] Gerar/informar número único
+- [ ] Definir contrato e gerar número único automaticamente, conforme padrão dos cadastros
 - [ ] Listar
 - [ ] Visualizar
 

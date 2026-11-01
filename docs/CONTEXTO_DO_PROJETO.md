@@ -2,7 +2,7 @@
 
 **Projeto:** Desenvolvimento de um Sistema Web para Gerenciamento de Nivelamento de Processos em Linhas de Produção (GUNP)  
 **Equipe:** Mateus, Gustavo e Arthur  
-**Atualizado em:** 21/10/2026
+**Atualizado em:** 22/10/2026
 **Finalidade:** servir como contexto de referência para a equipe e para ferramentas de IA usadas no desenvolvimento. Este documento deve ser lido junto de `MODELO_CONCEITUAL_GUNP_atualizado.md`, `ARCHITECTURE.md`, `TECHNOLOGY.md` e `ROADMAP_GUNP.md`. Em caso de divergência, não inventar uma regra: identificar o conflito e pedir confirmação.
 
 > **Estado das informações:** as decisões de domínio e tecnologia descritas como definidas refletem o entendimento atual da equipe. O esquema Prisma e as migrações iniciais já foram gerados e aplicados ao banco. O acesso administrativo de `Usuario` possui modelo, rotas e migration versionada; a representação e o acesso operacional do terminal/ilha continuam pendentes. Isso não implica que os demais CRUDs ou fluxos de produção estejam implementados.
@@ -112,6 +112,8 @@ O QR/código é um meio de identificar operador ou ordem no fluxo de apontamento
 - A autenticação administrativa, o modelo `Usuario` e suas rotas devem ser verificados no código e schema atuais; a representação/registro do terminal e o acesso operacional continuam **pendentes**.
 - A interface administrativa possui `/login` personalizado e `/painel` com boas-vindas, menu lateral, cartões de módulos, identificação e logout. A raiz redireciona conforme a sessão e a condição de ADMIN ativo. `/painel/operadores` possui criação, listagem e edição por API, com matrícula automática permanente, setor principal, função opcional, busca, filtro de status e ordenação. `/painel/setores` possui criação e listagem por API, com código automático permanente, nome único, descrição opcional, busca e ordenação. `/painel/operacoes` permite criação, listagem e edição de nome/descrição por API, sem ativação/inativação ou mudanças no schema. Produtos, Postos e Roteiros também possuem páginas próprias. Motivos de Pausa, Planos de Produção, Ordens de Produção, Execução e Indicadores permanecem destinos provisórios no painel; dashboards, edição de setores, ativação/inativação de operadores e operações de produção continuam pendentes.
 - O contrato aprovado de códigos de setor e matrículas automáticas está em `specs/contratos/operadores-setores.md`. As duas migrations estão versionadas e validadas em PostgreSQL isolado; aplicação no banco da equipe é separada. Cadastros antigos mantêm matrículas e podem permanecer sem setor até regularização.
+- A diretriz para os próximos cadastros é manter identificadores funcionais internos automáticos, únicos e permanentes, gerados no servidor, conforme [identificadores-cadastros.md](../specs/contratos/identificadores-cadastros.md). O formato da matrícula de Operador não é uma máscara universal. Produtos e Postos ainda usam códigos manuais e editáveis; sua adequação precisa de contrato específico, preservando os códigos antigos e esclarecendo referências externas de produto.
+- O [mapeamento dos cadastros](design/CADASTROS_GUNP.md), revisado no código em 22/10/2026, detalha as seis telas existentes, lacunas e uma fila sugerida de revisão, começando por Postos e Produtos. Novos campos são propostas; não estão autorizados automaticamente. Roteiros já possui detalhe com etapas, postos, produtos, vigência e tempos padrão. Usuários possui API, sem tela de cadastro. Evoluir uma tela por entrega, validando-a antes da seguinte.
 - Não inferir que uma tarefa está concluída só porque aparece em um plano ou roadmap. Atualizar o status apenas após inspecionar o repositório ou receber confirmação da equipe.
 
 ## 9. Diretrizes para a IA no VS Code/Codex
@@ -128,6 +130,7 @@ Antes de implementar uma tarefa:
 8. Não substituir APIs ausentes por dados mockados para aparentar que a funcionalidade está pronta.
 9. Incluir validações, tratamento de erros e testes relevantes; respeitar transações para operações que alteram vários registros.
 10. Ao terminar, resumir arquivos alterados, decisões tomadas, testes executados e pendências. Não declarar testes executados se não foram realmente executados.
+11. Ao criar ou revisar cadastros, seguir o contrato de identificadores automáticos e o mapeamento dos cadastros. Especificar formato e compatibilidade antes de mudar um código manual; não criar campos ou vínculos apenas para tornar o formulário maior.
 
 ## 10. Organização da equipe
 
