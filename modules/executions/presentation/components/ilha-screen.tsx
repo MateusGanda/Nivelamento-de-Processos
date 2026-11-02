@@ -6,10 +6,11 @@ import { AlertCircle, CheckCircle2, LoaderCircle, Lock, LogOut, Pause, Play, Rep
 import { BrandGunp } from '../../../access/presentation/components/brand-gunp';
 import type { Destino, ExecucaoAberta, OperadorDaIlha } from '../../domain/execucao';
 import {
-  bloquearTerminal, darBaixa, ErroApiIlha, identificarOperador, iniciarExecucao, listarMotivosPausa, pausarExecucao, retomarExecucao, trocarOperacao,
+  bloquearTerminal, darBaixa, ErroApiIlha, identificarOperador, iniciarExecucao, pausarExecucao, retomarExecucao, trocarOperacao,
 } from '../api-client';
 import { formatarDuracao, lerQuantidade, tempoDecorrido } from '../tempo-decorrido';
 import { IlhaDestino } from './ilha-destino';
+import { IlhaPausa } from './ilha-pausa';
 
 type Modo = null | 'iniciar' | 'trocar' | 'pausar' | 'baixa';
 
@@ -41,8 +42,6 @@ export function IlhaScreen() {
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
   const [mensagem, setMensagem] = useState('');
-  const [motivos, setMotivos] = useState<{ id: string; nome: string }[] | null>(null);
-  const [motivoId, setMotivoId] = useState('');
   const [baixa, setBaixa] = useState({ boa: '', retrabalho: '', refugo: '' });
 
   // O leitor USB funciona como teclado: sem outro campo em uso, o foco volta para a matrícula.
@@ -98,14 +97,6 @@ export function IlhaScreen() {
     setErro('');
     setMensagem('');
     campoRef.current?.focus();
-  }
-
-  async function abrirPausa() {
-    setModo('pausar');
-    setMotivoId('');
-    if (motivos) return;
-    try { setMotivos(await listarMotivosPausa()); }
-    catch (falha) { tratarFalha(falha); setModo(null); }
   }
 
   async function bloquear() {
@@ -173,7 +164,7 @@ export function IlhaScreen() {
                       <button type="button" disabled={ocupado} onClick={() => void executar(() => retomarExecucao(operador.matricula, execucao.id), 'Execução retomada.')} className={`${botaoGrande} bg-[#7bcba5] text-[#13201a] hover:bg-[#93d8b6] sm:col-span-3`}><Play aria-hidden="true" size={22} strokeWidth={2} />Retomar</button>
                     ) : (
                       <>
-                        <button type="button" disabled={ocupado} onClick={() => void abrirPausa()} className={`${botaoGrande} bg-[#ffcf99] text-[#2a1d0c] hover:bg-[#ffdcb3]`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Pausar</button>
+                        <button type="button" disabled={ocupado} onClick={() => { setModo('pausar'); setErro(''); setMensagem(''); }} className={`${botaoGrande} bg-[#ffcf99] text-[#2a1d0c] hover:bg-[#ffdcb3]`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Pausar</button>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('trocar'); setErro(''); }} className={`${botaoGrande} border border-[#3b454e] hover:border-accent`}><Repeat aria-hidden="true" size={22} strokeWidth={2} />Trocar operação</button>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('baixa'); setBaixa({ boa: '', retrabalho: '', refugo: '' }); setErro(''); }} className={`${botaoGrande} bg-accent text-[#171b1f] hover:bg-[#ff8d40]`}><Square aria-hidden="true" size={22} strokeWidth={2} />Finalizar e dar baixa</button>
                       </>
@@ -182,19 +173,8 @@ export function IlhaScreen() {
                 )}
 
                 {modo === 'pausar' && (
-                  <fieldset className="space-y-3 border-t border-white/10 pt-5">
-                    <legend className="mb-2 text-lg font-semibold">Motivo da pausa</legend>
-                    {motivos === null ? <p role="status" className="text-base text-muted">Carregando motivos…</p>
-                      : motivos.length === 0 ? <p className="text-base text-[#ffcf99]">Nenhum motivo de pausa cadastrado. Peça ao administrador para cadastrar os motivos.</p>
-                      : <div className="grid gap-2 sm:grid-cols-2">{motivos.map((motivo) => (
-                        <button key={motivo.id} type="button" aria-pressed={motivo.id === motivoId} onClick={() => setMotivoId(motivo.id)}
-                          className={`min-h-12 cursor-pointer rounded-lg border px-4 py-3 text-left text-base focus-visible:outline-2 focus-visible:outline-accent ${motivo.id === motivoId ? 'border-accent bg-accent/10' : 'border-[#3b454e] hover:border-accent'}`}>{motivo.nome}</button>
-                      ))}</div>}
-                    <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-                      <button type="button" onClick={() => setModo(null)} disabled={ocupado} className={botaoSecundario}>Cancelar</button>
-                      <button type="button" disabled={!motivoId || ocupado} onClick={() => void executar(() => pausarExecucao(operador.matricula, execucao.id, motivoId), 'Execução pausada.')} className={`${botaoGrande} bg-[#ffcf99] text-[#2a1d0c] hover:bg-[#ffdcb3] disabled:cursor-not-allowed`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Confirmar pausa</button>
-                    </div>
-                  </fieldset>
+                  <IlhaPausa key={execucao.id} ocupado={ocupado} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
+                    aoConfirmar={(motivoId) => void executar(() => pausarExecucao(operador.matricula, execucao.id, motivoId), 'Execução pausada.')} />
                 )}
 
                 {modo === 'baixa' && (
