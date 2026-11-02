@@ -4,23 +4,23 @@ Sistema web para registrar a produção e os tempos de cada etapa de uma linha d
 
 O sistema está em desenvolvimento. A versão da branch `develop` fica publicada em <https://nivelamento-de-processos.vercel.app>.
 
-## Situação do código em 22/10/2026
+## Situação do código em 02/11/2026
 
 Implementado no repositório:
 
 - login com matrícula e senha, e API de usuários administrativos;
 - painel administrativo com menu lateral;
-- criação, listagem e edição de Produtos e Operações;
-- criação/listagem de Setores com código automático;
-- criação, listagem e edição de Operadores com matrícula automática, setor principal e função;
-- criação, listagem, edição e ativação/inativação de Postos;
+- cadastros de Produtos, Operações, Setores, Postos, Operadores e Motivos de Pausa, com criação, listagem, edição e ativação/inativação;
+- Setores com código automático e Operadores com matrícula automática, setor principal e função;
 - Roteiros versionados com etapas, postos compatíveis, produtos, vigência e tempos padrão;
-- banco de dados com 16 tabelas, criado por migrações;
-- indicadores (tempos, produção, posição das ordens e carga pendente por etapa e por posto) na API `GET /api/indicadores`, com testes, ainda sem tela.
+- Planos e Ordens de Produção, com a versão do roteiro gravada em cada ordem;
+- ilha de apontamento em `/ilha`, liberada por chave do terminal, com identificação do operador pela matrícula, início, pausa com motivo, retomada, troca de operação e baixa com as quantidades boa, de retrabalho e de refugo;
+- tela de Indicadores, com posição das ordens, série por dia, qualidade, tempos por posto, tempo padrão e carga pendente, exportação em planilha e impressão;
+- banco de dados com 16 tabelas, criado por migrações.
 
-Motivos de Pausa, Planos e Ordens de Produção, Execução e Indicadores ainda têm páginas provisórias no painel. A API de indicadores já existe; apontamento da produção, leitor USB e evolução dos cadastros permanecem em desenvolvimento. Esta revisão do código não confirma deployment, migrations aplicadas ou aceite em navegador.
+Ainda pendentes: o acesso à ilha pelo item Execução do menu, que hoje leva a uma página provisória; o teste da identificação com um leitor de código físico; e a definição do tempo que a ilha espera, sem uso, antes de limpar a identificação do operador.
 
-O [mapeamento dos cadastros](docs/design/CADASTROS_GUNP.md) descreve o que cada tela tem e o que precisa detalhar. Produtos e Postos ainda exigem código manual; a diretriz para as próximas entregas é manter [identificadores automáticos e permanentes](specs/contratos/identificadores-cadastros.md), com contrato específico e preservação dos legados, uma tela por vez. O acompanhamento das fases está em [`docs/plan/ROADMAP_GUNP.md`](docs/plan/ROADMAP_GUNP.md).
+O [mapeamento dos cadastros](docs/design/CADASTROS_GUNP.md) descreve o que cada tela tem e o que precisa detalhar. Produtos, Postos e Planos ainda pedem o código digitado, e a Ordem sugere o próximo número; a diretriz para as próximas entregas é manter [identificadores automáticos e permanentes](specs/contratos/identificadores-cadastros.md), com contrato específico e preservação dos legados, uma tela por vez. O acompanhamento das fases está em [`docs/plan/ROADMAP_GUNP.md`](docs/plan/ROADMAP_GUNP.md).
 
 ## Tecnologias
 
@@ -118,7 +118,8 @@ Os testes não usam o banco de dados. Os testes de login por HTTP são opcionais
 ```text
 app/          páginas do sistema e rotas da API
 modules/      código por módulo (access, operators, sectors, operations,
-              products, workstations, routings e indicators),
+              products, workstations, pause-reasons, routings,
+              production-plans, production-orders, executions e indicators),
               dividido em domain, application, infrastructure e presentation
 shared/       validações usadas por mais de um módulo
 src/prisma/   modelo de dados e conexão com o banco

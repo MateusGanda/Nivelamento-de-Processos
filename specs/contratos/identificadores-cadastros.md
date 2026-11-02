@@ -26,16 +26,16 @@ Se futuramente houver exclusão física, o contrato deve prever como manter a re
 
 ## Aplicação por entidade
 
-| Cadastro | Estado verificado em 22/10/2026 | Próximo contrato |
+| Cadastro | Estado verificado em 22/10/2026 (atualizado em 02/11/2026) | Próximo contrato |
 | --- | --- | --- |
 | Operador | Matrícula automática permanente; setor principal e função; legados preservados | Manter o formato e as regras aprovadas em Operadores e Setores. |
-| Setor | Código automático permanente, com base do nome e sequência | Manter o código também quando a edição de setor for entregue. |
+| Setor | Código automático permanente, com base do nome e sequência | Manter o código permanente na edição de nome/descrição, já entregue. |
 | Posto | Código manual obrigatório, inclusive editável; setor obrigatório | Adaptar para código automático permanente. Definir base, uso do setor de origem, sequência, fallback e compatibilidade dos códigos antigos. |
 | Produto | Código manual obrigatório e editável | Adaptar a identificação interna ao padrão automático. Confirmar se o código atual também representa referência da empresa/SKU e como preservá-la, sem confundi-la com o identificador interno. |
 | Operação | Nome único e descrição; sem código funcional | Avaliar a necessidade de código no contrato da revisão. Se adotado, será automático e permanente; não adicionar campo apenas para repetir a matrícula do operador. |
 | Roteiro | Nome + versão; versão 1 inicial e próximas versões geradas no servidor | Preservar o versionamento existente. Versão é revisão do processo, não matrícula; um eventual código de família exige contrato próprio. |
-| Plano de Produção / Ordem de Produção | Campos `codigo` / `numero` existem no modelo; telas ainda provisórias | Planejar geração automática com formato, escopo de sequência e preservação do histórico antes das telas. |
-| Motivo de Pausa | Modelo tem nome, descrição e status; tela ainda provisória | Não exigir código manual na futura tela. Avaliar se um código funcional é necessário. |
+| Plano de Produção / Ordem de Produção | Telas entregues; código do plano digitado; número da ordem digitado, com sugestão do próximo no formato OP-0001 | Planejar geração automática com formato, escopo de sequência e preservação dos códigos e números já usados. |
+| Motivo de Pausa | Tela entregue; identificado só pelo nome, sem código | Avaliar se um código funcional é necessário; não exigir código manual. |
 | Usuário administrativo | API e bootstrap recebem matrícula manual usada no login; sem tela de cadastro | Planejar separadamente a identificação automática para futuros usuários. Sem vínculo de setor no modelo; não aplicar o gerador de Operador nem alterar logins existentes sem contrato de compatibilidade. |
 
 Nenhum formato novo para Posto, Produto, Plano, Ordem ou Usuário está fechado neste documento. A diretriz de automação está definida; esses contratos precisam resolver o significado e o formato do identificador antes de mudar código.
