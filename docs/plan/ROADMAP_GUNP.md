@@ -410,6 +410,17 @@ Implementada em `/ilha` (pull requests 54 e 55). O terminal é liberado pela cha
 - [x] Estados de carregamento, vazio, execução ativa, pausada, erro e sucesso
 - [ ] Limpeza da identificação por inatividade
 
+Revisão da tela — primeira parte em 01/11/2026, detalhada em [ILHA_GUNP.md](../design/ILHA_GUNP.md):
+
+- [x] Tratar falha de consulta de ordens com nova tentativa e cancelamento
+- [x] Atualizar ordens e motivos, inclusive quando a lista está vazia
+- [x] Consultar motivos a cada abertura da pausa, cancelando consultas encerradas
+- [x] Validar respostas das listas no cliente REST
+- [ ] Validar recuperação, foco/teclado e responsividade desses seletores em navegador
+- [ ] Proteger a identificação contra respostas atrasadas de gravações
+- [ ] Alinhar a escolha da troca considerando ordem e etapa
+- [ ] Recuperar a situação do operador após gravação com resultado incerto
+
 # 15. FASE 11 — Leitor USB
 
 Implementar somente depois do fluxo manual funcionar.
