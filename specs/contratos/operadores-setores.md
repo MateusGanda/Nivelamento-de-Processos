@@ -4,6 +4,8 @@ Versão 1.0 — 21/10/2026. Decisões aprovadas pela equipe nesta entrega.
 
 Complemento documental de 22/10/2026: este cadastro é a referência implementada para o [padrão de identificadores dos próximos cadastros](identificadores-cadastros.md). Seus formatos específicos permanecem inalterados; o [mapeamento das telas](../../docs/design/CADASTROS_GUNP.md) registra as próximas revisões.
 
+Complemento de 02/11/2026: emissão individual de crachá com QR da matrícula exata, somente para operadores ativos, conforme [Identificação por QR Code](identificacao-operadores-qrcode.md). A emissão não altera matrícula nem cadastro; impressão em lote e leitor USB serão entregas posteriores.
+
 ## Identidade e lotação
 
 O UUID permanece como identidade interna de cada registro. Setor recebe um código funcional automático e único; Operador recebe matrícula automática e única. O administrador não informa nem altera esses identificadores.

@@ -84,6 +84,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Nomes repetidos são permitidos; novo cadastro cria como ativo. Edição abrange nome, setor e função; a ativação/inativação tem ação própria, conforme "Ativo e inativo".
 - Setor e função são informativos; o posto efetivo fica na execução. Não atribuem permissões nem restringem operações.
 - Geração, colisões, normalização, fallback e API seguem specs/contratos/operadores-setores.md. Constraints reforçam unicidade; até dez tentativas em colisões concorrentes de identificador.
+- Crachá identifica pela matrícula exata e permanente, sem novo identificador ou credencial. Emissão individual somente para ativos; nome e setor impressos são os atuais. Contrato e próximas entregas em [Identificação por QR Code](../../specs/contratos/identificacao-operadores-qrcode.md).
 
 ### Roteiro e tempo padrão
 - Nome e versão identificam o roteiro; a nova versão copia etapas, postos de cada etapa, produtos ligados (sem vigência) e tempos padrão da versão de origem.

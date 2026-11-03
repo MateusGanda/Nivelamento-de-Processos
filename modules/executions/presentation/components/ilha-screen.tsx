@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, CheckCircle2, LoaderCircle, Lock, LogOut, Pause, Play, Repeat, ScanLine, Square, Timer } from 'lucide-react';
+import { AlertCircle, CheckCircle2, LoaderCircle, Lock, LogOut, Pause, Play, RefreshCw, Repeat, ScanLine, Square, Timer } from 'lucide-react';
 import { BrandGunp } from '../../../access/presentation/components/brand-gunp';
 import type { Destino, ExecucaoAberta, OperadorDaIlha } from '../../domain/execucao';
 import {
@@ -10,11 +10,13 @@ import {
 } from '../api-client';
 import { formatarDuracao, lerQuantidade, tempoDecorrido } from '../tempo-decorrido';
 import { criarControleRequisicoesIlha } from '../requisicoes-ilha';
+import { consultarSituacaoOperador, exigeAtualizacaoSituacao, type IdentificacaoEsperada } from '../recuperacao-ilha';
 import { IlhaDestino } from './ilha-destino';
 import { IlhaPausa } from './ilha-pausa';
 
 type Modo = null | 'iniciar' | 'trocar' | 'pausar' | 'baixa';
 type EstadoBloqueio = null | 'enviando' | 'falhou' | 'concluido';
+type RecuperacaoPendente = { operador: IdentificacaoEsperada; detalhe: string; erroConsulta: string };
 
 const botaoGrande = 'flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 text-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
 const botaoSecundario = 'flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 text-base font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60';
@@ -39,6 +41,8 @@ export function IlhaScreen() {
   const campoRef = useRef<HTMLInputElement>(null);
   const [requisicoes] = useState(criarControleRequisicoesIlha);
   const bloqueioSolicitado = useRef(false);
+  const recuperacaoPendente = useRef(false);
+  const [recuperacao, setRecuperacao] = useState<RecuperacaoPendente | null>(null);
   const [bloqueio, setBloqueio] = useState<EstadoBloqueio>(null);
   const [matricula, setMatricula] = useState('');
   const [operador, setOperador] = useState<OperadorDaIlha | null>(null);
@@ -71,13 +75,15 @@ export function IlhaScreen() {
   }, [router]);
 
   async function executar(acao: (signal: AbortSignal) => Promise<OperadorDaIlha>, sucesso: string, identificando = false) {
-    if (bloqueioSolicitado.current) return;
+    if (bloqueioSolicitado.current || (!identificando && recuperacaoPendente.current)) return;
     await requisicoes.executar(acao, {
       iniciar: () => {
         setOcupado(true);
         setErro('');
         setMensagem('');
         if (identificando) {
+          recuperacaoPendente.current = false;
+          setRecuperacao(null);
           setMatricula('');
           setOperador(null);
           setModo(null);
@@ -89,7 +95,44 @@ export function IlhaScreen() {
         setMensagem(sucesso);
         setModo(null);
       },
-      falhar: tratarFalha,
+      falhar: (falha) => {
+        if (!identificando && operador && exigeAtualizacaoSituacao(falha)) {
+          recuperacaoPendente.current = true;
+          setRecuperacao({
+            operador: { id: operador.id, matricula: operador.matricula },
+            detalhe: falha instanceof ErroApiIlha ? falha.message : 'Não foi possível confirmar o resultado da ação.',
+            erroConsulta: '',
+          });
+          setModo(null);
+          setBaixa({ boa: '', retrabalho: '', refugo: '' });
+          if (falha instanceof ErroApiIlha && (falha.status === 401 || falha.status === 503)) tratarFalha(falha);
+        } else tratarFalha(falha);
+      },
+      finalizar: () => setOcupado(false),
+    });
+  }
+
+  async function atualizarSituacao() {
+    if (!recuperacao || bloqueioSolicitado.current) return;
+    await requisicoes.executar((signal) => consultarSituacaoOperador(recuperacao.operador, signal), {
+      iniciar: () => {
+        setOcupado(true);
+        setErro('');
+        setMensagem('');
+        setRecuperacao((atual) => atual ? { ...atual, erroConsulta: '' } : null);
+      },
+      concluir: (resultado) => {
+        setOperador(resultado);
+        recuperacaoPendente.current = false;
+        setRecuperacao(null);
+        setModo(null);
+        setBaixa({ boa: '', retrabalho: '', refugo: '' });
+        setMensagem('Situação atualizada. Confira a execução antes de continuar.');
+      },
+      falhar: (falha) => {
+        setRecuperacao((atual) => atual ? { ...atual, erroConsulta: falha instanceof ErroApiIlha ? falha.message : 'Não foi possível consultar a situação. Verifique a conexão e tente novamente.' } : null);
+        if (falha instanceof ErroApiIlha && (falha.status === 401 || falha.status === 503)) tratarFalha(falha);
+      },
       finalizar: () => setOcupado(false),
     });
   }
@@ -104,6 +147,8 @@ export function IlhaScreen() {
 
   function limparIdentificacao() {
     requisicoes.invalidar();
+    recuperacaoPendente.current = false;
+    setRecuperacao(null);
     setMatricula('');
     setOperador(null);
     setModo(null);
@@ -168,7 +213,7 @@ export function IlhaScreen() {
         {erro && <p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/30 bg-[#f49a8a]/10 p-4 text-base leading-7 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{erro}</p>}
         {mensagem && <p role="status" className="flex items-start gap-2 rounded-lg border border-[#7bcba5]/30 bg-[#7bcba5]/10 p-4 text-base leading-7 text-[#a6dfbf]"><CheckCircle2 aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{mensagem}</p>}
         {ocupado && !operador && <p role="status" className="flex items-center gap-3 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Consultando…</p>}
-        {ocupado && operador && <p role="status" className="flex items-center gap-3 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Registrando ação. Aguarde antes de trocar o operador.</p>}
+        {ocupado && operador && !recuperacao && <p role="status" className="flex items-center gap-3 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Registrando ação. Aguarde antes de trocar o operador.</p>}
 
         {operador && (
           <section aria-labelledby="ilha-operador" className="space-y-5 rounded-xl border border-[#2b353e] bg-[#192128]/70 p-4 sm:p-6">
@@ -180,7 +225,18 @@ export function IlhaScreen() {
               <button type="button" onClick={sair} disabled={ocupado} className={botaoSecundario}><LogOut aria-hidden="true" size={18} strokeWidth={2} />Sair</button>
             </div>
 
-            {execucao ? (
+            {recuperacao ? (
+              <div className="space-y-4 rounded-lg border border-[#ffcf99]/30 bg-[#ffcf99]/5 p-4">
+                <p role="alert" className="text-base leading-7 text-[#ffcf99]">{recuperacao.detalhe} Consulte a situação atual do operador antes de continuar.</p>
+                {recuperacao.erroConsulta && <p role="alert" className="text-base leading-7 text-[#ffb4a5]">{recuperacao.erroConsulta}</p>}
+                <button type="button" onClick={() => void atualizarSituacao()} disabled={ocupado} className={`${botaoSecundario} w-full sm:w-auto`}>
+                  {ocupado ? <LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" /> : <RefreshCw aria-hidden="true" size={22} strokeWidth={2} />}
+                  {ocupado ? 'Consultando situação…' : 'Atualizar situação do operador'}
+                </button>
+                {ocupado && <p role="status" className="text-base text-muted">Consultando a situação atual do operador…</p>}
+                <p className="text-sm leading-6 text-muted">A consulta não repete a ação anterior. Aguarde os dados atualizados para conferir a execução.</p>
+              </div>
+            ) : execucao ? (
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-base font-semibold ${execucao.status === 'PAUSADA' ? 'bg-[#ffcf99]/15 text-[#ffcf99]' : 'bg-[#7bcba5]/15 text-[#a6dfbf]'}`}>
@@ -242,7 +298,7 @@ export function IlhaScreen() {
                 {modo === 'trocar' && (
                   <div className="border-t border-white/10 pt-5">
                     <p className="mb-4 text-base text-muted">A execução atual é finalizada sem quantidades e a próxima começa em seguida.</p>
-                    <IlhaDestino rotuloConfirmar="Trocar para esta etapa" ocupado={ocupado} excluirEtapaId={execucao.etapa.id} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
+                    <IlhaDestino rotuloConfirmar="Trocar para esta etapa" ocupado={ocupado} etapaAtual={{ ordemId: execucao.ordem.id, etapaId: execucao.etapa.id }} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
                       aoConfirmar={(destino: Destino) => void executar(() => trocarOperacao(operador.matricula, execucao.id, destino), 'Operação trocada. A nova execução já começou.')} />
                   </div>
                 )}

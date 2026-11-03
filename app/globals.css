@@ -27,6 +27,49 @@ body {
   color: #ffffff;
 }
 
+/* O mesmo cartão é usado na prévia responsiva e na impressão em tamanho físico. */
+.cracha-operador-cartao {
+  container-type: inline-size;
+  width: min(100%, 86mm);
+  aspect-ratio: 86 / 54;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid #b4bbc1;
+  border-radius: 2mm;
+  background: #fff;
+  color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.cracha-operador-conteudo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 37.21cqw;
+  grid-template-rows: 7.5cqw minmax(0, 1fr);
+  gap: 3cqw;
+  height: 100%;
+  padding: 3.5cqw;
+}
+.cracha-operador-marca { grid-column: 1 / -1; display: flex; align-items: center; gap: 2cqw; border-bottom: 1px solid #d6dade; padding-bottom: 1.5cqw; }
+.cracha-operador-marca svg { width: 5cqw; height: 5cqw; flex-shrink: 0; }
+.cracha-operador-marca strong { font-size: 4cqw; letter-spacing: .1em; }
+.cracha-operador-marca span { margin-left: auto; font-size: 2.6cqw; color: #444; }
+.cracha-operador-dados { min-width: 0; display: flex; flex-direction: column; gap: 1.5cqw; }
+.cracha-operador-dados p { margin: 0; overflow: hidden; overflow-wrap: anywhere; }
+.cracha-operador-nome { height: 14cqw; font-size: 4cqw; line-height: 1.15; font-weight: 700; }
+.cracha-operador-rotulo { display: block; font-size: 2.2cqw; line-height: 1.3; color: #444; }
+.cracha-operador-matricula { height: 9cqw; font-size: 3.5cqw; line-height: 1.2; font-weight: 700; }
+.cracha-operador-setor { height: 8cqw; font-size: 3.2cqw; line-height: 1.2; }
+.cracha-operador-qr { align-self: center; width: 37.21cqw; height: 37.21cqw; }
+.cracha-operador-impressao { display: none; }
+
+@media print {
+  /* Portal fora da árvore do painel: somente o cartão entra no papel. */
+  body.imprimindo-cracha-operador > :not(.cracha-operador-impressao),
+  body.imprimindo-cracha-operador dialog,
+  body.imprimindo-cracha-operador dialog::backdrop { display: none !important; }
+  body.imprimindo-cracha-operador .cracha-operador-impressao { display: block !important; }
+  .cracha-operador-impressao .cracha-operador-cartao { width: 86mm; height: 54mm; margin: 0; break-inside: avoid; }
+}
+
 /* Impressão do relatório de indicadores: papel branco, texto escuro e cores dos gráficos mantidas. */
 @media print {
   @page { size: A4 portrait; margin: 12mm; }

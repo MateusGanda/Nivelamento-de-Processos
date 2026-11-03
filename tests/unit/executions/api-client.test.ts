@@ -44,7 +44,7 @@ test('ilha: bloquear durante uma gravação descarta sua resposta sem reenviar o
   const gravacao = controle.executar(() => pausarExecucao('AS-PES1', 'execucao-1', 'motivo-1'), efeitos);
   controle.invalidar();
   await controle.executar(() => bloquearTerminal(), { ...efeitos, concluir: () => { resultados.push('bloqueado'); } });
-  responderPost(Response.json({ id: 'op-1', nome: 'Ana', matricula: 'AS-PES1', execucaoAberta: null }));
+  responderPost(Response.json({ id: 'op-1', nome: 'Ana', matricula: 'AS-PES1', setor: null, execucaoAberta: null }));
   await gravacao;
   assert.deepEqual(pedidos, ['POST /api/ilha/execucoes/execucao-1/pausa', 'DELETE /api/ilha/acesso']);
   assert.deepEqual(resultados, ['bloqueado']);

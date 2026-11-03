@@ -83,6 +83,8 @@ Não há cadastro de terminais nem papéis além de `ADMIN`. Se forem necessári
 
 ## 6. QR Code e leitor USB
 
+Atualização de 02/11/2026: o usuário já possui um Vinik 2DYN. A primeira entrega permite emitir crachá individual em `/painel/operadores`, somente para ativos, com consulta atualizada, prévia, download do QR em PNG e impressão pelo navegador. O QR contém a matrícula exata, inclusive legada; não há campo novo nem imagem armazenada. Nome e setor impressos são os atuais, sem recalcular o QR após transferência. Impressão em lote e integração HID na ilha continuam como próximas entregas; leitor físico, decodificação e aceite visual/impressão ainda precisam de validação. Contrato e evidências: [Identificação por QR Code](../specs/contratos/identificacao-operadores-qrcode.md).
+
 O QR/código é um meio de identificar operador ou ordem no fluxo de apontamento, não um mecanismo de autenticação. Caso seja utilizado leitor USB em modo teclado (HID/keyboard wedge), a interface recebe o código no campo em foco e envia a informação à API para validação. A tela da ilha mantém o foco no campo de matrícula quando nenhum outro campo está em uso, e a leitura apenas mostra a situação do operador, sem executar ações. Nenhum leitor foi adquirido ou testado até 26/10/2026. O hardware não deve ser tratado como requisito estrutural do domínio: a aplicação deve permitir validar o fluxo por entrada manual durante desenvolvimento e testes, se compatível com os requisitos acordados.
 
 ## 7. Arquitetura e tecnologias definidas
