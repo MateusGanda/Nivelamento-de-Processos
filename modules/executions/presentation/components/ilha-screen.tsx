@@ -51,19 +51,22 @@ export function IlhaScreen() {
   const [erro, setErro] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [baixa, setBaixa] = useState({ boa: '', retrabalho: '', refugo: '' });
+  const podeIdentificar = !ocupado && modo === null && bloqueio === null;
 
-  // O leitor USB funciona como teclado: sem outro campo em uso, o foco volta para a matrícula.
+  // Cada formulário cuida de seu campo. A matrícula não recebe o foco da leitura da ordem.
   useEffect(() => {
+    if (!podeIdentificar || recuperacao) return;
     const devolverFoco = () => {
       const ativo = document.activeElement;
       if (!ativo || ativo === document.body) campoRef.current?.focus();
     };
+    devolverFoco();
     const id = setInterval(devolverFoco, 500);
-    return () => {
-      clearInterval(id);
-      requisicoes.invalidar();
-    };
-  }, [requisicoes]);
+    return () => clearInterval(id);
+  }, [podeIdentificar, recuperacao]);
+
+  // Invalidar pedidos só na desmontagem; mudanças de foco não cancelam uma gravação.
+  useEffect(() => () => requisicoes.invalidar(), [requisicoes]);
 
   const tratarFalha = useCallback((falha: unknown) => {
     if (bloqueioSolicitado.current) return;
@@ -93,7 +96,7 @@ export function IlhaScreen() {
       concluir: (resultado) => {
         setOperador(resultado);
         setMensagem(sucesso);
-        setModo(null);
+        setModo(identificando && !resultado.execucaoAberta ? 'iniciar' : null);
       },
       falhar: (falha) => {
         if (!identificando && operador && exigeAtualizacaoSituacao(falha)) {
@@ -141,7 +144,7 @@ export function IlhaScreen() {
   async function identificar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const lida = matricula.trim();
-    if (!lida || requisicoes.emAndamento() || bloqueioSolicitado.current) return;
+    if (!lida || !podeIdentificar || requisicoes.emAndamento() || bloqueioSolicitado.current) return;
     await executar((signal) => identificarOperador(lida, signal), '', true);
   }
 
@@ -201,13 +204,14 @@ export function IlhaScreen() {
         ) : <>
         <form onSubmit={identificar} className="rounded-xl border border-[#2b353e] bg-[#192128]/70 p-4 sm:p-5">
           <label htmlFor="ilha-matricula" className="block text-base font-medium">{operador ? 'Outro operador: leia ou digite a matrícula' : 'Leia o crachá ou digite a matrícula'}</label>
-          <div className="mt-3 flex gap-3">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1"><ScanLine aria-hidden="true" size={24} strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted" />
-              <input id="ilha-matricula" ref={campoRef} autoFocus autoComplete="off" autoCapitalize="characters" spellCheck={false} disabled={ocupado} value={matricula} onChange={(event) => setMatricula(event.target.value)}
+              <input id="ilha-matricula" ref={campoRef} autoFocus autoComplete="off" autoCapitalize="characters" spellCheck={false} disabled={!podeIdentificar} value={matricula} onChange={(event) => setMatricula(event.target.value)}
                 className="h-14 w-full rounded-lg border border-[#3b454e] bg-background pr-4 pl-12 font-mono text-xl tracking-wide outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:cursor-wait disabled:opacity-60" />
             </div>
-            <button type="submit" disabled={!matricula.trim() || ocupado} className={`${botaoGrande} bg-accent text-[#171b1f] hover:bg-[#ff8d40]`}>Identificar</button>
+            <button type="submit" disabled={!matricula.trim() || !podeIdentificar} className={`${botaoGrande} bg-accent text-[#171b1f] hover:bg-[#ff8d40]`}>Identificar</button>
           </div>
+          {modo !== null && <p className="mt-3 text-sm leading-6 text-muted">Conclua ou cancele o formulário abaixo antes de ler outro crachá. Use Sair para trocar de operador.</p>}
         </form>
 
         {erro && <p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/30 bg-[#f49a8a]/10 p-4 text-base leading-7 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{erro}</p>}
@@ -298,13 +302,13 @@ export function IlhaScreen() {
                 {modo === 'trocar' && (
                   <div className="border-t border-white/10 pt-5">
                     <p className="mb-4 text-base text-muted">A execução atual é finalizada sem quantidades e a próxima começa em seguida.</p>
-                    <IlhaDestino rotuloConfirmar="Trocar para esta etapa" ocupado={ocupado} etapaAtual={{ ordemId: execucao.ordem.id, etapaId: execucao.etapa.id }} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
+                    <IlhaDestino key={`${operador.id}:${execucao.id}:trocar`} rotuloConfirmar="Trocar para esta etapa" ocupado={ocupado} etapaAtual={{ ordemId: execucao.ordem.id, etapaId: execucao.etapa.id }} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
                       aoConfirmar={(destino: Destino) => void executar(() => trocarOperacao(operador.matricula, execucao.id, destino), 'Operação trocada. A nova execução já começou.')} />
                   </div>
                 )}
               </div>
             ) : modo === 'iniciar' ? (
-              <IlhaDestino rotuloConfirmar="Iniciar execução" ocupado={ocupado} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
+              <IlhaDestino key={`${operador.id}:iniciar`} rotuloConfirmar="Iniciar execução" ocupado={ocupado} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
                 aoConfirmar={(destino: Destino) => void executar(() => iniciarExecucao(operador.matricula, destino), 'Execução iniciada.')} />
             ) : (
               <div className="space-y-4">
