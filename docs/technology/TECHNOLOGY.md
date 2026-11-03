@@ -214,6 +214,8 @@ Biblioteca de parsing, tamanho máximo, codificação, regras de normalização 
 
 ### Leitor USB
 
+Em 03/11/2026, o mesmo gerador local de PNG passou a atender também as fichas de ordem, com `qrcode` e tipos já instalados, sem nova dependência. As fichas usam UUID prefixado em maiúsculas, QR impresso de aproximadamente 40 mm e A4 pelo navegador, com paginação e estilos isolados. Consultas usam os clientes administrativos existentes de ordens e roteiros; o roteiro é o vinculado à ordem. A segunda entrega interpreta esse QR na ilha via GET `/api/ilha/ordens`, com reducer de seleção, controle de pedidos existente e foco por formulário. Contrato e validação: [QR Code das ordens](../../specs/contratos/identificacao-ordens-qrcode.md). Nenhuma alteração de API ou banco.
+
 Decisão de 02/11/2026: crachá individual de operador usa `qrcode` 1.5.4 e `@types/qrcode` 1.5.6, aprovados no plano de identificação. Geração local sob demanda no navegador, PNG de 1024 px, correção Q e margem de quatro módulos, sem serviço externo ou persistência. A impressão usa o navegador e estilos isolados, sem biblioteca de PDF. Contrato: [Identificação por QR Code](../../specs/contratos/identificacao-operadores-qrcode.md). Essa entrega não integra o hardware nem altera as APIs.
 
 **Condicional:** o apontamento por leitor é incluído apenas conforme equipamento, autorização e prioridade do projeto. Quando usado, o leitor 2D USB opera como teclado (USB HID/keyboard wedge) e envia identificadores ao campo em foco no navegador.

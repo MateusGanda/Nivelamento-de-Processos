@@ -272,6 +272,11 @@ Página `/painel/planos-de-producao`, com `/api/planos-de-producao` e `/api/plan
 
 Página `/painel/ordens-de-producao`, com `/api/ordens-de-producao` e `/api/ordens-de-producao/[id]`. Depois que a ordem tem execuções, a quantidade e a unidade não mudam. A exclusão de ordem sem execuções não está implementada e depende de decisão da equipe.
 
+- [x] Implementar ficha individual A4 com QR permanente, dados atualizados, etapas da versão vinculada e download PNG (03/11/2026)
+- [ ] Validar ficha em navegador, paginação e leitura da tela/papel com Vinik 2DYN
+
+Contrato e evidências: [QR Code das ordens](../../specs/contratos/identificacao-ordens-qrcode.md). A leitura por ID na ilha está implementada na entrega seguinte; a impressão em lote dos crachás permanece para depois.
+
 - [x] Criar
 - [x] Selecionar produto
 - [x] Selecionar roteiro
@@ -427,6 +432,12 @@ Revisão da tela — primeira parte em 01/11/2026, detalhada em [ILHA_GUNP.md](.
 # 15. FASE 11 — Leitor USB
 
 Implementar somente depois do fluxo manual funcionar.
+
+Em 03/11/2026 o usuário confirmou a identificação do operador pelo leitor e mostrou o QR da ordem corretamente lido. O fluxo **crachá → QR da ordem → etapa → posto → confirmar início** está implementado, conforme [contrato das ordens](../../specs/contratos/identificacao-ordens-qrcode.md), com comparação pelo UUID, consulta atualizada e alternativa manual. Aceite visual, paginação/impresso e teste integrado físico continuam pendentes.
+
+- [x] Interpretar QR da ordem pelo ID e abrir leitura após identificação sem execução
+- [x] Preservar seleção manual, regras de etapas/postos e confirmação explícita, com cancelamento e respostas antigas descartadas
+- [ ] Validar o fluxo de leitura da ordem no navegador e no Vinik, incluindo foco, troca, bloqueio e recuperação
 
 Contrato aprovado em 02/11/2026: [Identificação de operadores por QR Code](../../specs/contratos/identificacao-operadores-qrcode.md). O usuário possui o Vinik 2DYN. Entregar e validar uma parte por vez:
 
