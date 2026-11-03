@@ -110,4 +110,6 @@ Validação em navegador segue pendente pela limitação de automação já regi
 
 ## Próximas partes
 
+Em 02/11/2026 foi aprovada a [identificação por QR Code](../../specs/contratos/identificacao-operadores-qrcode.md), em três entregas: crachá individual, impressão em lote e integração do Vinik 2DYN. A primeira acrescenta emissão de crachá de ativos no painel de operadores, com matrícula exata no QR, sem alterar a tela da ilha. O leitor será usado somente na área de identificação; Enter consultará a situação, sem apontamento automático. Aceite visual/impressão do crachá e validação física continuam pendentes, conforme o contrato.
+
 As três correções planejadas da interface estão implementadas: proteção da identificação, troca por ordem + etapa e recuperação da situação após falha de gravação. Continua pendente a validação visual e integrada dos ajustes. Idempotência persistida, concorrência com inativação e limpeza por inatividade exigem seus contratos próprios. Os novos detalhes da ilha serão definidos após os ajustes necessários, conforme orientação do usuário em 02/11/2026.

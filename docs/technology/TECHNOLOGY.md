@@ -214,6 +214,8 @@ Biblioteca de parsing, tamanho máximo, codificação, regras de normalização 
 
 ### Leitor USB
 
+Decisão de 02/11/2026: crachá individual de operador usa `qrcode` 1.5.4 e `@types/qrcode` 1.5.6, aprovados no plano de identificação. Geração local sob demanda no navegador, PNG de 1024 px, correção Q e margem de quatro módulos, sem serviço externo ou persistência. A impressão usa o navegador e estilos isolados, sem biblioteca de PDF. Contrato: [Identificação por QR Code](../../specs/contratos/identificacao-operadores-qrcode.md). Essa entrega não integra o hardware nem altera as APIs.
+
 **Condicional:** o apontamento por leitor é incluído apenas conforme equipamento, autorização e prioridade do projeto. Quando usado, o leitor 2D USB opera como teclado (USB HID/keyboard wedge) e envia identificadores ao campo em foco no navegador.
 
 Não há decisão para SDK, driver, câmera ou integração de hardware específica. Não adicionar câmeras, sensores ou reconhecimento de pessoas. A digitação manual permanece como contingência.

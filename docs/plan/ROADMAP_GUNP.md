@@ -428,7 +428,16 @@ Revisão da tela — primeira parte em 01/11/2026, detalhada em [ILHA_GUNP.md](.
 
 Implementar somente depois do fluxo manual funcionar.
 
-- [ ] Campo sempre focado
+Contrato aprovado em 02/11/2026: [Identificação de operadores por QR Code](../../specs/contratos/identificacao-operadores-qrcode.md). O usuário possui o Vinik 2DYN. Entregar e validar uma parte por vez:
+
+- [x] Implementar crachá individual para operadores ativos: matrícula exata, dados atualizados, prévia, PNG e impressão pelo navegador
+- [ ] Validar crachá individual em navegador: foco/teclado, responsividade, PNG decodificado e impressão isolada em tamanho físico
+- [ ] Implementar e validar seleção/impressão em lote
+- [ ] Integrar e validar Vinik 2DYN na área de identificação, com digitação manual preservada
+
+Os nove testes novos do crachá passaram; a validação em navegador foi interrompida pela ferramenta por não confirmar a URL com segurança. Não marcar a integração física como pronta a partir da geração da imagem.
+
+- [ ] Indicar prontidão e manter foco na área de identificação quando disponível, sem capturar entradas de outros formulários
 - [ ] Leitura do código
 - [ ] Validação
 - [ ] Busca
