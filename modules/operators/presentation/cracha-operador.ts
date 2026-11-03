@@ -1,19 +1,13 @@
 import type { Operador } from '../domain/operador.ts';
 import { listarOperadores } from './api-client.ts';
+import { gerarQrPng } from '../../../shared/presentation/qr-code.ts';
 
 export type CrachaOperador = { operador: Operador; qrPng: string; nomeArquivo: string };
 
 export class ErroCrachaOperador extends Error {}
 
-const opcoesQr = {
-  type: 'image/png', errorCorrectionLevel: 'Q', margin: 4, width: 1024,
-  color: { dark: '#000000ff', light: '#ffffffff' },
-} as const;
-
 export async function gerarQrOperador(matricula: string): Promise<string> {
-  // Carregado apenas ao solicitar um crachá. O bundler usa a implementação para navegador.
-  const { default: QRCode } = await import('qrcode');
-  return QRCode.toDataURL(matricula, opcoesQr);
+  return gerarQrPng(matricula);
 }
 
 export async function prepararCrachaOperador(

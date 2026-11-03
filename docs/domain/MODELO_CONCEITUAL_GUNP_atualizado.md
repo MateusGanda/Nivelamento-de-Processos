@@ -101,6 +101,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Uma Ordem representa uma quantidade de um único produto.
 - Na criação: número único, plano existente, produto ativo, versão do roteiro ligada ao produto, ativa e com etapas, e quantidade maior que zero com até duas casas decimais.
 - Produto e versão do roteiro não mudam depois da criação. Número e plano podem ser editados; quantidade e unidade, somente enquanto a ordem não tem execuções.
+- A identificação por QR usa `GUNP-OP-<UUID>` em maiúsculas e permanece após renumeração. A ficha apresenta os dados atuais e as etapas da versão vinculada; não declara disponibilidade ou conclusão. Contrato: [QR Code das ordens](../../specs/contratos/identificacao-ordens-qrcode.md).
 - Não existe baixa parcial.
 - A baixa considera 100% da quantidade da Ordem na etapa.
 - Resultado da baixa: boa, retrabalho e refugo.

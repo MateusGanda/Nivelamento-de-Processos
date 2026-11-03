@@ -110,6 +110,16 @@ Validação em navegador segue pendente pela limitação de automação já regi
 
 ## Próximas partes
 
+### Leitura da ordem na ilha — 03/11/2026
+
+Implementada a segunda entrega do [contrato das ordens](../../specs/contratos/identificacao-ordens-qrcode.md). O QR antes era recebido pela pesquisa literal e não encontrava o número; agora a entrada própria interpreta `GUNP-OP-<UUID>`, consulta GET `/api/ilha/ordens` sem cache e seleciona pelo ID sem diferença de caixa. O crachá de operador sem execução abre essa leitura automaticamente; execução ativa/pausada mantém sua situação e a troca usa o mesmo seletor quando permitida.
+
+O foco passa da matrícula para leitura e depois para etapas, sem captura global. O campo da matrícula fica indisponível durante formulários/gravações. Pesquisa manual, posto único, bloqueios por baixa/posto/etapa atual e confirmação explícita permanecem. Cancelar, Sair ou Bloquear aborta a consulta por desmontagem/invalidação e descarta respostas antigas; Enter repetido não duplica GET. Não há POST pela leitura do QR.
+
+Quatorze testes novos aprovados; suíte com 303 aprovados e 7 opcionais ignorados, sem banco ou montagem de React. A captura do usuário confirma a decodificação do QR, mas a interação final, foco/teclado, impressão e responsividade precisam de aceite no navegador; o host de automação está indisponível nesta sessão. Conferir o roteiro manual e as evidências completas no contrato.
+
+Atualização de 03/11/2026: a leitura do crachá e a decodificação do QR da ordem foram confirmadas pelo usuário. Ficha e seleção por leitura estão implementadas, conforme a entrega acima; o aceite manual completo permanece pendente. A impressão em lote dos crachás fica para depois dessas entregas.
+
 Em 02/11/2026 foi aprovada a [identificação por QR Code](../../specs/contratos/identificacao-operadores-qrcode.md), em três entregas: crachá individual, impressão em lote e integração do Vinik 2DYN. A primeira acrescenta emissão de crachá de ativos no painel de operadores, com matrícula exata no QR, sem alterar a tela da ilha. O leitor será usado somente na área de identificação; Enter consultará a situação, sem apontamento automático. Aceite visual/impressão do crachá e validação física continuam pendentes, conforme o contrato.
 
 As três correções planejadas da interface estão implementadas: proteção da identificação, troca por ordem + etapa e recuperação da situação após falha de gravação. Continua pendente a validação visual e integrada dos ajustes. Idempotência persistida, concorrência com inativação e limpeza por inatividade exigem seus contratos próprios. Os novos detalhes da ilha serão definidos após os ajustes necessários, conforme orientação do usuário em 02/11/2026.

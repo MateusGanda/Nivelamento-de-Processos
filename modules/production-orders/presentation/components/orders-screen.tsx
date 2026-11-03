@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ClipboardList, LoaderCircle, Pencil, Plus, Search } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ClipboardList, LoaderCircle, Pencil, Plus, QrCode, Search } from 'lucide-react';
 import { sugerirNumeroOrdem, type OpcoesOrdem, type Ordem } from '../../domain/ordem';
 import { listarOrdens, ErroApiOrdens } from '../api-client';
 import { filtrarOrdenarOrdens, formatarDataHora, formatarQuantidade, type ColunaOrdem, type OrdemListagem } from '../listing';
 import { OrderFormDialog, type PedidoFormularioOrdem } from './order-form-dialog';
+import { OrderSheetDialog } from './order-sheet-dialog';
 
 const colunas: ReadonlyArray<{ campo: ColunaOrdem; titulo: string }> = [
   { campo: 'numero', titulo: 'Número' }, { campo: 'produto', titulo: 'Produto' }, { campo: 'roteiro', titulo: 'Roteiro' },
@@ -29,6 +30,7 @@ export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
   const [planoId, setPlanoId] = useState('');
   const [ordem, setOrdem] = useState<OrdemListagem>({ coluna: 'numero', direcao: 'asc' });
   const [pedido, setPedido] = useState<PedidoFormularioOrdem | null>(null);
+  const [fichaOrdemId, setFichaOrdemId] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const origemFoco = useRef<HTMLButtonElement | null>(null);
   const pedidoLista = useRef(0);
@@ -68,9 +70,15 @@ export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
   }, [carregarLista]);
 
   function abrirFormulario(item: Ordem | null, botao: HTMLButtonElement) {
-    if (dialogRef.current?.open) return;
+    if (dialogRef.current?.open || fichaOrdemId) return;
     origemFoco.current = botao;
     setPedido((atual) => ({ ordem: item, numeroSugerido: sugerirNumeroOrdem(ordens.map((o) => o.numero)), seq: (atual?.seq ?? 0) + 1 }));
+  }
+
+  function abrirFicha(item: Ordem, botao: HTMLButtonElement) {
+    if (carregando || dialogRef.current?.open || fichaOrdemId) return;
+    origemFoco.current = botao;
+    setFichaOrdemId(item.id);
   }
 
   function aoConcluir(acao: Acao) {
@@ -138,7 +146,7 @@ export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
         ) : (
           <>
             <div className="max-w-full overflow-x-auto rounded-b-xl">
-              <table className="w-full min-w-[1020px] text-left text-sm">
+              <table className="w-full min-w-[1150px] text-left text-sm">
                 <caption className="sr-only">Ordens de produção cadastradas. Use os cabeçalhos para ordenar as colunas.</caption>
                 <thead className="border-b border-white/10 bg-white/[0.025] text-muted"><tr>
                   {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-5 py-3 font-medium">
@@ -157,7 +165,11 @@ export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
                     <td className="px-5 py-4 whitespace-nowrap text-[#c1c8cf]">{formatarQuantidade(item.quantidade)} {item.unidade}</td>
                     <td className="px-5 py-4 text-[#c1c8cf]">{item.quantidadeExecucoes}</td>
                     <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={item.createdAt}>{formatarDataHora(item.createdAt)}</time></td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="px-5 py-3 text-right whitespace-nowrap">
+                      <button type="button" aria-haspopup="dialog" aria-controls="ficha-ordem" aria-label={`Ficha com QR da ordem ${item.numero}`} disabled={carregando}
+                        onClick={(event) => abrirFicha(item, event.currentTarget)}
+                        className="mr-2 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-50"
+                      ><QrCode aria-hidden="true" size={16} strokeWidth={2} />Ficha com QR</button>
                       <button type="button" aria-haspopup="dialog" aria-controls="formulario-ordem" aria-label={`Editar ${item.numero}`}
                         onClick={(event) => abrirFormulario(item, event.currentTarget)}
                         className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -173,6 +185,7 @@ export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
         )}
       </section>
       <OrderFormDialog dialogRef={dialogRef} pedido={pedido} opcoes={opcoes} aoConcluir={aoConcluir} aoFechar={() => origemFoco.current?.focus()} />
+      {fichaOrdemId && <OrderSheetDialog key={fichaOrdemId} ordemId={fichaOrdemId} aoFechar={() => { setFichaOrdemId(null); origemFoco.current?.focus(); }} />}
     </div>
   );
 }

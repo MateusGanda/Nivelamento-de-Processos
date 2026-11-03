@@ -38,6 +38,8 @@ Não há alteração de DTO, endpoint, schema, migration, seed, matrículas, rel
 
 ## Próximas entregas aprovadas, ainda não implementadas
 
+Prioridade atualizada pelo usuário em 03/11/2026: identificação por crachá com o Vinik 2DYN confirmada. Antes da impressão em lote, entregar e validar a ficha individual da ordem e depois integrar a leitura dela à ilha, conforme [QR Code das ordens](identificacao-ordens-qrcode.md). A confirmação do leitor não comprova todas as verificações visuais/de impressão listadas abaixo.
+
 ### Entrega 2 — impressão em lote
 
 Selecionar somente ativos; selecionar todos abrange ativos visíveis. Busca, filtro ou recarga limpa a seleção. Consultar novamente os dados antes da prévia e exigir revisão se algum selecionado ficar indisponível/inativo. Preparar todos os QR antes de imprimir, até oito cartões por A4 (duas colunas), com recorte e sem dividir cartões entre páginas. Validar separadamente antes de avançar.

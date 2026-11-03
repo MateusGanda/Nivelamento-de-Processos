@@ -70,6 +70,45 @@ body {
   .cracha-operador-impressao .cracha-operador-cartao { width: 86mm; height: 54mm; margin: 0; break-inside: avoid; }
 }
 
+/* Ficha da ordem: conteúdo fluido, sem altura fixa ou corte de textos/etapas. */
+.ficha-ordem-documento { width: 100%; max-width: 186mm; margin-inline: auto; padding: 7mm; background: #fff; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.ficha-ordem-cabecalho { display: grid; grid-template-columns: minmax(0, 1fr) 40mm; gap: 6mm; align-items: start; padding-bottom: 6mm; border-bottom: 1px solid #999; }
+.ficha-ordem-marca { display: flex; align-items: center; gap: 8px; font-size: 20px; letter-spacing: .08em; }
+.ficha-ordem-subtitulo { margin-top: 5mm; font-size: 13px; color: #444; }
+.ficha-ordem-cabecalho h3 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.2; }
+.ficha-ordem-area-qr { width: 40mm; break-inside: avoid; }
+.ficha-ordem-area-qr img { display: block; width: 40mm; height: 40mm; max-width: none; }
+.ficha-ordem-area-qr p { font-size: 10px; text-align: center; }
+.ficha-ordem-resumo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4mm 6mm; margin-block: 6mm; }
+.ficha-ordem-resumo > div { min-width: 0; break-inside: avoid; }
+.ficha-ordem-produto, .ficha-ordem-roteiro { grid-column: 1 / -1; }
+.ficha-ordem-resumo dt { font-size: 11px; color: #444; }
+.ficha-ordem-resumo dd { margin: 0; font-weight: 600; }
+.ficha-ordem-etapas { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.ficha-ordem-etapas caption { margin-bottom: 3mm; text-align: left; font-size: 16px; font-weight: 700; }
+.ficha-ordem-etapas th, .ficha-ordem-etapas td { padding: 3mm; border: 1px solid #bbb; text-align: left; vertical-align: top; }
+.ficha-ordem-etapas th:first-child { width: 25mm; }
+.ficha-ordem-etapas th { font-weight: 700; }
+.ficha-ordem-nota { margin-top: 5mm; font-size: 11px; color: #444; }
+.ficha-ordem-impressao { display: none; }
+
+@media screen and (max-width: 600px) {
+  .ficha-ordem-documento { padding: 4mm; }
+  .ficha-ordem-cabecalho, .ficha-ordem-resumo { grid-template-columns: minmax(0, 1fr); }
+  .ficha-ordem-area-qr { justify-self: center; }
+}
+
+@media print {
+  body.imprimindo-ficha-ordem > :not(.ficha-ordem-impressao),
+  body.imprimindo-ficha-ordem dialog,
+  body.imprimindo-ficha-ordem dialog::backdrop { display: none !important; }
+  body.imprimindo-ficha-ordem .ficha-ordem-impressao { display: block !important; }
+  .ficha-ordem-impressao .ficha-ordem-documento { max-width: none; margin: 0; padding: 0; }
+  .ficha-ordem-impressao .ficha-ordem-cabecalho { break-inside: avoid; }
+  .ficha-ordem-impressao thead { display: table-header-group; }
+  .ficha-ordem-impressao tr { break-inside: avoid; }
+}
+
 /* Impressão do relatório de indicadores: papel branco, texto escuro e cores dos gráficos mantidas. */
 @media print {
   @page { size: A4 portrait; margin: 12mm; }
