@@ -88,7 +88,7 @@ Referências: [criação](../../modules/routings/presentation/components/routing
 | --- | --- | --- |
 | Usuários administrativos | API e bootstrap existentes; sem tela e sem item no menu | Contrato separado de credenciais e matrícula automática futura, preservando logins; não reutilizar lotação ou gerador de Operador. |
 
-Execução e Indicadores não são cadastros básicos. Indicadores tem tela com exportação em planilha e impressão; o item Execução do menu ainda leva a uma página provisória, e a ilha de apontamento fica em `/ilha`.
+Execução e Indicadores não são cadastros básicos. Indicadores tem tela com exportação em planilha e impressão; o item Execução do menu abre a ilha de apontamento (`/ilha`) em uma nova aba.
 
 ## Sequência e critérios para cada entrega
 
