@@ -18,7 +18,7 @@ Implementado no repositório:
 - tela de Indicadores, com posição das ordens, série por dia, qualidade, tempos por posto, tempo padrão e carga pendente, exportação em planilha e impressão;
 - banco de dados com 16 tabelas, criado por migrações.
 
-Ainda pendentes: o acesso à ilha pelo item Execução do menu, que hoje leva a uma página provisória; o teste da identificação com um leitor de código físico; e a definição do tempo que a ilha espera, sem uso, antes de limpar a identificação do operador.
+O item Execução do menu abre a ilha em uma nova aba. Ainda pendentes: o teste da identificação com um leitor de código físico; e a definição do tempo que a ilha espera, sem uso, antes de limpar a identificação do operador.
 
 O [mapeamento dos cadastros](docs/design/CADASTROS_GUNP.md) descreve o que cada tela tem e o que precisa detalhar. Produtos, Postos e Planos ainda pedem o código digitado, e a Ordem sugere o próximo número; a diretriz para as próximas entregas é manter [identificadores automáticos e permanentes](specs/contratos/identificadores-cadastros.md), com contrato específico e preservação dos legados, uma tela por vez. O acompanhamento das fases está em [`docs/plan/ROADMAP_GUNP.md`](docs/plan/ROADMAP_GUNP.md).
 

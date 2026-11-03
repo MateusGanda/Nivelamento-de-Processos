@@ -21,7 +21,7 @@ export const destinosPainel: readonly DestinoPainel[] = [
   { titulo: 'Roteiros', slug: 'roteiros', grupo: 'Produção', descricao: 'Roteiros versionados e suas etapas.', icone: 'roteiros' },
   { titulo: 'Planos de Produção', slug: 'planos-de-producao', grupo: 'Produção', descricao: 'Organização dos planos de produção.', icone: 'planos' },
   { titulo: 'Ordens de Produção', slug: 'ordens-de-producao', grupo: 'Produção', descricao: 'Acompanhamento das ordens de produção.', icone: 'ordens' },
-  { titulo: 'Execução', slug: 'execucoes', grupo: 'Produção', descricao: 'Acompanhamento administrativo das execuções.', icone: 'execucoes' },
+  { titulo: 'Execução', slug: 'execucoes', grupo: 'Produção', descricao: 'Acesso à ilha de apontamento das execuções.', icone: 'execucoes' },
   { titulo: 'Indicadores', slug: 'indicadores', grupo: 'Relatórios', descricao: 'Análise dos registros da produção.', icone: 'indicadores' },
 ];
 

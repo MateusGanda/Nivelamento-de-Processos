@@ -125,7 +125,7 @@ Estado da `develop` em 26/10/2026 (após o pull request 55):
 - **Ilha de apontamento:** `/ilha` e `/api/ilha/*`, com identificação por matrícula, início, pausa com motivo, retomada, troca de operação e baixa com boa, retrabalho e refugo. A tela mostra o tempo produtivo e o de pausa com a mesma regra dos indicadores. Mudanças de estado são condicionais no banco: duas ações simultâneas sobre a mesma execução não passam juntas, e a segunda recebe conflito.
 - **Indicadores:** `GET /api/indicadores` lê o banco e calcula produção, tempos e carga por posto (contrato em `specs/contratos/indicadores.md`). A tela `/painel/indicadores` mostra esses blocos com escolha do período (hoje, últimos 7 ou 30 dias, ou datas escolhidas, em dias inteiros do horário de Brasília): resumo, posição das ordens, produção, tempos por posto, tempo por unidade comparado ao padrão e carga pendente, com as pendências explicadas em texto.
 - **Dados fictícios:** `npm run seed:desenvolvimento` popula um banco de desenvolvimento com o fluxo completo, incluindo execuções, pausas e baixas. Não usar no banco do site publicado.
-- **Pendentes:** item Execução do painel (provisório), dashboard, leitor USB, e limpeza da identificação da ilha por inatividade.
+- **Pendentes:** dashboard, leitor USB, e limpeza da identificação da ilha por inatividade.
 - Os contratos de códigos de setor e matrículas automáticas estão em `specs/contratos/operadores-setores.md`. Cadastros antigos mantêm matrículas e podem permanecer sem setor até regularização.
 - Não inferir que uma tarefa está concluída só porque aparece em um plano ou roadmap. Atualizar o status apenas após inspecionar o repositório ou receber confirmação da equipe.
 
