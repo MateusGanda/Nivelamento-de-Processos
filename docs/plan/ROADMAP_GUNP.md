@@ -417,7 +417,8 @@ Revisão da tela — primeira parte em 01/11/2026, detalhada em [ILHA_GUNP.md](.
 - [x] Consultar motivos a cada abertura da pausa, cancelando consultas encerradas
 - [x] Validar respostas das listas no cliente REST
 - [ ] Validar recuperação, foco/teclado e responsividade desses seletores em navegador
-- [ ] Proteger a identificação contra respostas atrasadas de gravações
+- [x] Proteger a identificação contra respostas atrasadas de gravações (02/11/2026: controles durante envio, invalidação de respostas e bloqueio com confirmação/erro; testes e checks aprovados)
+- [ ] Validar identificação e bloqueio no navegador com respostas lentas, falhas e teclado
 - [ ] Alinhar a escolha da troca considerando ordem e etapa
 - [ ] Recuperar a situação do operador após gravação com resultado incerto
 
