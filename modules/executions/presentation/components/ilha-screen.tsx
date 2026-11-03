@@ -242,7 +242,7 @@ export function IlhaScreen() {
                 {modo === 'trocar' && (
                   <div className="border-t border-white/10 pt-5">
                     <p className="mb-4 text-base text-muted">A execução atual é finalizada sem quantidades e a próxima começa em seguida.</p>
-                    <IlhaDestino rotuloConfirmar="Trocar para esta etapa" ocupado={ocupado} excluirEtapaId={execucao.etapa.id} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
+                    <IlhaDestino rotuloConfirmar="Trocar para esta etapa" ocupado={ocupado} etapaAtual={{ ordemId: execucao.ordem.id, etapaId: execucao.etapa.id }} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
                       aoConfirmar={(destino: Destino) => void executar(() => trocarOperacao(operador.matricula, execucao.id, destino), 'Operação trocada. A nova execução já começou.')} />
                   </div>
                 )}

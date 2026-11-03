@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, LoaderCircle, RefreshCw, Search } from 'lucide-react';
 import type { Destino, OrdemDisponivel } from '../../domain/execucao';
 import { ErroApiIlha, listarOrdensDisponiveis } from '../api-client';
+import { motivoIndisponibilidadeEtapa } from '../disponibilidade-etapa';
 
 const cartao = 'w-full cursor-pointer rounded-lg border px-4 py-3 text-left text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40';
 const selecionado = (ativo: boolean) => ativo ? 'border-accent bg-accent/10' : 'border-[#3b454e] hover:border-accent';
@@ -13,14 +14,14 @@ function textoBusca(texto: string): string {
 }
 
 // Escolha de ordem → etapa → posto, usada para iniciar e para trocar de operação.
-export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar, aoFalhar, excluirEtapaId }: {
+export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar, aoFalhar, etapaAtual }: {
   rotuloConfirmar: string;
   ocupado: boolean;
   aoConfirmar: (destino: Destino) => void;
   aoCancelar: () => void;
   aoFalhar: (falha: unknown) => void;
-  // Na troca, a etapa atual não é oferecida de novo.
-  excluirEtapaId?: string;
+  // Na troca, só a combinação atual de ordem e etapa fica indisponível.
+  etapaAtual?: Pick<Destino, 'ordemId' | 'etapaId'>;
 }) {
   const [ordens, setOrdens] = useState<OrdemDisponivel[] | null>(null);
   const [erroOrdens, setErroOrdens] = useState('');
@@ -55,6 +56,8 @@ export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar,
   const visiveis = useMemo(() => (ordens ?? []).filter((ordem) => !termo || [ordem.numero, ordem.produto.codigo, ordem.produto.nome].some((c) => textoBusca(c).includes(termo))), [ordens, termo]);
   const ordem = ordens?.find((item) => item.id === ordemId);
   const etapa = ordem?.etapas.find((item) => item.id === etapaId);
+  const destinoValido = !!ordem && !!etapa && !motivoIndisponibilidadeEtapa(ordem.id, etapa, etapaAtual) &&
+    etapa.postos.some((posto) => posto.id === postoId);
 
   const carregando = ordens === null && !erroOrdens;
 
@@ -88,12 +91,12 @@ export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar,
           <legend className="mb-2 text-lg font-semibold">2. Etapa</legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {ordem.etapas.map((item) => {
-              const indisponivel = item.baixada || item.id === excluirEtapaId || item.postos.length === 0;
+              const motivo = motivoIndisponibilidadeEtapa(ordem.id, item, etapaAtual);
               return (
-                <button key={item.id} type="button" aria-pressed={item.id === etapaId} disabled={indisponivel}
+                <button key={item.id} type="button" aria-pressed={item.id === etapaId} disabled={motivo !== null}
                   onClick={() => { setEtapaId(item.id); setPostoId(item.postos.length === 1 ? item.postos[0].id : ''); }} className={`${cartao} ${selecionado(item.id === etapaId)}`}>
                   <span className="block font-semibold">{item.ordem}. {item.operacao}</span>
-                  <span className="block text-sm text-[#c1c8cf]">{item.baixada ? 'Já teve baixa' : item.id === excluirEtapaId ? 'Etapa atual' : item.postos.length === 0 ? 'Sem posto ativo' : `${item.postos.length} ${item.postos.length === 1 ? 'posto' : 'postos'}`}</span>
+                  <span className="block text-sm text-[#c1c8cf]">{motivo ?? `${item.postos.length} ${item.postos.length === 1 ? 'posto' : 'postos'}`}</span>
                 </button>
               );
             })}
@@ -121,7 +124,7 @@ export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar,
           className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-5 text-base font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60">
           <RefreshCw aria-hidden="true" size={20} strokeWidth={2} />{erroOrdens ? 'Tentar novamente' : 'Atualizar ordens'}
         </button>
-        <button type="button" disabled={!ordem || !etapa || !postoId || ocupado} onClick={() => aoConfirmar({ ordemId, etapaId, postoId })}
+        <button type="button" disabled={!destinoValido || ocupado} onClick={() => { if (destinoValido && !ocupado) aoConfirmar({ ordemId, etapaId, postoId }); }}
           className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-5 text-base font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50">
           {ocupado ? <LoaderCircle aria-hidden="true" size={20} strokeWidth={2} className="motion-safe:animate-spin" /> : <CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} />}{rotuloConfirmar}
         </button>
