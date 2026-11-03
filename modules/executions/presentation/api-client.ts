@@ -43,9 +43,20 @@ function ehMotivo(valor: unknown): valor is { id: string; nome: string } {
 }
 
 function ehOperador(valor: unknown): valor is OperadorDaIlha {
-  if (!objeto(valor) || typeof valor.id !== 'string' || typeof valor.matricula !== 'string' || typeof valor.nome !== 'string') return false;
+  if (!objeto(valor) || typeof valor.id !== 'string' || typeof valor.matricula !== 'string' || typeof valor.nome !== 'string' ||
+    (valor.setor !== null && typeof valor.setor !== 'string')) return false;
   const aberta = valor.execucaoAberta;
-  return aberta === null || (objeto(aberta) && typeof aberta.id === 'string' && (aberta.status === 'EM_EXECUCAO' || aberta.status === 'PAUSADA') && Array.isArray(aberta.eventos));
+  if (aberta === null) return true;
+  return objeto(aberta) && typeof aberta.id === 'string' && (aberta.status === 'EM_EXECUCAO' || aberta.status === 'PAUSADA') &&
+    objeto(aberta.ordem) && typeof aberta.ordem.id === 'string' && typeof aberta.ordem.numero === 'string' &&
+    typeof aberta.ordem.quantidade === 'number' && Number.isFinite(aberta.ordem.quantidade) && typeof aberta.ordem.unidade === 'string' &&
+    objeto(aberta.produto) && typeof aberta.produto.codigo === 'string' && typeof aberta.produto.nome === 'string' &&
+    objeto(aberta.etapa) && typeof aberta.etapa.id === 'string' && typeof aberta.etapa.ordem === 'number' &&
+    Number.isFinite(aberta.etapa.ordem) && typeof aberta.etapa.operacao === 'string' && ehPosto(aberta.posto) &&
+    Array.isArray(aberta.eventos) && aberta.eventos.every((evento: unknown) => objeto(evento) &&
+      typeof evento.tipo === 'string' && ['INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO'].includes(evento.tipo) &&
+      typeof evento.dataHora === 'string' && Number.isFinite(Date.parse(evento.dataHora)) &&
+      (evento.motivo === null || typeof evento.motivo === 'string'));
 }
 
 const get = (url: string, signal?: AbortSignal) => fetch(url, { cache: 'no-store', credentials: 'same-origin', signal });
