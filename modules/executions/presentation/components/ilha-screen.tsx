@@ -6,12 +6,15 @@ import { AlertCircle, CheckCircle2, LoaderCircle, Lock, LogOut, Pause, Play, Rep
 import { BrandGunp } from '../../../access/presentation/components/brand-gunp';
 import type { Destino, ExecucaoAberta, OperadorDaIlha } from '../../domain/execucao';
 import {
-  bloquearTerminal, darBaixa, ErroApiIlha, identificarOperador, iniciarExecucao, listarMotivosPausa, pausarExecucao, retomarExecucao, trocarOperacao,
+  bloquearTerminal, darBaixa, ErroApiIlha, identificarOperador, iniciarExecucao, pausarExecucao, retomarExecucao, trocarOperacao,
 } from '../api-client';
 import { formatarDuracao, lerQuantidade, tempoDecorrido } from '../tempo-decorrido';
+import { criarControleRequisicoesIlha } from '../requisicoes-ilha';
 import { IlhaDestino } from './ilha-destino';
+import { IlhaPausa } from './ilha-pausa';
 
 type Modo = null | 'iniciar' | 'trocar' | 'pausar' | 'baixa';
+type EstadoBloqueio = null | 'enviando' | 'falhou' | 'concluido';
 
 const botaoGrande = 'flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 text-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
 const botaoSecundario = 'flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 text-base font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60';
@@ -34,15 +37,15 @@ function Relogio({ execucao }: { execucao: ExecucaoAberta }) {
 export function IlhaScreen() {
   const router = useRouter();
   const campoRef = useRef<HTMLInputElement>(null);
-  const emEnvio = useRef(false);
+  const [requisicoes] = useState(criarControleRequisicoesIlha);
+  const bloqueioSolicitado = useRef(false);
+  const [bloqueio, setBloqueio] = useState<EstadoBloqueio>(null);
   const [matricula, setMatricula] = useState('');
   const [operador, setOperador] = useState<OperadorDaIlha | null>(null);
   const [modo, setModo] = useState<Modo>(null);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState('');
   const [mensagem, setMensagem] = useState('');
-  const [motivos, setMotivos] = useState<{ id: string; nome: string }[] | null>(null);
-  const [motivoId, setMotivoId] = useState('');
   const [baixa, setBaixa] = useState({ boa: '', retrabalho: '', refugo: '' });
 
   // O leitor USB funciona como teclado: sem outro campo em uso, o foco volta para a matrícula.
@@ -52,10 +55,14 @@ export function IlhaScreen() {
       if (!ativo || ativo === document.body) campoRef.current?.focus();
     };
     const id = setInterval(devolverFoco, 500);
-    return () => clearInterval(id);
-  }, []);
+    return () => {
+      clearInterval(id);
+      requisicoes.invalidar();
+    };
+  }, [requisicoes]);
 
   const tratarFalha = useCallback((falha: unknown) => {
+    if (bloqueioSolicitado.current) return;
     if (falha instanceof ErroApiIlha && (falha.status === 401 || falha.status === 503)) {
       router.refresh();
       return;
@@ -63,53 +70,65 @@ export function IlhaScreen() {
     setErro(falha instanceof ErroApiIlha ? falha.message : 'Não foi possível concluir. Verifique a conexão e tente novamente.');
   }, [router]);
 
-  async function executar(acao: () => Promise<OperadorDaIlha>, sucesso: string) {
-    if (emEnvio.current) return;
-    emEnvio.current = true;
-    setOcupado(true);
-    setErro('');
-    setMensagem('');
-    try {
-      setOperador(await acao());
-      setMensagem(sucesso);
-      setModo(null);
-    } catch (falha) {
-      tratarFalha(falha);
-    } finally {
-      emEnvio.current = false;
-      setOcupado(false);
-    }
+  async function executar(acao: (signal: AbortSignal) => Promise<OperadorDaIlha>, sucesso: string, identificando = false) {
+    if (bloqueioSolicitado.current) return;
+    await requisicoes.executar(acao, {
+      iniciar: () => {
+        setOcupado(true);
+        setErro('');
+        setMensagem('');
+        if (identificando) {
+          setMatricula('');
+          setOperador(null);
+          setModo(null);
+          setBaixa({ boa: '', retrabalho: '', refugo: '' });
+        }
+      },
+      concluir: (resultado) => {
+        setOperador(resultado);
+        setMensagem(sucesso);
+        setModo(null);
+      },
+      falhar: tratarFalha,
+      finalizar: () => setOcupado(false),
+    });
   }
 
   // A identificação só mostra a situação; nenhuma ação é executada pela leitura.
   async function identificar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const lida = matricula.trim();
-    if (!lida || emEnvio.current) return;
-    setMatricula('');
-    setModo(null);
-    setOperador(null);
-    await executar(() => identificarOperador(lida), '');
+    if (!lida || requisicoes.emAndamento() || bloqueioSolicitado.current) return;
+    await executar((signal) => identificarOperador(lida, signal), '', true);
   }
 
-  function sair() {
+  function limparIdentificacao() {
+    requisicoes.invalidar();
+    setMatricula('');
     setOperador(null);
     setModo(null);
     setErro('');
     setMensagem('');
+    setBaixa({ boa: '', retrabalho: '', refugo: '' });
+    setOcupado(false);
+  }
+
+  function sair() {
+    if (requisicoes.emAndamento() || bloqueioSolicitado.current) return;
+    limparIdentificacao();
     campoRef.current?.focus();
   }
 
-  async function abrirPausa() {
-    setModo('pausar');
-    setMotivoId('');
-    if (motivos) return;
-    try { setMotivos(await listarMotivosPausa()); }
-    catch (falha) { tratarFalha(falha); setModo(null); }
-  }
-
   async function bloquear() {
-    try { await bloquearTerminal(); } finally { router.refresh(); }
+    if (bloqueioSolicitado.current && requisicoes.emAndamento()) return;
+    bloqueioSolicitado.current = true;
+    limparIdentificacao();
+    await requisicoes.executar(() => bloquearTerminal(), {
+      iniciar: () => setBloqueio('enviando'),
+      concluir: () => { setBloqueio('concluido'); router.refresh(); },
+      falhar: () => setBloqueio('falhou'),
+      finalizar: () => {},
+    });
   }
 
   const execucao = operador?.execucaoAberta ?? null;
@@ -122,16 +141,25 @@ export function IlhaScreen() {
     <main className="min-h-dvh bg-background text-foreground">
       <header className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-4"><BrandGunp variante="painel" /><span className="hidden text-sm text-muted sm:inline">Ilha de apontamento</span></div>
-        <button type="button" onClick={() => void bloquear()} className={botaoSecundario}><Lock aria-hidden="true" size={18} strokeWidth={2} />Bloquear terminal</button>
+        <button type="button" onClick={() => void bloquear()} disabled={bloqueio === 'enviando' || bloqueio === 'concluido'} className={botaoSecundario}><Lock aria-hidden="true" size={18} strokeWidth={2} />{bloqueio === 'enviando' ? 'Bloqueando…' : bloqueio === 'concluido' ? 'Terminal bloqueado' : bloqueio === 'falhou' ? 'Tentar bloquear novamente' : 'Bloquear terminal'}</button>
       </header>
 
       <div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-6">
+        {bloqueio !== null ? (
+          <section aria-labelledby="ilha-bloqueio-titulo" className="space-y-4 rounded-xl border border-[#2b353e] bg-[#192128]/70 p-4 sm:p-6">
+            <h1 id="ilha-bloqueio-titulo" className="text-2xl font-semibold">Bloqueio do terminal</h1>
+            {bloqueio === 'falhou' ? (
+              <p role="alert" className="text-base leading-7 text-[#ffb4a5]">Não foi possível confirmar o bloqueio do terminal. Verifique a conexão e tente bloquear novamente.</p>
+            ) : <p role="status" className="text-base leading-7 text-muted">{bloqueio === 'enviando' ? 'Bloqueando o terminal…' : 'Terminal bloqueado. Carregando a tela de liberação…'}</p>}
+            {bloqueio === 'concluido' && <button type="button" onClick={() => router.refresh()} className={botaoSecundario}>Atualizar página</button>}
+          </section>
+        ) : <>
         <form onSubmit={identificar} className="rounded-xl border border-[#2b353e] bg-[#192128]/70 p-4 sm:p-5">
           <label htmlFor="ilha-matricula" className="block text-base font-medium">{operador ? 'Outro operador: leia ou digite a matrícula' : 'Leia o crachá ou digite a matrícula'}</label>
           <div className="mt-3 flex gap-3">
             <div className="relative flex-1"><ScanLine aria-hidden="true" size={24} strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted" />
-              <input id="ilha-matricula" ref={campoRef} autoFocus autoComplete="off" autoCapitalize="characters" spellCheck={false} value={matricula} onChange={(event) => setMatricula(event.target.value)}
-                className="h-14 w-full rounded-lg border border-[#3b454e] bg-background pr-4 pl-12 font-mono text-xl tracking-wide outline-none focus:border-accent focus:ring-2 focus:ring-accent/20" />
+              <input id="ilha-matricula" ref={campoRef} autoFocus autoComplete="off" autoCapitalize="characters" spellCheck={false} disabled={ocupado} value={matricula} onChange={(event) => setMatricula(event.target.value)}
+                className="h-14 w-full rounded-lg border border-[#3b454e] bg-background pr-4 pl-12 font-mono text-xl tracking-wide outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:cursor-wait disabled:opacity-60" />
             </div>
             <button type="submit" disabled={!matricula.trim() || ocupado} className={`${botaoGrande} bg-accent text-[#171b1f] hover:bg-[#ff8d40]`}>Identificar</button>
           </div>
@@ -140,6 +168,7 @@ export function IlhaScreen() {
         {erro && <p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/30 bg-[#f49a8a]/10 p-4 text-base leading-7 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{erro}</p>}
         {mensagem && <p role="status" className="flex items-start gap-2 rounded-lg border border-[#7bcba5]/30 bg-[#7bcba5]/10 p-4 text-base leading-7 text-[#a6dfbf]"><CheckCircle2 aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{mensagem}</p>}
         {ocupado && !operador && <p role="status" className="flex items-center gap-3 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Consultando…</p>}
+        {ocupado && operador && <p role="status" className="flex items-center gap-3 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Registrando ação. Aguarde antes de trocar o operador.</p>}
 
         {operador && (
           <section aria-labelledby="ilha-operador" className="space-y-5 rounded-xl border border-[#2b353e] bg-[#192128]/70 p-4 sm:p-6">
@@ -148,7 +177,7 @@ export function IlhaScreen() {
                 <h1 id="ilha-operador" className="text-2xl font-semibold">{operador.nome}</h1>
                 <p className="mt-1 text-base text-muted">Matrícula {operador.matricula}{operador.setor ? ` · ${operador.setor}` : ''}</p>
               </div>
-              <button type="button" onClick={sair} className={botaoSecundario}><LogOut aria-hidden="true" size={18} strokeWidth={2} />Sair</button>
+              <button type="button" onClick={sair} disabled={ocupado} className={botaoSecundario}><LogOut aria-hidden="true" size={18} strokeWidth={2} />Sair</button>
             </div>
 
             {execucao ? (
@@ -173,7 +202,7 @@ export function IlhaScreen() {
                       <button type="button" disabled={ocupado} onClick={() => void executar(() => retomarExecucao(operador.matricula, execucao.id), 'Execução retomada.')} className={`${botaoGrande} bg-[#7bcba5] text-[#13201a] hover:bg-[#93d8b6] sm:col-span-3`}><Play aria-hidden="true" size={22} strokeWidth={2} />Retomar</button>
                     ) : (
                       <>
-                        <button type="button" disabled={ocupado} onClick={() => void abrirPausa()} className={`${botaoGrande} bg-[#ffcf99] text-[#2a1d0c] hover:bg-[#ffdcb3]`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Pausar</button>
+                        <button type="button" disabled={ocupado} onClick={() => { setModo('pausar'); setErro(''); setMensagem(''); }} className={`${botaoGrande} bg-[#ffcf99] text-[#2a1d0c] hover:bg-[#ffdcb3]`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Pausar</button>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('trocar'); setErro(''); }} className={`${botaoGrande} border border-[#3b454e] hover:border-accent`}><Repeat aria-hidden="true" size={22} strokeWidth={2} />Trocar operação</button>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('baixa'); setBaixa({ boa: '', retrabalho: '', refugo: '' }); setErro(''); }} className={`${botaoGrande} bg-accent text-[#171b1f] hover:bg-[#ff8d40]`}><Square aria-hidden="true" size={22} strokeWidth={2} />Finalizar e dar baixa</button>
                       </>
@@ -182,19 +211,8 @@ export function IlhaScreen() {
                 )}
 
                 {modo === 'pausar' && (
-                  <fieldset className="space-y-3 border-t border-white/10 pt-5">
-                    <legend className="mb-2 text-lg font-semibold">Motivo da pausa</legend>
-                    {motivos === null ? <p role="status" className="text-base text-muted">Carregando motivos…</p>
-                      : motivos.length === 0 ? <p className="text-base text-[#ffcf99]">Nenhum motivo de pausa cadastrado. Peça ao administrador para cadastrar os motivos.</p>
-                      : <div className="grid gap-2 sm:grid-cols-2">{motivos.map((motivo) => (
-                        <button key={motivo.id} type="button" aria-pressed={motivo.id === motivoId} onClick={() => setMotivoId(motivo.id)}
-                          className={`min-h-12 cursor-pointer rounded-lg border px-4 py-3 text-left text-base focus-visible:outline-2 focus-visible:outline-accent ${motivo.id === motivoId ? 'border-accent bg-accent/10' : 'border-[#3b454e] hover:border-accent'}`}>{motivo.nome}</button>
-                      ))}</div>}
-                    <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-                      <button type="button" onClick={() => setModo(null)} disabled={ocupado} className={botaoSecundario}>Cancelar</button>
-                      <button type="button" disabled={!motivoId || ocupado} onClick={() => void executar(() => pausarExecucao(operador.matricula, execucao.id, motivoId), 'Execução pausada.')} className={`${botaoGrande} bg-[#ffcf99] text-[#2a1d0c] hover:bg-[#ffdcb3] disabled:cursor-not-allowed`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Confirmar pausa</button>
-                    </div>
-                  </fieldset>
+                  <IlhaPausa key={execucao.id} ocupado={ocupado} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
+                    aoConfirmar={(motivoId) => void executar(() => pausarExecucao(operador.matricula, execucao.id, motivoId), 'Execução pausada.')} />
                 )}
 
                 {modo === 'baixa' && (
@@ -240,6 +258,7 @@ export function IlhaScreen() {
             )}
           </section>
         )}
+        </>}
       </div>
     </main>
   );

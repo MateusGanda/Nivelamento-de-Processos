@@ -22,6 +22,26 @@ async function lerResposta(resposta: Response): Promise<unknown> {
 
 const objeto = (valor: unknown): valor is Record<string, unknown> => !!valor && typeof valor === 'object' && !Array.isArray(valor);
 
+function ehPosto(valor: unknown): boolean {
+  return objeto(valor) && typeof valor.id === 'string' && typeof valor.codigo === 'string' && typeof valor.nome === 'string';
+}
+
+function ehEtapa(valor: unknown): boolean {
+  return objeto(valor) && typeof valor.id === 'string' && typeof valor.ordem === 'number' && Number.isFinite(valor.ordem) &&
+    typeof valor.operacao === 'string' && typeof valor.baixada === 'boolean' && Array.isArray(valor.postos) && valor.postos.every(ehPosto);
+}
+
+function ehOrdem(valor: unknown): valor is OrdemDisponivel {
+  return objeto(valor) && typeof valor.id === 'string' && typeof valor.numero === 'string' &&
+    typeof valor.quantidade === 'number' && Number.isFinite(valor.quantidade) && typeof valor.unidade === 'string' &&
+    typeof valor.plano === 'string' && objeto(valor.produto) && typeof valor.produto.codigo === 'string' &&
+    typeof valor.produto.nome === 'string' && Array.isArray(valor.etapas) && valor.etapas.every(ehEtapa);
+}
+
+function ehMotivo(valor: unknown): valor is { id: string; nome: string } {
+  return objeto(valor) && typeof valor.id === 'string' && typeof valor.nome === 'string';
+}
+
 function ehOperador(valor: unknown): valor is OperadorDaIlha {
   if (!objeto(valor) || typeof valor.id !== 'string' || typeof valor.matricula !== 'string' || typeof valor.nome !== 'string') return false;
   const aberta = valor.execucaoAberta;
@@ -41,7 +61,7 @@ async function operador(resposta: Promise<Response>): Promise<OperadorDaIlha> {
 
 const rotaExecucao = (id: string, acao: string) => `/api/ilha/execucoes/${encodeURIComponent(id)}/${acao}`;
 
-export const identificarOperador = (matricula: string) => operador(get(`/api/ilha/operadores/${encodeURIComponent(matricula.trim())}`));
+export const identificarOperador = (matricula: string, signal?: AbortSignal) => operador(get(`/api/ilha/operadores/${encodeURIComponent(matricula.trim())}`, signal));
 export const iniciarExecucao = (matricula: string, destino: Destino) => operador(post('/api/ilha/execucoes', { matricula, ...destino }));
 export const pausarExecucao = (matricula: string, id: string, motivoId: string) => operador(post(rotaExecucao(id, 'pausa'), { matricula, motivoId }));
 export const retomarExecucao = (matricula: string, id: string) => operador(post(rotaExecucao(id, 'retomada'), { matricula }));
@@ -50,14 +70,14 @@ export const darBaixa = (matricula: string, id: string, baixa: Baixa) => operado
 
 export async function listarOrdensDisponiveis(signal?: AbortSignal): Promise<OrdemDisponivel[]> {
   const ordens = await lerResposta(await get('/api/ilha/ordens', signal));
-  if (!Array.isArray(ordens)) throw new ErroApiIlha(500, 'Resposta inválida. Tente novamente.');
-  return ordens as OrdemDisponivel[];
+  if (!Array.isArray(ordens) || !ordens.every(ehOrdem)) throw new ErroApiIlha(500, 'Resposta inválida ao carregar as ordens. Tente novamente.');
+  return ordens;
 }
 
 export async function listarMotivosPausa(signal?: AbortSignal): Promise<{ id: string; nome: string }[]> {
   const motivos = await lerResposta(await get('/api/ilha/motivos', signal));
-  if (!Array.isArray(motivos)) throw new ErroApiIlha(500, 'Resposta inválida. Tente novamente.');
-  return motivos as { id: string; nome: string }[];
+  if (!Array.isArray(motivos) || !motivos.every(ehMotivo)) throw new ErroApiIlha(500, 'Resposta inválida ao carregar os motivos. Tente novamente.');
+  return motivos;
 }
 
 export async function liberarTerminal(chave: string): Promise<void> {
