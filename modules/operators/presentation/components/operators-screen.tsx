@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, LoaderCircle, Pencil, Plus, Power, PowerOff, Search, UsersRound } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, LoaderCircle, Pencil, Plus, Power, PowerOff, QrCode, Search, UsersRound } from 'lucide-react';
 import type { Operador } from '../../domain/operador';
 import { definirStatusOperador, listarOperadores, ErroApiOperadores } from '../api-client';
 import { filtrarOrdenarOperadores, formatarDataCadastro, type ColunaOperador, type FiltroStatusOperador, type OrdemOperador } from '../listing';
 import { OperatorFormDialog, type PedidoFormularioOperador } from './operator-form-dialog';
+import { OperatorBadgeDialog } from './operator-badge-dialog';
 
 const colunas: ReadonlyArray<{ campo: ColunaOperador; titulo: string }> = [
   { campo: 'nome', titulo: 'Nome' }, { campo: 'matricula', titulo: 'Matrícula' },
@@ -31,6 +32,7 @@ export function OperatorsScreen() {
   const origemFoco = useRef<HTMLButtonElement | null>(null);
   const ultimaMensagem = useRef('');
   const [pedido, setPedido] = useState<PedidoFormularioOperador | null>(null);
+  const [crachaOperadorId, setCrachaOperadorId] = useState<string | null>(null);
   const pedidoLista = useRef(0);
   const montado = useRef(false);
 
@@ -71,9 +73,15 @@ export function OperatorsScreen() {
   }
 
   function abrirFormulario(operador: Operador | null, botao: HTMLButtonElement) {
-    if (dialogRef.current?.open) return;
+    if (dialogRef.current?.open || crachaOperadorId) return;
     origemFoco.current = botao;
     setPedido((atual) => ({ operador, seq: (atual?.seq ?? 0) + 1 }));
+  }
+
+  function abrirCracha(operador: Operador, botao: HTMLButtonElement) {
+    if (!operador.ativo || alterandoStatus || carregando || dialogRef.current?.open || crachaOperadorId) return;
+    origemFoco.current = botao;
+    setCrachaOperadorId(operador.id);
   }
 
   function aoConcluir(operador: Operador, acao: 'cadastrado' | 'alterado' | 'ativado' | 'inativado') {
@@ -152,7 +160,7 @@ export function OperatorsScreen() {
         ) : (
           <>
             <div className="max-w-full overflow-x-auto rounded-b-xl">
-              <table className="w-full min-w-[1000px] text-left text-sm">
+              <table className="w-full min-w-[1120px] text-left text-sm">
                 <caption className="sr-only">Operadores cadastrados. Use os cabeçalhos para ordenar as colunas.</caption>
                 <thead className="border-b border-white/10 bg-white/[0.025] text-muted"><tr>
                   {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-5 py-3 font-medium">
@@ -170,7 +178,9 @@ export function OperatorsScreen() {
                     <td className="max-w-64 px-5 py-4 break-words text-muted">{operador.funcao ?? 'Não informada'}</td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${operador.ativo ? 'border-[#7bcba5]/20 bg-[#7bcba5]/10 text-[#a6dfbf]' : 'border-white/10 bg-white/5 text-muted'}`}>{operador.ativo ? 'Ativo' : 'Inativo'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={operador.createdAt}>{formatarDataCadastro(operador.createdAt)}</time></td>
-                    <td className="px-5 py-3 text-right whitespace-nowrap"><button type="button" aria-haspopup="dialog" aria-controls="cadastro-operador" aria-label={'Editar ' + operador.nome} onClick={(event) => abrirFormulario(operador, event.currentTarget)} className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><Pencil aria-hidden="true" size={16} />Editar</button>
+                    <td className="px-5 py-3 text-right whitespace-nowrap">
+                      <button type="button" aria-haspopup="dialog" aria-controls="cracha-operador" aria-label={'Crachá de ' + operador.nome} title={operador.ativo ? 'Visualizar, baixar QR ou imprimir crachá' : 'Reative o operador para emitir o crachá'} disabled={!operador.ativo || alterandoStatus !== null || carregando} onClick={(event) => abrirCracha(operador, event.currentTarget)} className="mr-2 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"><QrCode aria-hidden="true" size={16} />Crachá</button>
+                      <button type="button" aria-haspopup="dialog" aria-controls="cadastro-operador" aria-label={'Editar ' + operador.nome} onClick={(event) => abrirFormulario(operador, event.currentTarget)} className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"><Pencil aria-hidden="true" size={16} />Editar</button>
                       {/* aria-disabled em vez de disabled: o botão mantém o foco durante o envio. */}
                       <button type="button" aria-label={`${operador.ativo ? 'Inativar' : 'Ativar'} ${operador.nome}`} aria-disabled={alterandoStatus !== null}
                         onClick={() => void alternarStatus(operador)}
@@ -187,6 +197,7 @@ export function OperatorsScreen() {
         )}
       </section>
       <OperatorFormDialog dialogRef={dialogRef} pedido={pedido} aoConcluir={aoConcluir} aoFechar={() => { setPedido(null); origemFoco.current?.focus(); }} />
+      {crachaOperadorId && <OperatorBadgeDialog key={crachaOperadorId} operadorId={crachaOperadorId} aoFechar={() => { setCrachaOperadorId(null); origemFoco.current?.focus(); }} />}
     </div>
   );
 }
