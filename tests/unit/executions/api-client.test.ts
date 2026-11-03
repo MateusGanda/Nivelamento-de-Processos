@@ -1,11 +1,54 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ErroApiIlha, listarMotivosPausa, listarOrdensDisponiveis } from '../../../modules/executions/presentation/api-client.ts';
+import { bloquearTerminal, ErroApiIlha, identificarOperador, listarMotivosPausa, listarOrdensDisponiveis, pausarExecucao } from '../../../modules/executions/presentation/api-client.ts';
+import { criarControleRequisicoesIlha } from '../../../modules/executions/presentation/requisicoes-ilha.ts';
 
 const ordem = {
   id: 'ordem-1', numero: 'OP-0001', quantidade: 10, unidade: 'un', plano: 'PL-1', produto: { codigo: 'PRD-1', nome: 'Produto' },
   etapas: [{ id: 'etapa-1', ordem: 1, operacao: 'Corte', baixada: false, postos: [{ id: 'posto-1', codigo: 'COR1', nome: 'Posto de corte' }] }],
 };
+
+test('ilha: identificação aceita cancelamento e codifica a matrícula sem enviar POST', async (t) => {
+  const controller = new AbortController();
+  const operador = { id: 'op-1', matricula: 'AS/TESTE', nome: 'Ana', setor: null, execucaoAberta: null };
+  t.mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
+    assert.equal(url, '/api/ilha/operadores/AS%2FTESTE');
+    assert.equal(options.signal, controller.signal);
+    assert.equal(options.cache, 'no-store');
+    assert.equal(options.credentials, 'same-origin');
+    assert.ok(!options.method || options.method === 'GET');
+    return Response.json(operador);
+  });
+  assert.deepEqual(await identificarOperador(' AS/TESTE ', controller.signal), operador);
+});
+
+test('ilha: bloquear durante uma gravação descarta sua resposta sem reenviar ou cancelar o POST', async (t) => {
+  const controle = criarControleRequisicoesIlha();
+  const pedidos: string[] = [];
+  const resultados: unknown[] = [];
+  let responderPost!: (resposta: Response) => void;
+  const respostaPendente = new Promise<Response>((resolve) => { responderPost = resolve; });
+  t.mock.method(globalThis, 'fetch', async (url: string, options: RequestInit) => {
+    pedidos.push(`${options.method} ${url}`);
+    if (options.method === 'POST') {
+      assert.equal(options.signal, undefined, 'Abortar a consulta local não deve fingir que a gravação foi cancelada.');
+      return respostaPendente;
+    }
+    assert.equal(options.method, 'DELETE');
+    return new Response(null, { status: 204 });
+  });
+  const efeitos = {
+    iniciar: () => {}, concluir: (resultado: unknown) => { resultados.push(resultado); },
+    falhar: (erro: unknown) => { resultados.push(erro); }, finalizar: () => {},
+  };
+  const gravacao = controle.executar(() => pausarExecucao('AS-PES1', 'execucao-1', 'motivo-1'), efeitos);
+  controle.invalidar();
+  await controle.executar(() => bloquearTerminal(), { ...efeitos, concluir: () => { resultados.push('bloqueado'); } });
+  responderPost(Response.json({ id: 'op-1', nome: 'Ana', matricula: 'AS-PES1', execucaoAberta: null }));
+  await gravacao;
+  assert.deepEqual(pedidos, ['POST /api/ilha/execucoes/execucao-1/pausa', 'DELETE /api/ilha/acesso']);
+  assert.deepEqual(resultados, ['bloqueado']);
+});
 
 test('ilha: consultas de ordens e motivos usam GET sem cache e permitem abortar a carga', async (t) => {
   const controller = new AbortController();
