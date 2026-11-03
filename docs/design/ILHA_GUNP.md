@@ -38,6 +38,21 @@ A função de apresentação `motivoIndisponibilidadeEtapa` mantém os motivos e
 
 Mudança limitada à interface, função de apresentação, testes e documentação. A API e suas validações, a finalização sem quantidades e a abertura da execução seguinte na transação permanecem inalteradas. Não há migration ou nova dependência.
 
+## Recuperação após gravação sem confirmação — 02/11/2026
+
+- Uma rejeição de entrada com HTTP 400 mantém o formulário e os valores para correção. Não é apresentada como gravação concluída.
+- Após falha de rede, resposta inválida ou outro erro de apontamento (incluindo 404/409), a tela suspende os controles da execução e oferece **Atualizar situação do operador**. O contexto preserva ID e matrícula do operador; o formulário de apontamento é fechado e seu rascunho é limpo.
+- A consulta usa somente GET `/api/ilha/operadores/[matricula]`, sem cache, com cancelamento e a proteção de respostas atrasadas já existente. Nenhum comando anterior é guardado para reenvio ou repetido pelo botão.
+- A resposta deve corresponder à mesma identificação e conter os dados necessários para apresentar a execução. O cliente valida ordem, produto, etapa, posto e eventos; resposta malformada ou de outra identificação não libera os apontamentos.
+- Em sucesso, a execução apresentada é substituída pela situação consultada, inclusive quando está pausada, existe uma nova execução após troca ou não há execução aberta. A mensagem diz **Situação atualizada**, sem afirmar que o pedido anterior foi concluído ou rejeitado.
+- Se a consulta falhar, a recuperação continua pendente e permite outra consulta GET. Falha não é convertida em execução nula. Os erros de acesso/configuração 401/503 mantêm o tratamento de atualização da página.
+- Um ref também impede chamadas de gravação antes da renderização dos controles suspensos. Atualizar a situação não dispara outra gravação; somente uma nova ação explícita do usuário pode enviar POST após uma consulta bem-sucedida.
+- Sair limpa o contexto de recuperação. Uma nova identificação também faz um GET antes de apresentar dados e ações. Durante a consulta, Identificar e Sair ficam indisponíveis; Bloquear terminal continua disponível, invalida a consulta e impede que sua resposta restaure dados.
+
+Esta etapa altera Presentation, testes e documentação. Sem novos endpoints, dependências, campos ou migrations.
+
+**Limite:** a consulta é uma fotografia da situação atual, não um comprovante de execução do pedido anterior. Se o servidor ainda estiver processando uma gravação cuja conexão se perdeu, o estado poderá mudar depois da consulta. Esta recuperação não substitui o contrato de idempotência persistida nem as garantias de concorrência do servidor.
+
 ## Arquivos principais
 
 - [Escolha do destino](../../modules/executions/presentation/components/ilha-destino.tsx).
@@ -49,6 +64,8 @@ Mudança limitada à interface, função de apresentação, testes e documentaç
 - [Testes de respostas atrasadas](../../tests/unit/executions/requisicoes-ilha.test.ts).
 - [Disponibilidade das etapas no seletor](../../modules/executions/presentation/disponibilidade-etapa.ts).
 - [Testes da seleção por ordem e etapa](../../tests/unit/executions/disponibilidade-etapa.test.ts).
+- [Consulta para recuperação](../../modules/executions/presentation/recuperacao-ilha.ts).
+- [Testes da recuperação](../../tests/unit/executions/recuperacao-ilha.test.ts).
 
 ## Verificação e limites
 
@@ -83,6 +100,14 @@ Suíte completa com **255 aprovados e 7 opcionais ignorados**. Lint, typecheck e
 
 Validação visual continua pendente pela limitação de automação registrada acima. Conferir com duas ordens de uma mesma versão de roteiro: iniciar uma execução de teste na primeira; abrir Trocar operação; verificar Etapa atual na ordem original; selecionar a outra ordem e verificar a mesma etapa disponível; cancelar sem alterar a execução. Conferir também etapa já baixada, ausência de posto ativo e seleção de outra etapa da ordem original. Efetuar apontamentos somente em banco de desenvolvimento autorizado.
 
+### Verificação da recuperação — 02/11/2026
+
+Doze testes novos cobrem a classificação da rejeição de entrada; início, pausa, retomada, troca e baixa gravados com resposta perdida; consulta indisponível; resposta malformada; identificação divergente; nova tentativa somente de leitura; consulta atrasada após bloqueio; e gravação com resposta incompleta. Fetch e registros são simulados, sem acesso ao banco. Os testes verificam a sequência POST → GET sem segundo POST, mas não montam o componente React.
+
+Suíte completa: **267 aprovados e 7 opcionais ignorados**. Lint, typecheck e build de produção aprovados; build com configuração fictícia de banco. Nenhuma migration ou seed executado.
+
+Validação em navegador segue pendente pela limitação de automação já registrada. Conferir com respostas simuladas: uma gravação concluída cuja resposta falha; atualização mostrando estado pausado, retomado, nova execução ou nenhuma aberta; consulta falhando e mantendo apenas a recuperação; HTTP 400 preservando preenchimento; bloqueio enquanto o GET está pendente; reidentificação e respostas antigas; foco e responsividade. Não provocar perda de resposta de um apontamento no banco da equipe para preparar o teste.
+
 ## Próximas partes
 
-Continua pendente a recuperação da situação do operador após uma gravação de resultado incerto, além da validação visual dos ajustes. Idempotência persistida, concorrência com inativação e limpeza por inatividade exigem seus contratos próprios. Os novos detalhes da ilha serão definidos após os ajustes necessários, conforme orientação do usuário em 02/11/2026.
+As três correções planejadas da interface estão implementadas: proteção da identificação, troca por ordem + etapa e recuperação da situação após falha de gravação. Continua pendente a validação visual e integrada dos ajustes. Idempotência persistida, concorrência com inativação e limpeza por inatividade exigem seus contratos próprios. Os novos detalhes da ilha serão definidos após os ajustes necessários, conforme orientação do usuário em 02/11/2026.
