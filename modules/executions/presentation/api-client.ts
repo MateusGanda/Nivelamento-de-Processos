@@ -61,7 +61,7 @@ async function operador(resposta: Promise<Response>): Promise<OperadorDaIlha> {
 
 const rotaExecucao = (id: string, acao: string) => `/api/ilha/execucoes/${encodeURIComponent(id)}/${acao}`;
 
-export const identificarOperador = (matricula: string) => operador(get(`/api/ilha/operadores/${encodeURIComponent(matricula.trim())}`));
+export const identificarOperador = (matricula: string, signal?: AbortSignal) => operador(get(`/api/ilha/operadores/${encodeURIComponent(matricula.trim())}`, signal));
 export const iniciarExecucao = (matricula: string, destino: Destino) => operador(post('/api/ilha/execucoes', { matricula, ...destino }));
 export const pausarExecucao = (matricula: string, id: string, motivoId: string) => operador(post(rotaExecucao(id, 'pausa'), { matricula, motivoId }));
 export const retomarExecucao = (matricula: string, id: string) => operador(post(rotaExecucao(id, 'retomada'), { matricula }));
