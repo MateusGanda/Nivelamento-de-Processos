@@ -1,4 +1,4 @@
-# Ilha de apontamento — consultas e proteção da identificação
+# Ilha de apontamento — revisão da interface
 
 Entrega de 01/11/2026: primeira parte da revisão da tela existente, limitada ao carregamento de ordens e motivos de pausa. A ilha continua em `/ilha`; seus fluxos e regras de produção seguem o modelo conceitual e o módulo `modules/executions`.
 
@@ -28,6 +28,16 @@ As novas tentativas e atualizações executam somente GET; não repetem início,
 
 Esta entrega altera apenas Presentation, testes e documentação. Preserva as alterações locais preexistentes de `.env.example` e `docs/CONTEXTO_DO_PROJETO.md`. Não altera autorização no servidor, contrato HTTP ou estado persistido de execuções; não requer migration.
 
+## Troca considerando ordem e etapa — 02/11/2026
+
+Antes, o seletor identificava a etapa atual somente pelo ID de `EtapaRoteiro`. Como várias ordens podem usar a mesma versão de roteiro, a etapa era bloqueada também nas outras ordens.
+
+O contexto da troca agora informa `{ ordemId, etapaId }`. A indicação **Etapa atual** e o bloqueio do cartão dependem dos dois IDs. Exemplo: executando Corte na OP-001, Corte na OP-002 pode ser selecionado, desde que a etapa ainda não tenha baixa e possua posto ativo compatível. Na própria OP-001, Corte continua indisponível, mesmo escolhendo outro posto.
+
+A função de apresentação `motivoIndisponibilidadeEtapa` mantém os motivos existentes: Já teve baixa, Etapa atual e Sem posto ativo. É usada tanto nos cartões quanto na validação da seleção para confirmar a troca. O botão e seu handler exigem destino disponível e posto pertencente à etapa selecionada. O fluxo de início, sem contexto de etapa atual, mantém as opções anteriores.
+
+Mudança limitada à interface, função de apresentação, testes e documentação. A API e suas validações, a finalização sem quantidades e a abertura da execução seguinte na transação permanecem inalteradas. Não há migration ou nova dependência.
+
 ## Arquivos principais
 
 - [Escolha do destino](../../modules/executions/presentation/components/ilha-destino.tsx).
@@ -37,6 +47,8 @@ Esta entrega altera apenas Presentation, testes e documentação. Preserva as al
 - [Testes das consultas](../../tests/unit/executions/api-client.test.ts).
 - [Controle das respostas](../../modules/executions/presentation/requisicoes-ilha.ts).
 - [Testes de respostas atrasadas](../../tests/unit/executions/requisicoes-ilha.test.ts).
+- [Disponibilidade das etapas no seletor](../../modules/executions/presentation/disponibilidade-etapa.ts).
+- [Testes da seleção por ordem e etapa](../../tests/unit/executions/disponibilidade-etapa.test.ts).
 
 ## Verificação e limites
 
@@ -63,6 +75,14 @@ Conferir em navegador, com dados fictícios e sem escrever no banco da equipe:
 
 Conferir em navegador com respostas simuladas e dados fictícios: matrícula e Sair indisponíveis durante envio; Bloquear terminal disponível; bloqueio com POST ainda pendente; resposta tardia de sucesso e erro sem repor operador ou mensagem; bloqueio sem conexão com nova tentativa; saída e reidentificação com rascunho limpo; fechamento da página durante uma consulta; teclado e responsividade. Um POST iniciado pode ter sido gravado mesmo se sua resposta não for mais exibida.
 
+### Verificação da seleção de troca — 02/11/2026
+
+Quatro testes de regressão cobrem o ID de etapa compartilhado por ordens diferentes, a permanência do bloqueio na ordem atual mesmo com outro posto, outra etapa da mesma ordem, início sem contexto atual e preservação dos bloqueios por baixa ou ausência de posto ativo. São testes da função usada pela interface, sem montar os componentes React ou executar gravações no banco.
+
+Suíte completa com **255 aprovados e 7 opcionais ignorados**. Lint, typecheck e build de produção aprovados; build com configuração fictícia de banco. Nenhuma migration ou seed executado.
+
+Validação visual continua pendente pela limitação de automação registrada acima. Conferir com duas ordens de uma mesma versão de roteiro: iniciar uma execução de teste na primeira; abrir Trocar operação; verificar Etapa atual na ordem original; selecionar a outra ordem e verificar a mesma etapa disponível; cancelar sem alterar a execução. Conferir também etapa já baixada, ausência de posto ativo e seleção de outra etapa da ordem original. Efetuar apontamentos somente em banco de desenvolvimento autorizado.
+
 ## Próximas partes
 
-Continuam pendentes o alinhamento da seleção de troca por ordem + etapa e a recuperação da situação do operador após uma gravação de resultado incerto. Idempotência persistida, concorrência com inativação e limpeza por inatividade exigem seus contratos próprios. Os novos detalhes da ilha serão definidos após os ajustes necessários, conforme orientação do usuário em 02/11/2026.
+Continua pendente a recuperação da situação do operador após uma gravação de resultado incerto, além da validação visual dos ajustes. Idempotência persistida, concorrência com inativação e limpeza por inatividade exigem seus contratos próprios. Os novos detalhes da ilha serão definidos após os ajustes necessários, conforme orientação do usuário em 02/11/2026.

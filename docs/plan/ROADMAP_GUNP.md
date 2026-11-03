@@ -419,7 +419,8 @@ Revisão da tela — primeira parte em 01/11/2026, detalhada em [ILHA_GUNP.md](.
 - [ ] Validar recuperação, foco/teclado e responsividade desses seletores em navegador
 - [x] Proteger a identificação contra respostas atrasadas de gravações (02/11/2026: controles durante envio, invalidação de respostas e bloqueio com confirmação/erro; testes e checks aprovados)
 - [ ] Validar identificação e bloqueio no navegador com respostas lentas, falhas e teclado
-- [ ] Alinhar a escolha da troca considerando ordem e etapa
+- [x] Alinhar a escolha da troca considerando ordem e etapa (02/11/2026: contexto com os dois IDs, motivos e confirmação consistentes)
+- [ ] Validar a troca entre ordens do mesmo roteiro no navegador
 - [ ] Recuperar a situação do operador após gravação com resultado incerto
 
 # 15. FASE 11 — Leitor USB
