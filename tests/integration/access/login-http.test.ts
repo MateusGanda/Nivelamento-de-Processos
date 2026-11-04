@@ -59,6 +59,16 @@ test('HTTP: páginas públicas, marca, formulário e imagem local', { skip: !bas
   assert.equal((await fetch(url('/_next/image?url=%2Fimages%2Flogin-industrial.png&w=1080&q=75'))).status, 200);
 });
 
+test('HTTP: cabeçalhos de segurança nas páginas e na API', { skip: !base }, async () => {
+  for (const caminho of ['/login', '/ilha', '/api/produtos']) {
+    const resposta = await fetch(url(caminho), { redirect: 'manual' });
+    assert.equal(resposta.headers.get('x-frame-options'), 'DENY', `${caminho}: X-Frame-Options`);
+    assert.equal(resposta.headers.get('x-content-type-options'), 'nosniff', `${caminho}: X-Content-Type-Options`);
+    assert.equal(resposta.headers.get('referrer-policy'), 'strict-origin-when-cross-origin', `${caminho}: Referrer-Policy`);
+    assert.equal(resposta.headers.get('x-powered-by'), null, `${caminho}: X-Powered-By não deve ser enviado`);
+  }
+});
+
 test('HTTP: sem sessão, raiz e painel redirecionam e API nega acesso', { skip: !base }, async () => {
   for (const caminho of ['/', '/painel', '/api/auth/signin', ...modulosEsperados.map(([slug]) => `/painel/${slug}`)]) {
     const resposta = await fetch(url(caminho), { redirect: 'manual' });
@@ -126,7 +136,7 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
   assert.ok(html.includes('aria-current="page"'));
   assert.ok(!html.includes('href="/painel/usuarios"'));
   assert.ok(!html.includes('senhaHash'));
-  await t.test('módulos abrem suas páginas funcionais/provisórias protegidas e desconhecido retorna 404', async () => {
+  await t.test('módulos abrem suas páginas protegidas e desconhecido retorna 404', async () => {
     for (const [slug, titulo] of modulosEsperados) {
       assert.ok(html.includes(`href="/painel/${slug}"`));
       const pagina = await fetch(url(`/painel/${slug}`), { headers });
@@ -147,12 +157,9 @@ test('HTTP: login correto, painel protegido, redirecionamentos e logout', { skip
       } else if (slug === 'operacoes') {
         for (const trecho of ['Adicionar operação', 'Buscar operações', 'Cadastrar operação', 'operacao-nome', 'operacao-descricao']) assert.ok(conteudo.includes(trecho));
         assert.ok(!conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
-      } else if (slug === 'produtos' || slug === 'postos' || slug === 'roteiros') {
-        // Estes cadastros já têm páginas próprias; não são destinos provisórios.
-        assert.ok(!conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
       } else {
-        assert.ok(conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
-        assert.ok(conteudo.includes('Voltar ao início'));
+        // Todos os módulos do menu já têm páginas próprias; nenhum é destino provisório.
+        assert.ok(!conteudo.includes('Esta funcionalidade será implementada em uma próxima etapa'));
       }
       assert.ok(!conteudo.includes('senhaHash'));
     }

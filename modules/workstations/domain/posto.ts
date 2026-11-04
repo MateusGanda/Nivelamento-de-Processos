@@ -1,3 +1,5 @@
+import { excedeLimite, LIMITES_TEXTO } from '../../../shared/validation.ts';
+
 export type Posto = {
   id: string;
   codigo: string;
@@ -27,11 +29,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function exigirCodigo(valor: unknown): string {
   if (typeof valor !== 'string' || !valor.trim()) throw new ErroDePosto('ENTRADA_INVALIDA', 'Código é obrigatório.');
+  if (excedeLimite(valor.trim(), LIMITES_TEXTO.codigo)) throw new ErroDePosto('ENTRADA_INVALIDA', `Código deve ter no máximo ${LIMITES_TEXTO.codigo} caracteres.`);
   return valor.trim();
 }
 
 function exigirNome(valor: unknown): string {
   if (typeof valor !== 'string' || !valor.trim()) throw new ErroDePosto('ENTRADA_INVALIDA', 'Nome é obrigatório.');
+  if (excedeLimite(valor.trim(), LIMITES_TEXTO.nome)) throw new ErroDePosto('ENTRADA_INVALIDA', `Nome deve ter no máximo ${LIMITES_TEXTO.nome} caracteres.`);
   return valor.trim();
 }
 

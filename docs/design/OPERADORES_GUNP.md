@@ -10,7 +10,7 @@ A ativação/inativação usa PATCH /api/operadores/[id]/status com `{ "ativo": 
 
 ## Regras e API
 
-O cadastro recebe nome, setorPrincipalId e função opcional. Nome e função são tratados com trim nas extremidades; função vazia/nula é null. Sem novos limites de tamanho. Nomes repetidos são permitidos. Novos operadores são ativos; matrículas de inativos continuam reservadas.
+O cadastro recebe nome, setorPrincipalId e função opcional. Nome e função são tratados com trim nas extremidades; função vazia/nula é null. Depois do trim, nome e função aceitam até 120 caracteres. Nomes repetidos são permitidos. Novos operadores são ativos; matrículas de inativos continuam reservadas.
 
 GET /api/operadores retorna a lista completa, sem paginação e com Cache-Control: no-store. POST retorna 201; PATCH /api/operadores/[id] altera somente campos informados e retorna 200. Respostas incluem id, nome, matrícula, ativo, função, setorPrincipal (id/código/nome ou null) e timestamps.
 

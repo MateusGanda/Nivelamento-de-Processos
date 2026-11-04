@@ -4,7 +4,7 @@
 
 `/painel/operacoes` substitui o destino provisório de Operações e reutiliza o painel administrativo. Permite listar, criar e editar nome e descrição. Não inclui exclusão, ativação/inativação, importação ou tempo padrão universal. O schema e as migrations permanecem inalterados.
 
-Nome é obrigatório e único; descrição é opcional. Remover somente espaços nas extremidades, preservando caixa, acentos e espaços internos, sem novos limites de tamanho. Descrição ausente no cadastro, nula ou vazia após trim é armazenada como `null`. Na edição, campo omitido permanece inalterado; descrição nula ou vazia remove a descrição. A unicidade mantém a comparação existente do banco: `Corte` e `corte` são distintos. Editar mantém o identificador e as referências das etapas dos roteiros; o nome/descrição atualizado é compartilhado por esses vínculos, sem snapshot de rótulos.
+Nome é obrigatório e único; descrição é opcional. Remover somente espaços nas extremidades, preservando caixa, acentos e espaços internos. Depois do trim, o nome aceita até 120 caracteres e a descrição até 500. Descrição ausente no cadastro, nula ou vazia após trim é armazenada como `null`. Na edição, campo omitido permanece inalterado; descrição nula ou vazia remove a descrição. A unicidade mantém a comparação existente do banco: `Corte` e `corte` são distintos. Editar mantém o identificador e as referências das etapas dos roteiros; o nome/descrição atualizado é compartilhado por esses vínculos, sem snapshot de rótulos.
 
 O tempo padrão continua pertencendo à combinação produto + etapa do roteiro. Operações cadastradas ficam disponíveis no seletor existente dos roteiros.
 

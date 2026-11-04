@@ -1,3 +1,5 @@
+import { excedeLimite, LIMITES_TEXTO } from '../../../shared/validation.ts';
+
 export type Ordem = {
   id: string;
   numero: string;
@@ -45,6 +47,7 @@ const QUANTIDADE_MAXIMA = 9_999_999_999.99;
 
 function validarNumero(valor: unknown): string {
   if (typeof valor !== 'string' || !valor.trim()) throw new ErroDeOrdem('ENTRADA_INVALIDA', 'Número da ordem é obrigatório.');
+  if (excedeLimite(valor.trim(), LIMITES_TEXTO.codigo)) throw new ErroDeOrdem('ENTRADA_INVALIDA', `Número da ordem deve ter no máximo ${LIMITES_TEXTO.codigo} caracteres.`);
   return valor.trim();
 }
 
@@ -58,6 +61,7 @@ function validarQuantidade(valor: unknown): number {
 
 function validarUnidade(valor: unknown): string {
   if (typeof valor !== 'string' || !valor.trim()) throw new ErroDeOrdem('ENTRADA_INVALIDA', 'Unidade é obrigatória.');
+  if (excedeLimite(valor.trim(), LIMITES_TEXTO.unidade)) throw new ErroDeOrdem('ENTRADA_INVALIDA', `Unidade deve ter no máximo ${LIMITES_TEXTO.unidade} caracteres.`);
   return valor.trim();
 }
 

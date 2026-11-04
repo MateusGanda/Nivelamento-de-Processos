@@ -4,6 +4,8 @@
 
 `/login` usa o NextAuth v4 com matrícula administrativa e senha. `/painel` verifica a sessão e a conta ADMIN ativa no servidor antes de apresentar nome, matrícula e logout. `/` direciona para uma dessas páginas conforme a condição de acesso. Não há cadastro público, recuperação de senha nem acesso da ilha nesta interface.
 
+Cada tentativa recusada (matrícula ou senha errada, conta inativa ou campos vazios) espera cerca de 0,8 s antes de responder, como a chave da ilha, para tornar lenta a tentativa de muitas senhas seguidas. O login correto não espera. Não há bloqueio de conta por número de tentativas.
+
 A interface usa Geist, Tailwind e Lucide React. A partir de 1024px, o login apresenta duas colunas. Abaixo dessa largura, exibe somente marca e formulário. O fundo grafite e a cor de destaque `#FF7A21` não dependem da preferência de tema do navegador.
 
 O conjunto de login tem largura máxima de 400px e fica centralizado vertical e horizontalmente. Título e texto de apoio são centralizados; labels e entradas permanecem alinhados à esquerda. O padding vertical é de 24px no mobile/tablet e 32px no desktop, com 32px entre marca e título e 24px até o formulário.

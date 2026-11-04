@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { usuariosService } from './modules/access/composition.ts';
+import { criarAutorizacaoLogin } from './modules/access/presentation/login.ts';
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -18,23 +19,7 @@ export const authOptions: NextAuthOptions = {
         matricula: { label: 'Matrícula', type: 'text' },
         senha: { label: 'Senha', type: 'password' },
       },
-      async authorize(credentials) {
-        if (!credentials?.matricula || !credentials.senha) return null;
-        let usuario;
-        try {
-          usuario = await usuariosService.autenticar(credentials.matricula, credentials.senha);
-        } catch {
-          // Não expor mensagens do banco ou outros detalhes de infraestrutura.
-          throw new Error('AuthenticationUnavailable');
-        }
-        if (!usuario) return null;
-        return {
-          id: usuario.id,
-          name: usuario.nome,
-          email: usuario.email,
-          papel: usuario.papel,
-        };
-      },
+      authorize: criarAutorizacaoLogin({ autenticar: (matricula, senha) => usuariosService.autenticar(matricula, senha) }),
     }),
   ],
   callbacks: {

@@ -1,3 +1,5 @@
+import { excedeLimite, LIMITES_TEXTO } from '../../../shared/validation.ts';
+
 export type Setor = {
   id: string;
   codigo: string;
@@ -30,14 +32,21 @@ export class ErroCodigoSetorReservado extends ErroDeSetor {
   constructor() { super('CONFLITO', 'Não foi possível reservar o código do setor. Tente novamente.'); }
 }
 
+function validarNome(nome: unknown): string {
+  if (typeof nome !== 'string' || !nome.trim()) throw new ErroDeSetor('ENTRADA_INVALIDA', 'Nome é obrigatório.');
+  if (excedeLimite(nome.trim(), LIMITES_TEXTO.nome)) throw new ErroDeSetor('ENTRADA_INVALIDA', `Nome deve ter no máximo ${LIMITES_TEXTO.nome} caracteres.`);
+  return nome.trim();
+}
+
+function validarDescricao(descricao: unknown): string | null {
+  if (descricao === undefined || descricao === null) return null;
+  if (typeof descricao !== 'string') throw new ErroDeSetor('ENTRADA_INVALIDA', 'Descrição deve ser texto ou nula.');
+  if (excedeLimite(descricao.trim(), LIMITES_TEXTO.descricao)) throw new ErroDeSetor('ENTRADA_INVALIDA', `Descrição deve ter no máximo ${LIMITES_TEXTO.descricao} caracteres.`);
+  return descricao.trim() || null;
+}
+
 export function validarCadastroSetor(input: CadastroSetor): DadosSetor {
-  if (typeof input.nome !== 'string' || !input.nome.trim()) {
-    throw new ErroDeSetor('ENTRADA_INVALIDA', 'Nome é obrigatório.');
-  }
-  if (input.descricao !== undefined && input.descricao !== null && typeof input.descricao !== 'string') {
-    throw new ErroDeSetor('ENTRADA_INVALIDA', 'Descrição deve ser texto ou nula.');
-  }
-  return { nome: input.nome.trim(), descricao: input.descricao?.trim() || null };
+  return { nome: validarNome(input.nome), descricao: validarDescricao(input.descricao) };
 }
 
 export function ehIdentificadorValido(id: string): boolean {
@@ -46,14 +55,8 @@ export function ehIdentificadorValido(id: string): boolean {
 
 export function validarAlteracaoSetor(input: AlteracaoSetor): AlteracaoSetor {
   const dados: AlteracaoSetor = {};
-  if (input.nome !== undefined) {
-    if (typeof input.nome !== 'string' || !input.nome.trim()) throw new ErroDeSetor('ENTRADA_INVALIDA', 'Nome é obrigatório.');
-    dados.nome = input.nome.trim();
-  }
-  if (input.descricao !== undefined) {
-    if (input.descricao !== null && typeof input.descricao !== 'string') throw new ErroDeSetor('ENTRADA_INVALIDA', 'Descrição deve ser texto ou nula.');
-    dados.descricao = input.descricao?.trim() || null;
-  }
+  if (input.nome !== undefined) dados.nome = validarNome(input.nome);
+  if (input.descricao !== undefined) dados.descricao = validarDescricao(input.descricao);
   if (Object.keys(dados).length === 0) throw new ErroDeSetor('ENTRADA_INVALIDA', 'Informe o nome ou a descrição para alterar.');
   return dados;
 }

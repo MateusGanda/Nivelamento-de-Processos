@@ -4,7 +4,7 @@
 
 A tela /painel/setores mantém criação e listagem, agora com código funcional gerado no servidor. Não inclui edição, exclusão, status ou mudanças em postos. O contrato completo está em [operadores-setores.md](../../specs/contratos/operadores-setores.md).
 
-Usar Setor existente, acrescentando codigo obrigatório e único após backfill. Nome obrigatório e único, descrição opcional, UUID e timestamps preservados. Trim somente nas extremidades; descrição ausente/nula/vazia vira null. Preservar caixa, acentos e espaços internos do nome, sem novos limites de tamanho. A unicidade do nome mantém o comportamento do banco: Costura e costura são distintos.
+Usar Setor existente, acrescentando codigo obrigatório e único após backfill. Nome obrigatório e único, descrição opcional, UUID e timestamps preservados. Trim somente nas extremidades; descrição ausente/nula/vazia vira null. Preservar caixa, acentos e espaços internos do nome. Depois do trim, o nome aceita até 120 caracteres e a descrição até 500. A unicidade do nome mantém o comportamento do banco: Costura e costura são distintos.
 
 Código é permanente e separado do UUID. Exemplos: Pesponto recebe PES1, outra base PES recebe PES2, Costura recebe COS1. Na colisão concorrente de código, recalcular até dez tentativas; duplicidade de nome permanece um conflito próprio.
 

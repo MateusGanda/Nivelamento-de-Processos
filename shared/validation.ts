@@ -1,3 +1,10 @@
+/** Tamanho máximo dos textos dos cadastros, contado depois do trim. */
+export const LIMITES_TEXTO = { nome: 120, descricao: 500, codigo: 30, unidade: 20 } as const;
+
+export function excedeLimite(valor: string, limite: number): boolean {
+  return valor.length > limite;
+}
+
 /** Instantes em milissegundos Unix; fim exclusivo. */
 export type Janela = { inicioMs: number; fimMs: number };
 

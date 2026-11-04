@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, LoaderCircle, X } from 'lucide-react';
 import type { Plano } from '../../domain/plano';
 import { alterarPlano, cadastrarPlano, ErroApiPlanos } from '../api-client';
+import { LIMITES_TEXTO } from '../../../../shared/validation';
 
 // plano nulo abre o cadastro; um plano abre a edição. seq permite reabrir o mesmo plano.
 export type PedidoFormularioPlano = { plano: Plano | null; seq: number };
@@ -98,12 +99,12 @@ export function PlanFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
         </p>
         <div>
           <label htmlFor="plano-codigo" className="block text-sm font-medium">Código</label>
-          <input id="plano-codigo" name="codigo" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={codigo} onChange={(event) => setCodigo(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-plano-erro' : 'plano-codigo-ajuda'} />
+          <input id="plano-codigo" maxLength={LIMITES_TEXTO.codigo} name="codigo" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={codigo} onChange={(event) => setCodigo(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-plano-erro' : 'plano-codigo-ajuda'} />
           <p id="plano-codigo-ajuda" className="mt-2 text-xs leading-5 text-muted">Único para cada plano, por exemplo PL-2026-11.</p>
         </div>
         <div>
           <label htmlFor="plano-descricao" className="block text-sm font-medium">Descrição <span className="font-normal text-muted">(opcional)</span></label>
-          <textarea id="plano-descricao" name="descricao" rows={3} value={descricao} onChange={(event) => setDescricao(event.target.value)} disabled={enviando} className={`${campo} h-auto py-3`} />
+          <textarea id="plano-descricao" maxLength={LIMITES_TEXTO.descricao} name="descricao" rows={3} value={descricao} onChange={(event) => setDescricao(event.target.value)} disabled={enviando} className={`${campo} h-auto py-3`} />
         </div>
         <fieldset className="grid gap-4 sm:grid-cols-2">
           <legend className="mb-1 text-sm font-medium">Período <span className="font-normal text-muted">(opcional)</span></legend>

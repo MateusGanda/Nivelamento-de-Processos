@@ -65,12 +65,15 @@ test('setor: descrição ausente, nula ou vazia é armazenada como null', async 
   }
 });
 
-test('setor: nome obrigatório e tipos inválidos são rejeitados, sem novos limites de tamanho', async () => {
+test('setor: nome obrigatório, tipos inválidos e textos longos demais são rejeitados', async () => {
   const service = new SetoresService(new RepositorioEmMemoria());
   for (const dados of [{ nome: '' }, { nome: ' \t ' }, { nome: null }, { nome: 1 }, { nome: 'Costura', descricao: 1 }, { nome: 'Costura', descricao: false }]) {
     await assert.rejects(() => service.criar(dados as CadastroSetor), (erro: unknown) => erro instanceof ErroDeSetor && erro.codigo === 'ENTRADA_INVALIDA');
   }
-  assert.equal((await service.criar({ nome: 'A'.repeat(200), descricao: 'B'.repeat(1000) })).descricao?.length, 1000);
+  assert.equal((await service.criar({ nome: 'A'.repeat(120), descricao: 'B'.repeat(500) })).descricao?.length, 500);
+  for (const dados of [{ nome: 'C'.repeat(121) }, { nome: 'Corte', descricao: 'D'.repeat(501) }]) {
+    await assert.rejects(() => service.criar(dados), (erro: unknown) => erro instanceof ErroDeSetor && erro.codigo === 'ENTRADA_INVALIDA');
+  }
 });
 
 test('setor: nome já usado gera conflito após trim, sem substituir sua descrição', async () => {
