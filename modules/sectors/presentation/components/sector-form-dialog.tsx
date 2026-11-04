@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, LoaderCircle, X } from 'lucide-react';
 import type { Setor } from '../../domain/setor';
 import { alterarSetor, cadastrarSetor, ErroApiSetores } from '../api-client';
+import { LIMITES_TEXTO } from '../../../../shared/validation';
 
 // setor nulo abre o cadastro; um setor abre a edição. seq permite reabrir o mesmo setor.
 export type PedidoFormularioSetor = { setor: Setor | null; seq: number };
@@ -93,12 +94,12 @@ export function SectorFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
             ? <p className="mb-4 text-sm text-muted">Código: <span className="font-medium text-foreground">{setor.codigo}</span></p>
             : <p className="mb-4 text-sm text-muted">O código do setor será gerado automaticamente após cadastrar.</p>}
           <label htmlFor="setor-nome" className="block text-sm font-medium">Nome</label>
-          <input id="setor-nome" name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={`${campo} h-12`} aria-describedby={erro ? 'cadastro-setor-erro' : 'setor-nome-ajuda'} />
+          <input id="setor-nome" maxLength={LIMITES_TEXTO.nome} name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={`${campo} h-12`} aria-describedby={erro ? 'cadastro-setor-erro' : 'setor-nome-ajuda'} />
           <p id="setor-nome-ajuda" className="mt-2 text-xs leading-5 text-muted">Use um nome único para identificar o setor.</p>
         </div>
         <div>
           <label htmlFor="setor-descricao" className="block text-sm font-medium">Descrição <span className="font-normal text-muted">(opcional)</span></label>
-          <textarea id="setor-descricao" name="descricao" rows={3} value={descricao} onChange={(event) => setDescricao(event.target.value)} disabled={enviando} className={`${campo} min-h-28 resize-y py-3`} aria-describedby={erro ? 'cadastro-setor-erro' : undefined} />
+          <textarea id="setor-descricao" maxLength={LIMITES_TEXTO.descricao} name="descricao" rows={3} value={descricao} onChange={(event) => setDescricao(event.target.value)} disabled={enviando} className={`${campo} min-h-28 resize-y py-3`} aria-describedby={erro ? 'cadastro-setor-erro' : undefined} />
         </div>
         {erro && <p id="cadastro-setor-erro" role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
         <div className="flex flex-col-reverse justify-end gap-3 border-t border-white/10 pt-5 sm:flex-row">

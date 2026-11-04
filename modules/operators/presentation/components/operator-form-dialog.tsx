@@ -7,6 +7,7 @@ import type { Operador } from '../../domain/operador';
 import type { Setor } from '../../../sectors/domain/setor';
 import { listarSetores, ErroApiSetores } from '../../../sectors/presentation/api-client';
 import { alterarOperador, cadastrarOperador, ErroApiOperadores } from '../api-client';
+import { LIMITES_TEXTO } from '../../../../shared/validation';
 
 export type PedidoFormularioOperador = { operador: Operador | null; seq: number };
 
@@ -97,7 +98,7 @@ export function OperatorFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: 
       <form onSubmit={enviar} aria-busy={enviando} className="space-y-5 p-6">
         <p id="cadastro-operador-descricao" className="text-sm leading-6 text-muted">{edicao ? 'Atualize os dados do operador. A matrícula é permanente, mesmo após mudança de nome ou setor.' : 'A matrícula será gerada automaticamente após cadastrar. O novo operador será criado como ativo.'}</p>
         {operador && <div><label htmlFor="operador-matricula" className="block text-sm font-medium">Matrícula</label><input id="operador-matricula" readOnly value={operador.matricula} className={`${campo} text-muted`} /></div>}
-        <div><label htmlFor="operador-nome" className="block text-sm font-medium">Nome</label><input id="operador-nome" name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'cadastro-operador-erro' : undefined} /></div>
+        <div><label htmlFor="operador-nome" className="block text-sm font-medium">Nome</label><input id="operador-nome" maxLength={LIMITES_TEXTO.nome} name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'cadastro-operador-erro' : undefined} /></div>
         <div>
           <label htmlFor="operador-setor" className="block text-sm font-medium">Setor principal {edicao && !operador?.setorPrincipal && <span className="font-normal text-muted">(cadastro antigo sem setor)</span>}</label>
           <select id="operador-setor" name="setorPrincipalId" required={!edicao} value={setorPrincipalId} onChange={(event) => setSetorPrincipalId(event.target.value)} disabled={enviando || carregandoSetores || !!erroSetores} className={campo} aria-describedby="operador-setor-ajuda">
@@ -109,7 +110,7 @@ export function OperatorFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: 
           {!carregandoSetores && !erroSetores && setores.length === 0 && <p role="status" className="mt-2 text-sm text-muted">Nenhum setor cadastrado. Cadastre um setor antes de adicionar operadores.</p>}
           {erroSetores && <div className="mt-2 space-y-2"><p role="alert" className="text-sm text-[#ffb4a5]">{erroSetores}</p><button type="button" onClick={carregarSetores} disabled={enviando} className={secundario}>Tentar carregar setores novamente</button></div>}
         </div>
-        <div><label htmlFor="operador-funcao" className="block text-sm font-medium">Função <span className="font-normal text-muted">(opcional)</span></label><input id="operador-funcao" name="funcao" type="text" value={funcao} onChange={(event) => setFuncao(event.target.value)} disabled={enviando} placeholder="Ex.: Costureiro" className={campo} /></div>
+        <div><label htmlFor="operador-funcao" className="block text-sm font-medium">Função <span className="font-normal text-muted">(opcional)</span></label><input id="operador-funcao" maxLength={LIMITES_TEXTO.nome} name="funcao" type="text" value={funcao} onChange={(event) => setFuncao(event.target.value)} disabled={enviando} placeholder="Ex.: Costureiro" className={campo} /></div>
         {erro && <p id="cadastro-operador-erro" role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} className="shrink-0" />{erro}</p>}
         <div className="flex flex-col-reverse justify-end gap-3 border-t border-white/10 pt-5 sm:flex-row">
           <button type="button" onClick={fechar} disabled={enviando} className={secundario}>Cancelar</button>

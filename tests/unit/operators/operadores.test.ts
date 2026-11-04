@@ -89,10 +89,14 @@ test('operador: cria ativo com setor, função normalizada e matrícula gerada p
   assert.deepEqual(Object.keys(o).sort(), ['ativo', 'createdAt', 'funcao', 'id', 'matricula', 'nome', 'setorPrincipal', 'updatedAt']);
 });
 
-test('operador: função ausente/vazia/nula é null e nomes não têm novo limite', async () => {
-  const service = new OperadoresService(new RepositorioEmMemoria());
+test('operador: função ausente/vazia/nula é null e nome aceita até 120 caracteres', async () => {
+  const repo = new RepositorioEmMemoria();
+  const service = new OperadoresService(repo);
   for (const funcao of [undefined, null, '', ' \t ']) assert.equal((await service.criar({ ...entrada(), funcao })).funcao, null);
-  assert.equal((await service.criar(entrada('A'.repeat(200)))).nome.length, 200);
+  assert.equal((await service.criar(entrada('A'.repeat(120)))).nome.length, 120);
+  const escritas = repo.escritas;
+  await assert.rejects(() => service.criar(entrada('A'.repeat(121))), erroCom('ENTRADA_INVALIDA'));
+  assert.equal(repo.escritas, escritas);
 });
 
 test('operador: rejeita dados inválidos, setor ausente/nulo/inexistente sem gravar', async () => {

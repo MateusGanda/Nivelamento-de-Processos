@@ -8,6 +8,8 @@ Atualização em 02/11/2026: o estado das telas foi conferido com o código da `
 
 Manter a geração automática, única e permanente dos identificadores funcionais nos próximos cadastros, com preservação dos registros antigos. A regra comum está em [identificadores-cadastros.md](../../specs/contratos/identificadores-cadastros.md); os formatos já aprovados de Operadores e Setores permanecem em [operadores-setores.md](../../specs/contratos/operadores-setores.md).
 
+Os textos dos cadastros têm tamanho máximo, contado depois do trim (decisão de 04/11/2026): nomes e função do operador até 120 caracteres, descrições até 500, códigos de produto, posto e plano e número da ordem até 30, e unidade da ordem até 20. Acima disso a API responde `ENTRADA_INVALIDA` (400), e os formulários já limitam a digitação. Os identificadores gerados automaticamente seguem seus próprios formatos.
+
 As propostas abaixo orientam a próxima especificação, uma tela por entrega. Não representam campos, endpoints ou regras adicionais já aprovados. Detalhar um cadastro deve ajudar a identificar o registro, entender sua função na produção e consultar seus vínculos. Um formulário curto pode ser adequado quando os detalhes pertencem a outra tela, como ocorre em Roteiros.
 
 ## Telas implementadas

@@ -7,6 +7,7 @@ import type { Posto } from '../../domain/posto';
 import type { Setor } from '../../../sectors/domain/setor';
 import { listarSetores } from '../../../sectors/presentation/api-client';
 import { alterarPosto, cadastrarPosto, ErroApiPostos } from '../api-client';
+import { LIMITES_TEXTO } from '../../../../shared/validation';
 
 // posto nulo abre o cadastro; um posto abre a edição. seq permite reabrir o mesmo posto.
 export type PedidoFormularioPosto = { posto: Posto | null; seq: number };
@@ -106,12 +107,12 @@ export function WorkstationFormDialog({ dialogRef, pedido, aoConcluir, aoFechar 
         </p>
         <div>
           <label htmlFor="posto-codigo" className="block text-sm font-medium">Código</label>
-          <input id="posto-codigo" name="codigo" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={codigo} onChange={(event) => setCodigo(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-posto-erro' : 'posto-codigo-ajuda'} />
+          <input id="posto-codigo" maxLength={LIMITES_TEXTO.codigo} name="codigo" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={codigo} onChange={(event) => setCodigo(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-posto-erro' : 'posto-codigo-ajuda'} />
           <p id="posto-codigo-ajuda" className="mt-2 text-xs leading-5 text-muted">Único para cada posto, por exemplo MON-01.</p>
         </div>
         <div>
           <label htmlFor="posto-nome" className="block text-sm font-medium">Nome</label>
-          <input id="posto-nome" name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-posto-erro' : undefined} />
+          <input id="posto-nome" maxLength={LIMITES_TEXTO.nome} name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-posto-erro' : undefined} />
         </div>
         <div>
           <label htmlFor="posto-setor" className="block text-sm font-medium">Setor</label>

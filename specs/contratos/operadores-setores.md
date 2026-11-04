@@ -38,7 +38,7 @@ A regra do candidato pertence ao Domain; Application consulta os identificadores
 
 - GET `/api/setores`: array de `{ id, codigo, nome, descricao, createdAt, updatedAt }`, ordenado por nome, sem paginação, `Cache-Control: no-store`.
 - POST `/api/setores`: somente `{ nome, descricao? }`; descrição texto ou nula; retorna o registro com código confirmado, status 201. Código enviado pelo cliente é entrada inválida.
-- Nome obrigatório e único, descrição opcional; trim nas extremidades sem novos limites de tamanho. Descrição ausente/vazia/nula vira `null`.
+- Nome obrigatório e único, descrição opcional; trim nas extremidades. Depois do trim, nome até 120 caracteres e descrição até 500; acima disso, `ENTRADA_INVALIDA` (400). Descrição ausente/vazia/nula vira `null`.
 
 ## API de operadores
 
@@ -46,7 +46,7 @@ A regra do candidato pertence ao Domain; Application consulta os identificadores
 - POST `/api/operadores`: `{ nome, setorPrincipalId, funcao? }`; exige setor existente. Retorna 201 e matrícula confirmada; novos operadores são ativos.
 - PATCH `/api/operadores/[id]`: nome, setorPrincipalId e/ou funcao; exige ao menos um campo. Campos omitidos permanecem inalterados. Retorna 200; operador/id inexistente, 404.
 - Matrícula e status enviados pelo cliente são rejeitados, assim como outros campos extras.
-- Nome obrigatório após trim. Função ausente no cadastro, nula ou vazia após trim é `null`; na edição, omitir preserva e enviar nulo/vazio limpa. Sem novos limites de tamanho.
+- Nome obrigatório após trim. Função ausente no cadastro, nula ou vazia após trim é `null`; na edição, omitir preserva e enviar nulo/vazio limpa. Depois do trim, nome e função aceitam até 120 caracteres; acima disso, `ENTRADA_INVALIDA` (400).
 - Setor informado precisa ser UUID válido e existir; nulidade explícita não permite remover o vínculo. Operador antigo sem setor pode editar nome/função sem preenchê-lo, ou ser regularizado ao selecionar um setor.
 - Registro de resposta: `{ id, nome, matricula, ativo, funcao, setorPrincipal, createdAt, updatedAt }`, sendo `setorPrincipal` nulo ou `{ id, codigo, nome }`.
 

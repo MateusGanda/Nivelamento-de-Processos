@@ -1,3 +1,5 @@
+import { excedeLimite, LIMITES_TEXTO } from '../../../shared/validation.ts';
+
 export type Operador = {
   id: string;
   nome: string;
@@ -37,6 +39,7 @@ function validarNome(nome: unknown): string {
   if (typeof nome !== 'string' || !nome.trim()) {
     throw new ErroDeOperador('ENTRADA_INVALIDA', 'Nome é obrigatório.');
   }
+  if (excedeLimite(nome.trim(), LIMITES_TEXTO.nome)) throw new ErroDeOperador('ENTRADA_INVALIDA', `Nome deve ter no máximo ${LIMITES_TEXTO.nome} caracteres.`);
   return nome.trim();
 }
 
@@ -50,6 +53,7 @@ function validarSetor(id: unknown): string {
 function validarFuncao(funcao: unknown): string | null {
   if (funcao === null || funcao === undefined) return null;
   if (typeof funcao !== 'string') throw new ErroDeOperador('ENTRADA_INVALIDA', 'Função deve ser texto ou nula.');
+  if (excedeLimite(funcao.trim(), LIMITES_TEXTO.nome)) throw new ErroDeOperador('ENTRADA_INVALIDA', `Função deve ter no máximo ${LIMITES_TEXTO.nome} caracteres.`);
   return funcao.trim() || null;
 }
 

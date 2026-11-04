@@ -172,6 +172,13 @@ Acesso da ilha (decisão de 25/10/2026):
 - as rotas `/api/ilha/*` exigem o cookie e não aceitam a sessão administrativa como substituta;
 - a chave é gerada e guardada fora do repositório e passada à equipe em particular, nunca em grupo.
 
+Proteções definidas após os testes da etapa 8 (04/11/2026):
+
+- tentativa de login recusada responde só depois de cerca de 0,8 s, como a chave errada da ilha (`modules/access/presentation/login.ts`); bloqueio de conta por número de tentativas não foi adotado;
+- todas as respostas levam `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` e `Referrer-Policy: strict-origin-when-cross-origin`, e o cabeçalho `X-Powered-By` é desligado, em `next.config.ts`;
+- a política de conteúdo (CSP) ainda não foi definida, pois precisa ser testada com os scripts do Next.js;
+- textos dos cadastros têm tamanho máximo depois do trim, validado no domínio e repetido no `maxLength` dos formulários (`LIMITES_TEXTO` em `shared/validation.ts`): nomes e função do operador até 120 caracteres, descrições até 500, códigos e número da ordem até 30 e unidade até 20. Os limites de `Usuario` continuam os do módulo de acesso.
+
 ## 9. Testes automatizados
 
 **Obrigatório:** cada funcionalidade relevante deve ter testes proporcionais ao risco, especialmente para regras matemáticas, transições de execução, persistência, autorização, idempotência e concorrência.

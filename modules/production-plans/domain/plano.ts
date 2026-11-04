@@ -1,3 +1,5 @@
+import { excedeLimite, LIMITES_TEXTO } from '../../../shared/validation.ts';
+
 export type Plano = {
   id: string;
   codigo: string;
@@ -28,12 +30,14 @@ export class ErroDePlano extends Error {
 
 function validarCodigo(valor: unknown): string {
   if (typeof valor !== 'string' || !valor.trim()) throw new ErroDePlano('ENTRADA_INVALIDA', 'Código é obrigatório.');
+  if (excedeLimite(valor.trim(), LIMITES_TEXTO.codigo)) throw new ErroDePlano('ENTRADA_INVALIDA', `Código deve ter no máximo ${LIMITES_TEXTO.codigo} caracteres.`);
   return valor.trim();
 }
 
 function validarDescricao(valor: unknown): string | null {
   if (valor === undefined || valor === null) return null;
   if (typeof valor !== 'string') throw new ErroDePlano('ENTRADA_INVALIDA', 'Descrição deve ser texto ou nula.');
+  if (excedeLimite(valor.trim(), LIMITES_TEXTO.descricao)) throw new ErroDePlano('ENTRADA_INVALIDA', `Descrição deve ter no máximo ${LIMITES_TEXTO.descricao} caracteres.`);
   return valor.trim() || null;
 }
 

@@ -1,3 +1,5 @@
+import { excedeLimite, LIMITES_TEXTO } from '../../../shared/validation.ts';
+
 export type Operacao = {
   id: string;
   nome: string;
@@ -25,12 +27,14 @@ function validarNome(nome: unknown): string {
   if (typeof nome !== 'string' || !nome.trim()) {
     throw new ErroDeOperacao('ENTRADA_INVALIDA', 'Nome é obrigatório.');
   }
+  if (excedeLimite(nome.trim(), LIMITES_TEXTO.nome)) throw new ErroDeOperacao('ENTRADA_INVALIDA', `Nome deve ter no máximo ${LIMITES_TEXTO.nome} caracteres.`);
   return nome.trim();
 }
 
 function validarDescricao(descricao: unknown): string | null {
   if (descricao === undefined || descricao === null) return null;
   if (typeof descricao !== 'string') throw new ErroDeOperacao('ENTRADA_INVALIDA', 'Descrição deve ser texto ou nula.');
+  if (excedeLimite(descricao.trim(), LIMITES_TEXTO.descricao)) throw new ErroDeOperacao('ENTRADA_INVALIDA', `Descrição deve ter no máximo ${LIMITES_TEXTO.descricao} caracteres.`);
   return descricao.trim() || null;
 }
 

@@ -6,6 +6,7 @@ import { AlertCircle, Lock, LoaderCircle, X } from 'lucide-react';
 import type { OpcoesOrdem, Ordem, RoteiroDoProduto } from '../../domain/ordem';
 import { alterarOrdem, cadastrarOrdem, ErroApiOrdens } from '../api-client';
 import { formatarQuantidade, lerQuantidadeDigitada } from '../listing';
+import { LIMITES_TEXTO } from '../../../../shared/validation';
 
 // ordem nula abre o cadastro; uma ordem abre a edição. seq permite reabrir a mesma ordem.
 export type PedidoFormularioOrdem = { ordem: Ordem | null; numeroSugerido: string; seq: number };
@@ -120,7 +121,7 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
         </p>
         <div>
           <label htmlFor="ordem-numero" className="block text-sm font-medium">Número</label>
-          <input id="ordem-numero" name="numero" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={numero} onChange={(event) => setNumero(event.target.value)} disabled={enviando} className={campo} aria-describedby="ordem-numero-ajuda" />
+          <input id="ordem-numero" maxLength={LIMITES_TEXTO.codigo} name="numero" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={numero} onChange={(event) => setNumero(event.target.value)} disabled={enviando} className={campo} aria-describedby="ordem-numero-ajuda" />
           <p id="ordem-numero-ajuda" className="mt-2 text-xs leading-5 text-muted">Único para cada ordem; normalmente o número da ficha.</p>
         </div>
         <div>
@@ -163,7 +164,7 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
           </div>
           <div>
             <label htmlFor="ordem-unidade" className="block text-sm font-medium">Unidade</label>
-            <input id="ordem-unidade" name="unidade" type="text" autoComplete="off" required={!producaoTravada} value={unidade} onChange={(event) => setUnidade(event.target.value)} disabled={enviando || producaoTravada} className={campo} />
+            <input id="ordem-unidade" maxLength={LIMITES_TEXTO.unidade} name="unidade" type="text" autoComplete="off" required={!producaoTravada} value={unidade} onChange={(event) => setUnidade(event.target.value)} disabled={enviando || producaoTravada} className={campo} />
           </div>
         </div>
         {producaoTravada && (

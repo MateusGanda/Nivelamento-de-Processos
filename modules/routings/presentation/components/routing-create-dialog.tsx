@@ -4,6 +4,7 @@ import { useRef, useState, type FormEvent, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, LoaderCircle, X } from 'lucide-react';
 import { cadastrarRoteiro, ErroApiRoteiros } from '../api-client';
+import { LIMITES_TEXTO } from '../../../../shared/validation';
 
 export function RoutingCreateDialog({ dialogRef, botaoRef }: {
   dialogRef: RefObject<HTMLDialogElement | null>;
@@ -66,7 +67,7 @@ export function RoutingCreateDialog({ dialogRef, botaoRef }: {
         <p id="cadastro-roteiro-descricao" className="text-sm leading-6 text-muted">O roteiro é criado na versão 1, ativo e sem etapas. Depois do cadastro, a tela do roteiro abre para você adicionar as etapas.</p>
         <div>
           <label htmlFor="roteiro-nome" className="block text-sm font-medium">Nome</label>
-          <input id="roteiro-nome" name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'cadastro-roteiro-erro' : 'roteiro-nome-ajuda'} />
+          <input id="roteiro-nome" maxLength={LIMITES_TEXTO.nome} name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'cadastro-roteiro-erro' : 'roteiro-nome-ajuda'} />
           <p id="roteiro-nome-ajuda" className="mt-2 text-xs leading-5 text-muted">Para mudar um roteiro existente, abra-o e use Nova versão.</p>
         </div>
         {erro && <p id="cadastro-roteiro-erro" role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, LoaderCircle, X } from 'lucide-react';
 import type { MotivoPausa } from '../../domain/motivoPausa';
 import { alterarMotivoPausa, cadastrarMotivoPausa, ErroApiMotivosPausa } from '../api-client';
+import { LIMITES_TEXTO } from '../../../../shared/validation';
 
 export type PedidoFormularioMotivoPausa = { motivoPausa: MotivoPausa | null; seq: number };
 
@@ -86,12 +87,12 @@ export function PauseReasonFormDialog({ dialogRef, pedido, aoConcluir, aoFechar 
         </p>
         <div>
           <label htmlFor="motivoPausa-nome" className="block text-sm font-medium">Nome</label>
-          <input id="motivoPausa-nome" name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={`${campo} h-12`} aria-describedby={erro ? 'formulario-motivoPausa-erro' : 'motivoPausa-nome-ajuda'} />
+          <input id="motivoPausa-nome" maxLength={LIMITES_TEXTO.nome} name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={`${campo} h-12`} aria-describedby={erro ? 'formulario-motivoPausa-erro' : 'motivoPausa-nome-ajuda'} />
           <p id="motivoPausa-nome-ajuda" className="mt-2 text-xs leading-5 text-muted">Nome único, por exemplo Falta de material ou Manutenção corretiva.</p>
         </div>
         <div>
           <label htmlFor="motivoPausa-descricao" className="block text-sm font-medium">Descrição <span className="font-normal text-muted">(opcional)</span></label>
-          <textarea id="motivoPausa-descricao" name="descricao" rows={3} value={descricao} onChange={(event) => setDescricao(event.target.value)} disabled={enviando} className={`${campo} min-h-24 resize-y py-3`} />
+          <textarea id="motivoPausa-descricao" maxLength={LIMITES_TEXTO.descricao} name="descricao" rows={3} value={descricao} onChange={(event) => setDescricao(event.target.value)} disabled={enviando} className={`${campo} min-h-24 resize-y py-3`} />
         </div>
         {erro && <p id="formulario-motivoPausa-erro" role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
         <div className="flex flex-col-reverse justify-end gap-3 border-t border-white/10 pt-5 sm:flex-row">

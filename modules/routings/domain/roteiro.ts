@@ -1,3 +1,5 @@
+import { excedeLimite, LIMITES_TEXTO } from '../../../shared/validation.ts';
+
 export type OperacaoDoRoteiro = { id: string; nome: string };
 export type PostoDaEtapa = { id: string; codigo: string; nome: string; ativo: boolean; setorNome: string };
 
@@ -69,6 +71,7 @@ export function ehIdentificadorValido(id: unknown): id is string {
 
 export function validarNomeRoteiro(nome: unknown): string {
   if (typeof nome !== 'string' || !nome.trim()) throw new ErroDeRoteiro('ENTRADA_INVALIDA', 'Nome é obrigatório.');
+  if (excedeLimite(nome.trim(), LIMITES_TEXTO.nome)) throw new ErroDeRoteiro('ENTRADA_INVALIDA', `Nome deve ter no máximo ${LIMITES_TEXTO.nome} caracteres.`);
   return nome.trim();
 }
 
