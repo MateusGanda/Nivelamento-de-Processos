@@ -139,7 +139,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - QR Code ou código funcional identifica o operador para associar apontamentos; não autentica o usuário nem concede privilégios. A digitação manual deve permanecer como alternativa ao leitor físico.
 - O terminal é autorizado pela chave da ilha (decisão de 25/10/2026): informada uma vez, libera o terminal por um cookie derivado da chave. Não há tabela de terminais nem papel novo; a ilha não usa a sessão administrativa.
 - A matrícula age somente sobre as execuções do próprio operador.
-- A identificação na tela é limpa pelo botão Sair. A limpeza por inatividade ainda não tem regra definida e, se adotada, não deve, por si só, pausar nem finalizar uma execução persistida.
+- A identificação na tela é limpa pelo botão Sair, 10 s depois de um registro (com contagem na tela) e após 30 s sem uso (decisão de 05/11/2026). A limpeza só muda a tela: não pausa nem finaliza uma execução persistida.
 
 ## Roteiro e dependências
 

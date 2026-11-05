@@ -1,6 +1,6 @@
 # Pendências e fundamentos do modelo de dados
 
-Atualizado em 26/10/2026. Responsável: Mateus.
+Atualizado em 05/11/2026. Responsável: Mateus.
 
 O modelo de dados está em `src/prisma/contract.prisma` e as regras consolidadas em `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md` e `docs/CONTEXTO_DO_PROJETO.md`; este documento não os repete. Ele guarda duas coisas que não estão em outro lugar do repositório: as respostas da empresa que fundamentaram o modelo e a lista de decisões ainda abertas. O script `docs/sql/schema.sql` mostra o banco que resulta das migrations.
 
@@ -17,7 +17,7 @@ As recomendações da seção "Decisões em aberto" são sugestões para a equip
 
 ## Decisões em aberto
 
-A numeração antiga foi mantida para não quebrar referências; os itens 1, 2, 4 e 6 foram resolvidos e estão em "Resolvido na implementação".
+A numeração antiga foi mantida para não quebrar referências; os itens 1, 2, 4 e 6 foram resolvidos e estão em "Resolvido na implementação", e o item 9 foi decidido e está em "Decidido".
 
 | # | Pendência | Por que importa | Recomendação | Quem decide |
 | --- | --- | --- | --- | --- |
@@ -25,7 +25,6 @@ A numeração antiga foi mantida para não quebrar referências; os itens 1, 2, 
 | 5 | **Correção de apontamento.** Não há histórico de correção. | Uma baixa errada precisa ser corrigida sem perder o registro original. | Definir antes do piloto. | Equipe |
 | 7 | **Categoria do motivo de pausa.** `MotivoPausa` só tem nome e descrição. | O painel não separa pausa prevista de interrupção. | Avaliar um campo de categoria. | Equipe |
 | 8 | **Linha de produção.** O setor é o nível mais alto. | Com mais de uma linha, falta um agrupador. | Deixar para depois do piloto. | Equipe |
-| 9 | **Limpeza da identificação na ilha por inatividade.** Hoje a identificação do operador só é limpa pelo botão Sair. | Outra pessoa pode usar a tela com a identificação anterior. A limpeza não pode pausar nem finalizar a execução. | Definir o tempo e o que a tela faz ao limpar; não alterar o banco. | Equipe |
 | 10 | **Inativação de operador ao mesmo tempo que um início na ilha.** A regra "operador com execução aberta não pode ser inativado" é conferida antes da gravação, como as demais regras de cadastro. | Em um pedido exatamente simultâneo, o operador pode ficar inativo com uma execução aberta. Para corrigir, basta reativá-lo, encerrar a execução e inativá-lo de novo. | Avaliar na etapa de testes (10/11) travar o registro do operador nas duas transações. | Equipe |
 | 11 | **Exclusão de ordem sem execuções.** A ordem não pode ser excluída. | Uma ordem criada por engano fica na lista e no plano. | Decidir se a exclusão é permitida enquanto a ordem não tem execuções. | Equipe |
 
@@ -38,6 +37,7 @@ A numeração antiga foi mantida para não quebrar referências; os itens 1, 2, 
 - **Acesso da ilha pela chave do terminal (25/10):** sem tabela de terminais nem papel novo; detalhes no `docs/technology/TECHNOLOGY.md`. Um usuário por terminal pode ser reavaliado se a empresa precisar controlar ou auditar terminal por terminal.
 - **Motivos de pausa sem número no nome (26/10):** o motivo é identificado só pelo nome; a lista proposta está em `docs/MOTIVOS_DE_PAUSA.md`.
 - **Operador com execução aberta não pode ser inativado (26/10):** a ilha recusa operador inativo, e a execução não poderia mais ser encerrada.
+- **Saída automática da ilha (05/11, item 9):** depois de iniciar, pausar, retomar, trocar ou dar baixa, a tela mostra a confirmação com contagem de 10 s e volta para a leitura do crachá; sem toque, clique, tecla ou leitura por 30 s, a identificação também é limpa. A limpeza só muda a tela: a execução continua como está, sem pausa nem finalização, e o banco não muda. Detalhes em `docs/design/ILHA_GUNP.md`.
 
 ## Resolvido na implementação
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, CheckCircle2, LoaderCircle, Lock, LogOut, Pause, Play, RefreshCw, Repeat, ScanLine, Square, Timer } from 'lucide-react';
 import { BrandGunp } from '../../../access/presentation/components/brand-gunp';
@@ -11,6 +11,7 @@ import {
 import { formatarDuracao, lerQuantidade, tempoDecorrido } from '../tempo-decorrido';
 import { criarControleRequisicoesIlha } from '../requisicoes-ilha';
 import { consultarSituacaoOperador, exigeAtualizacaoSituacao, type IdentificacaoEsperada } from '../recuperacao-ilha';
+import { avaliarLimpeza, CONFIRMACAO_MS } from '../limpeza-ilha';
 import { IlhaDestino } from './ilha-destino';
 import { IlhaPausa } from './ilha-pausa';
 
@@ -51,7 +52,23 @@ export function IlhaScreen() {
   const [erro, setErro] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [baixa, setBaixa] = useState({ boa: '', retrabalho: '', refugo: '' });
+  // Saída automática: instante da última interação, instante do último registro concluído,
+  // segundos que faltam na contagem exibida e aviso de limpeza por falta de uso.
+  const ultimaInteracao = useRef(0);
+  const [confirmacaoDesde, setConfirmacaoDesde] = useState<number | null>(null);
+  const [contagem, setContagem] = useState<number | null>(null);
+  const [avisoInatividade, setAvisoInatividade] = useState(false);
   const podeIdentificar = !ocupado && modo === null && bloqueio === null;
+  const temIdentificacao = operador !== null || matricula.trim() !== '';
+
+  // Toque, clique, tecla e a digitação do leitor de QR contam como uso da tela.
+  useEffect(() => {
+    const marcar = () => { ultimaInteracao.current = Date.now(); };
+    marcar();
+    const eventos = ['pointerdown', 'keydown', 'input'] as const;
+    for (const evento of eventos) window.addEventListener(evento, marcar, true);
+    return () => { for (const evento of eventos) window.removeEventListener(evento, marcar, true); };
+  }, []);
 
   // Cada formulário cuida de seu campo. A matrícula não recebe o foco da leitura da ordem.
   useEffect(() => {
@@ -84,7 +101,10 @@ export function IlhaScreen() {
         setOcupado(true);
         setErro('');
         setMensagem('');
+        setConfirmacaoDesde(null);
+        setContagem(null);
         if (identificando) {
+          setAvisoInatividade(false);
           recuperacaoPendente.current = false;
           setRecuperacao(null);
           setMatricula('');
@@ -97,8 +117,15 @@ export function IlhaScreen() {
         setOperador(resultado);
         setMensagem(sucesso);
         setModo(identificando && !resultado.execucaoAberta ? 'iniciar' : null);
+        // Registro concluído: a confirmação fica na tela com a contagem. A identificação não conta.
+        const agora = Date.now();
+        ultimaInteracao.current = agora;
+        setConfirmacaoDesde(identificando ? null : agora);
+        setContagem(identificando ? null : CONFIRMACAO_MS / 1000);
       },
       falhar: (falha) => {
+        // O erro precisa ficar visível: a espera pela resposta não conta como falta de uso.
+        ultimaInteracao.current = Date.now();
         if (!identificando && operador && exigeAtualizacaoSituacao(falha)) {
           recuperacaoPendente.current = true;
           setRecuperacao({
@@ -131,8 +158,10 @@ export function IlhaScreen() {
         setModo(null);
         setBaixa({ boa: '', retrabalho: '', refugo: '' });
         setMensagem('Situação atualizada. Confira a execução antes de continuar.');
+        ultimaInteracao.current = Date.now();
       },
       falhar: (falha) => {
+        ultimaInteracao.current = Date.now();
         setRecuperacao((atual) => atual ? { ...atual, erroConsulta: falha instanceof ErroApiIlha ? falha.message : 'Não foi possível consultar a situação. Verifique a conexão e tente novamente.' } : null);
         if (falha instanceof ErroApiIlha && (falha.status === 401 || falha.status === 503)) tratarFalha(falha);
       },
@@ -159,7 +188,31 @@ export function IlhaScreen() {
     setMensagem('');
     setBaixa({ boa: '', retrabalho: '', refugo: '' });
     setOcupado(false);
+    setConfirmacaoDesde(null);
+    setContagem(null);
   }
+
+  // Confere a saída automática a cada tique. Limpar não envia nada ao servidor: a execução continua.
+  const verificarLimpeza = useEffectEvent(() => {
+    const decisao = avaliarLimpeza({
+      temIdentificacao, ocupado: ocupado || requisicoes.emAndamento(), bloqueando: bloqueio !== null || bloqueioSolicitado.current,
+      ultimaInteracaoMs: ultimaInteracao.current, confirmacaoDesdeMs: confirmacaoDesde,
+    }, Date.now());
+    if (decisao.tipo === 'limpar') {
+      const haviaOperador = operador !== null;
+      limparIdentificacao();
+      setAvisoInatividade(decisao.motivo === 'inatividade' && haviaOperador);
+      campoRef.current?.focus();
+      return;
+    }
+    setContagem(decisao.tipo === 'contagem' ? decisao.segundosRestantes : null);
+  });
+
+  useEffect(() => {
+    if (!temIdentificacao || bloqueio !== null) return;
+    const id = setInterval(() => verificarLimpeza(), 250);
+    return () => clearInterval(id);
+  }, [temIdentificacao, bloqueio]);
 
   function sair() {
     if (requisicoes.emAndamento() || bloqueioSolicitado.current) return;
@@ -216,6 +269,14 @@ export function IlhaScreen() {
 
         {erro && <p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/30 bg-[#f49a8a]/10 p-4 text-base leading-7 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{erro}</p>}
         {mensagem && <p role="status" className="flex items-start gap-2 rounded-lg border border-[#7bcba5]/30 bg-[#7bcba5]/10 p-4 text-base leading-7 text-[#a6dfbf]"><CheckCircle2 aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{mensagem}</p>}
+        {contagem !== null && operador && (
+          <div className="flex flex-col gap-3 rounded-lg border border-[#2b353e] bg-[#192128]/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-base leading-7 text-muted"><span aria-hidden="true">Voltando ao início em {contagem} s</span></p>
+            <p role="status" className="sr-only">A tela volta ao início em {CONFIRMACAO_MS / 1000} segundos.</p>
+            <button type="button" onClick={sair} disabled={ocupado} className={botaoSecundario}><LogOut aria-hidden="true" size={18} strokeWidth={2} />Sair agora</button>
+          </div>
+        )}
+        {avisoInatividade && !operador && <p role="status" className="flex items-start gap-2 rounded-lg border border-[#3b454e] bg-[#192128]/70 p-4 text-base leading-7 text-muted"><Timer aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />Identificação encerrada por falta de uso.</p>}
         {ocupado && !operador && <p role="status" className="flex items-center gap-3 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Consultando…</p>}
         {ocupado && operador && !recuperacao && <p role="status" className="flex items-center gap-3 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Registrando ação. Aguarde antes de trocar o operador.</p>}
 
