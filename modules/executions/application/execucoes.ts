@@ -1,6 +1,6 @@
 import {
   ehIdentificadorValido, ErroDeExecucao, exigirStatus, MENSAGEM_ESTADO_MUDOU, validarBaixa, validarDestino, validarMatricula,
-  type Baixa, type Destino, type OperadorDaIlha, type OrdemDisponivel,
+  type Baixa, type Destino, type ExecucaoAcompanhada, type OperadorDaIlha, type OrdemDisponivel,
 } from '../domain/execucao.ts';
 import type { ExecucaoEncontrada, ExecucaoRepository, OperadorEncontrado } from './contracts.ts';
 
@@ -30,6 +30,14 @@ export class ExecucoesService {
 
   async listarMotivos(): Promise<{ id: string; nome: string }[]> {
     return this.execucoes.listarMotivosAtivos();
+  }
+
+  // Acompanhamento no painel: só leitura. A execução aberta há mais tempo vem primeiro,
+  // para uma execução esquecida aparecer no topo.
+  async listarAbertas(): Promise<ExecucaoAcompanhada[]> {
+    const inicio = (execucao: ExecucaoAcompanhada) => Date.parse(execucao.eventos.find((evento) => evento.tipo === 'INICIO')?.dataHora ?? '');
+    const chave = (execucao: ExecucaoAcompanhada) => { const ms = inicio(execucao); return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY; };
+    return (await this.execucoes.listarExecucoesAbertas()).sort((a, b) => chave(a) - chave(b) || a.id.localeCompare(b.id));
   }
 
   async iniciar(matricula: unknown, destinoInformado: Partial<Record<keyof Destino, unknown>>): Promise<OperadorDaIlha> {

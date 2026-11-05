@@ -25,6 +25,7 @@ Este documento organiza o desenvolvimento do GUNP em etapas executáveis, com de
 - [x] Baixa com boa/retrabalho/refugo
 - [x] Cálculo de tempos
 - [x] Indicadores
+- [x] Acompanhamento das execuções abertas no painel (05/11/2026, `specs/contratos/execucoes-acompanhamento.md`)
 - [ ] Dashboard
 - [x] Seed/dados demonstrativos
 - [x] Testes das regras críticas

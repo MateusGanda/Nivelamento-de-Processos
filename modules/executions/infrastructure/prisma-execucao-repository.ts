@@ -1,7 +1,7 @@
 import type { Numeric } from '@prisma/orm-postgres/target/codec-types';
 import { db } from '../../../src/prisma/db.ts';
 import type { ExecucaoEncontrada, ExecucaoRepository, OperadorEncontrado, SituacaoDestino } from '../application/contracts.ts';
-import type { Baixa, Destino, ExecucaoAberta, OrdemDisponivel, StatusExecucao } from '../domain/execucao.ts';
+import type { Baixa, Destino, ExecucaoAberta, ExecucaoAcompanhada, OrdemDisponivel, StatusExecucao, TipoEvento } from '../domain/execucao.ts';
 import { traduzirErroGravacaoExecucao } from './persistence-errors.ts';
 
 type Transacao = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -47,6 +47,40 @@ async function abrirExecucao(t: Tabelas, operadorId: string, destino: Destino, a
   return execucao.id;
 }
 
+// Execução aberta como a consulta devolve, com as relações incluídas. Usada pela ilha e pelo acompanhamento.
+type LinhaAberta = {
+  id: string;
+  status: Exclude<StatusExecucao, 'FINALIZADA'>;
+  ordemProducao: { id: string; numero: string; quantidade: string; unidade: string; produto: { codigo: string; nome: string } | null } | null;
+  etapaRoteiro: { id: string; ordem: number; operacao: { nome: string } | null } | null;
+  posto: { id: string; codigo: string; nome: string } | null;
+  eventosTempo: { tipo: TipoEvento; dataHora: string; motivoPausaId: string | null }[];
+};
+
+// Nomes dos motivos de pausa citados nos eventos, numa única consulta.
+async function nomesDosMotivos(execucoes: readonly { eventosTempo: { motivoPausaId: string | null }[] }[]): Promise<Map<string, string>> {
+  const ids = [...new Set(execucoes.flatMap((execucao) => execucao.eventosTempo.flatMap((evento) => evento.motivoPausaId ? [evento.motivoPausaId] : [])))];
+  const motivos = ids.length === 0 ? [] : await db.orm.public.MotivoPausa.where((motivo) => motivo.id.in(ids)).select('id', 'nome').all();
+  return new Map(motivos.map((motivo) => [motivo.id, motivo.nome]));
+}
+
+function paraExecucaoAberta(execucao: LinhaAberta, nomeMotivo: Map<string, string>): ExecucaoAberta {
+  const ordem = relacionado(execucao.ordemProducao, 'ordem da execução');
+  const etapa = relacionado(execucao.etapaRoteiro, 'etapa da execução');
+  const produto = relacionado(ordem.produto, 'produto da ordem');
+  const posto = relacionado(execucao.posto, 'posto da execução');
+  return {
+    id: execucao.id, status: execucao.status,
+    ordem: { id: ordem.id, numero: ordem.numero, quantidade: decimal(ordem.quantidade), unidade: ordem.unidade },
+    produto: { codigo: produto.codigo, nome: produto.nome },
+    etapa: { id: etapa.id, ordem: etapa.ordem, operacao: relacionado(etapa.operacao, 'operação da etapa').nome },
+    posto: { id: posto.id, codigo: posto.codigo, nome: posto.nome },
+    eventos: execucao.eventosTempo.map((evento) => ({
+      tipo: evento.tipo, dataHora: evento.dataHora, motivo: evento.motivoPausaId ? nomeMotivo.get(evento.motivoPausaId) ?? null : null,
+    })),
+  };
+}
+
 export class PrismaExecucaoRepository implements ExecucaoRepository {
   async buscarOperador(matricula: string): Promise<OperadorEncontrado | null> {
     const operador = await db.orm.public.Operador.where({ matricula })
@@ -67,21 +101,30 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
       .include('eventosTempo', (eventos) => eventos.select('tipo', 'dataHora', 'motivoPausaId').orderBy((evento) => evento.dataHora.asc()))
       .first();
     if (!execucao || execucao.status === 'FINALIZADA') return null;
-    const idsMotivos = [...new Set(execucao.eventosTempo.flatMap((evento) => evento.motivoPausaId ? [evento.motivoPausaId] : []))];
-    const motivos = idsMotivos.length === 0 ? [] : await db.orm.public.MotivoPausa.where((motivo) => motivo.id.in(idsMotivos)).select('id', 'nome').all();
-    const nomeMotivo = new Map(motivos.map((motivo) => [motivo.id, motivo.nome]));
-    const ordem = relacionado(execucao.ordemProducao, 'ordem da execução');
-    const etapa = relacionado(execucao.etapaRoteiro, 'etapa da execução');
-    return {
-      id: execucao.id, status: execucao.status,
-      ordem: { id: ordem.id, numero: ordem.numero, quantidade: decimal(ordem.quantidade), unidade: ordem.unidade },
-      produto: relacionado(ordem.produto, 'produto da ordem'),
-      etapa: { id: etapa.id, ordem: etapa.ordem, operacao: relacionado(etapa.operacao, 'operação da etapa').nome },
-      posto: relacionado(execucao.posto, 'posto da execução'),
-      eventos: execucao.eventosTempo.map((evento) => ({
-        tipo: evento.tipo, dataHora: evento.dataHora, motivo: evento.motivoPausaId ? nomeMotivo.get(evento.motivoPausaId) ?? null : null,
-      })),
-    };
+    return paraExecucaoAberta({ ...execucao, status: execucao.status }, await nomesDosMotivos([execucao]));
+  }
+
+  async listarExecucoesAbertas(): Promise<ExecucaoAcompanhada[]> {
+    const execucoes = await db.orm.public.Execucao
+      .where((e) => e.status.neq('FINALIZADA'))
+      .select('id', 'status', 'ordemProducaoId', 'etapaRoteiroId', 'postoId', 'operadorId')
+      .include('ordemProducao', (ordem) => ordem.select('id', 'numero', 'quantidade', 'unidade', 'produtoId').include('produto', (produto) => produto.select('codigo', 'nome')))
+      .include('etapaRoteiro', (etapa) => etapa.select('id', 'ordem', 'operacaoId').include('operacao', (operacao) => operacao.select('nome')))
+      .include('posto', (posto) => posto.select('id', 'codigo', 'nome', 'setorId').include('setor', (setor) => setor.select('nome')))
+      .include('operador', (operador) => operador.select('matricula', 'nome'))
+      .include('eventosTempo', (eventos) => eventos.select('tipo', 'dataHora', 'motivoPausaId').orderBy((evento) => evento.dataHora.asc()))
+      .all();
+    const nomeMotivo = await nomesDosMotivos(execucoes);
+    return execucoes.flatMap((execucao) => {
+      if (execucao.status === 'FINALIZADA') return [];
+      const posto = relacionado(execucao.posto, 'posto da execução');
+      const operador = relacionado(execucao.operador, 'operador da execução');
+      return [{
+        ...paraExecucaoAberta({ ...execucao, status: execucao.status, posto: { id: posto.id, codigo: posto.codigo, nome: posto.nome } }, nomeMotivo),
+        operador: { matricula: operador.matricula, nome: operador.nome },
+        setor: relacionado(posto.setor, 'setor do posto').nome,
+      }];
+    });
   }
 
   async buscarExecucao(id: string): Promise<ExecucaoEncontrada | null> {
