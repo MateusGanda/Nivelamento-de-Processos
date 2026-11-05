@@ -5,7 +5,7 @@ import { ExecucaoPainel } from '@/modules/executions/presentation/components/exe
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Execução' };
+export const metadata: Metadata = { title: 'Execuções' };
 
 export default async function ExecucaoPage() {
   if (!await obterAdminParaPagina()) redirect('/login');

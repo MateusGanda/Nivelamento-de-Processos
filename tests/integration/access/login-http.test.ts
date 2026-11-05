@@ -18,7 +18,7 @@ const modulosEsperados = [
   ['produtos', 'Produtos'], ['operacoes', 'Operações'], ['setores', 'Setores'],
   ['postos', 'Postos'], ['operadores', 'Operadores'], ['motivos-de-pausa', 'Motivos de Pausa'],
   ['roteiros', 'Roteiros'], ['planos-de-producao', 'Planos de Produção'],
-  ['ordens-de-producao', 'Ordens de Produção'], ['execucoes', 'Execução'], ['indicadores', 'Indicadores'],
+  ['ordens-de-producao', 'Ordens de Produção'], ['execucoes', 'Execuções'], ['indicadores', 'Indicadores'],
 ] as const;
 
 function guardarCookies(resposta: Response, cookies: Map<string, string>) {
@@ -81,6 +81,7 @@ test('HTTP: sem sessão, raiz e painel redirecionam e API nega acesso', { skip: 
   assert.equal((await fetch(url(`/api/operadores/${randomUUID()}`), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
   assert.equal((await fetch(url('/api/setores'))).status, 401);
   assert.equal((await fetch(url('/api/setores'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
+  assert.equal((await fetch(url('/api/execucoes'))).status, 401);
   for (const [caminho, method] of [['/api/operacoes', 'GET'], ['/api/operacoes', 'POST'], [`/api/operacoes/${randomUUID()}`, 'PATCH']]) {
     assert.equal((await fetch(url(caminho), { method, ...(method === 'GET' ? {} : { headers: { 'Content-Type': 'application/json' }, body: '{}' }) })).status, 401);
   }
@@ -97,6 +98,7 @@ test('HTTP: cookie inválido não permite entrar no painel ou na API', { skip: !
   assert.equal((await fetch(url('/api/operadores'), { headers })).status, 401);
   assert.equal((await fetch(url('/api/setores'), { headers })).status, 401);
   assert.equal((await fetch(url('/api/operacoes'), { headers })).status, 401);
+  assert.equal((await fetch(url('/api/execucoes'), { headers })).status, 401);
 });
 
 test('HTTP: login inválido rejeita credenciais e não cria sessão', { skip: !base }, async () => {

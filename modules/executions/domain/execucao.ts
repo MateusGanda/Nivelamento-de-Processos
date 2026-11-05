@@ -14,6 +14,9 @@ export type ExecucaoAberta = {
   eventos: EventoDaExecucao[];
 };
 
+// Execução aberta vista pelo administrador no acompanhamento: inclui quem executa e o setor do posto.
+export type ExecucaoAcompanhada = ExecucaoAberta & { operador: { matricula: string; nome: string }; setor: string };
+
 export type OperadorDaIlha = {
   id: string;
   matricula: string;

@@ -1,4 +1,4 @@
-import type { Baixa, Destino, ExecucaoAberta, OrdemDisponivel, StatusExecucao } from '../domain/execucao.ts';
+import type { Baixa, Destino, ExecucaoAberta, ExecucaoAcompanhada, OrdemDisponivel, StatusExecucao } from '../domain/execucao.ts';
 
 export type OperadorEncontrado = { id: string; matricula: string; nome: string; ativo: boolean; setor: string | null };
 export type ExecucaoEncontrada = { id: string; operadorId: string; status: StatusExecucao; quantidadeOrdem: number };
@@ -14,6 +14,8 @@ export type SituacaoDestino = {
 export interface ExecucaoRepository {
   buscarOperador(matricula: string): Promise<OperadorEncontrado | null>;
   buscarExecucaoAberta(operadorId: string): Promise<ExecucaoAberta | null>;
+  /** Todas as execuções em execução ou pausadas, para o acompanhamento no painel. Somente leitura. */
+  listarExecucoesAbertas(): Promise<ExecucaoAcompanhada[]>;
   buscarExecucao(id: string): Promise<ExecucaoEncontrada | null>;
   listarOrdensDisponiveis(): Promise<OrdemDisponivel[]>;
   listarMotivosAtivos(): Promise<{ id: string; nome: string }[]>;

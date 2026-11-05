@@ -38,6 +38,13 @@ class RepositorioEmMemoria implements ExecucaoRepository {
       posto: { id: e.destino.postoId, codigo: 'P', nome: 'Posto' }, eventos: e.eventos.map((ev) => ({ tipo: ev.tipo, dataHora: ev.dataHora, motivo: ev.motivoId ? 'Falta de material' : null })),
     };
   }
+  async listarExecucoesAbertas() {
+    const abertas = this.execucoes.filter((e) => e.status !== 'FINALIZADA');
+    return Promise.all(abertas.map(async (e) => {
+      const operador = [ANA, BIA, CAIO].find((o) => o.id === e.operadorId)!;
+      return { ...(await this.buscarExecucaoAberta(e.operadorId))!, operador: { matricula: operador.matricula, nome: operador.nome }, setor: 'Montagem' };
+    }));
+  }
   async buscarExecucao(id: string) { const e = this.execucoes.find((item) => item.id === id); return e ? { id: e.id, operadorId: e.operadorId, status: e.status, quantidadeOrdem: 40 } : null; }
   async listarOrdensDisponiveis() { return []; }
   async listarMotivosAtivos() { return [{ id: MOTIVO, nome: 'Falta de material' }]; }
