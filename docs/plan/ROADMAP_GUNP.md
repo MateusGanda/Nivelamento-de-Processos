@@ -406,14 +406,14 @@ Exibir operador, ordem, produto, etapa, operação, posto, tempo decorrido, stat
 
 Implementar estados de loading, vazio, execução ativa, pausada, erro e sucesso.
 
-Implementada em `/ilha` (pull requests 54 e 55). O terminal é liberado pela chave da ilha; o operador é identificado pela matrícula, digitada ou lida. Pendentes: limpar a identificação por inatividade (precisa de regra da equipe), link da ilha a partir do painel e teste do fluxo no site depois de cadastrar os motivos de pausa.
+Implementada em `/ilha` (pull requests 54 e 55). O terminal é liberado pela chave da ilha; o operador é identificado pela matrícula, digitada ou lida. A saída automática da tela (10 s depois de um registro e 30 s sem uso) foi definida e implementada em 05/11/2026. Pendentes: link da ilha a partir do painel e teste do fluxo no site depois de cadastrar os motivos de pausa.
 
 - [x] Identificação por matrícula
 - [x] Escolha de ordem, etapa e posto
 - [x] Iniciar, pausar com motivo, retomar, trocar e dar baixa
 - [x] Tempo produtivo e de pausa na tela
 - [x] Estados de carregamento, vazio, execução ativa, pausada, erro e sucesso
-- [ ] Limpeza da identificação por inatividade
+- [x] Limpeza da identificação por inatividade (05/11/2026: 10 s depois do registro e 30 s sem uso)
 
 Revisão da tela — primeira parte em 01/11/2026, detalhada em [ILHA_GUNP.md](../design/ILHA_GUNP.md):
 

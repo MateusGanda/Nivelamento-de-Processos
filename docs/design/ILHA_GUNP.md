@@ -53,6 +53,19 @@ Esta etapa altera Presentation, testes e documentação. Sem novos endpoints, de
 
 **Limite:** a consulta é uma fotografia da situação atual, não um comprovante de execução do pedido anterior. Se o servidor ainda estiver processando uma gravação cuja conexão se perdeu, o estado poderá mudar depois da consulta. Esta recuperação não substitui o contrato de idempotência persistida nem as garantias de concorrência do servidor.
 
+## Saída automática — 05/11/2026
+
+Decisão da equipe em 05/11/2026 (item 9 de `specs/PENDENCIAS_MODELO.md`), para a ilha funcionar como terminal compartilhado: o operador registra e a tela volta sozinha para a leitura do crachá.
+
+- Depois de iniciar, pausar, retomar, trocar ou dar baixa, a confirmação fica na tela com "Voltando ao início em 10 s" e o botão **Sair agora**. No fim da contagem a tela volta para a leitura do crachá, com o foco na matrícula.
+- Tocar, clicar ou digitar durante a contagem a cancela, e passa a valer a regra de inatividade. Ler outro crachá troca o operador na hora, como antes.
+- Sem toque, clique, tecla ou leitura do leitor por 30 s, a identificação é limpa, inclusive com um formulário aberto (o rascunho é descartado) ou com uma matrícula digitada pela metade. Quando havia operador, a tela mostra "Identificação encerrada por falta de uso.", sem o nome.
+- A identificação e a "Situação atualizada" da recuperação não iniciam a contagem de 10 s. Nada é limpo durante uma gravação ou o bloqueio do terminal.
+- A limpeza usa a mesma rotina do botão Sair: não envia pedido ao servidor e não pausa nem finaliza a execução.
+- Os tempos ficam em `limpeza-ilha.ts` (`CONFIRMACAO_MS` e `INATIVIDADE_MS`). A decisão usa o relógio, e não a soma de intervalos, para continuar certa quando o navegador atrasa os timers de uma aba em segundo plano.
+
+Verificação de 05/11/2026: 9 testes unitários da regra e, no navegador, com o sistema compilado e um banco de teste local, 23 de 23 conferências: volta em 10,0 s depois do registro; limpeza entre 29,6 s e 30,1 s sem uso, inclusive com a pausa aberta; execução sem evento novo depois da limpeza; digitação a cada 20 s sem limpeza; outro crachá durante a contagem em 0,4 s; Sair agora; 375 px sem rolagem lateral. Sem mudança de API, banco ou dependência.
+
 ## Arquivos principais
 
 - [Escolha do destino](../../modules/executions/presentation/components/ilha-destino.tsx).
@@ -66,6 +79,8 @@ Esta etapa altera Presentation, testes e documentação. Sem novos endpoints, de
 - [Testes da seleção por ordem e etapa](../../tests/unit/executions/disponibilidade-etapa.test.ts).
 - [Consulta para recuperação](../../modules/executions/presentation/recuperacao-ilha.ts).
 - [Testes da recuperação](../../tests/unit/executions/recuperacao-ilha.test.ts).
+- [Saída automática](../../modules/executions/presentation/limpeza-ilha.ts).
+- [Testes da saída automática](../../tests/unit/executions/limpeza-ilha.test.ts).
 
 ## Verificação e limites
 
@@ -122,4 +137,4 @@ Atualização de 03/11/2026: a leitura do crachá e a decodificação do QR da o
 
 Em 02/11/2026 foi aprovada a [identificação por QR Code](../../specs/contratos/identificacao-operadores-qrcode.md), em três entregas: crachá individual, impressão em lote e integração do Vinik 2DYN. A primeira acrescenta emissão de crachá de ativos no painel de operadores, com matrícula exata no QR, sem alterar a tela da ilha. O leitor será usado somente na área de identificação; Enter consultará a situação, sem apontamento automático. Aceite visual/impressão do crachá e validação física continuam pendentes, conforme o contrato.
 
-As três correções planejadas da interface estão implementadas: proteção da identificação, troca por ordem + etapa e recuperação da situação após falha de gravação. Continua pendente a validação visual e integrada dos ajustes. Idempotência persistida, concorrência com inativação e limpeza por inatividade exigem seus contratos próprios. Os novos detalhes da ilha serão definidos após os ajustes necessários, conforme orientação do usuário em 02/11/2026.
+As três correções planejadas da interface estão implementadas: proteção da identificação, troca por ordem + etapa e recuperação da situação após falha de gravação. Continua pendente a validação visual e integrada dos ajustes. Idempotência persistida e concorrência com inativação exigem seus contratos próprios; a limpeza por inatividade foi definida em 05/11/2026 (seção "Saída automática"). Os novos detalhes da ilha serão definidos após os ajustes necessários, conforme orientação do usuário em 02/11/2026.
