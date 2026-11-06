@@ -2,21 +2,28 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, LoaderCircle, Pause, RefreshCw, Timer } from 'lucide-react';
+import { AlertCircle, AlertTriangle, LoaderCircle, Pause, RefreshCw, Timer } from 'lucide-react';
 import type { ExecucaoAcompanhada } from '../../domain/execucao';
 import {
-  agoraDoServidor, consultarExecucoesAbertas, ErroApiAcompanhamento, filtrarExecucoes, formatarHoraCompleta, formatarHorario,
+  agoraDoServidor, atencoesDaExecucao, consultarExecucoesAbertas, ErroApiAcompanhamento, filtrarExecucoes, formatarHoraCompleta, formatarHorario,
   inicioDaExecucao, INTERVALO_ATUALIZACAO_MS, pausaAtual, setoresDasExecucoes, temposAteAgora,
-  type FiltroSituacao, type RespostaAcompanhamento,
+  type Atencao, type FiltroSituacao, type RespostaAcompanhamento,
 } from '../acompanhamento';
 import { formatarDuracao } from '../tempo-decorrido';
 
 const botaoSecundario = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
 const SITUACOES: { valor: FiltroSituacao; rotulo: string }[] = [
   { valor: 'todas', rotulo: 'Todas' }, { valor: 'EM_EXECUCAO', rotulo: 'Em execução' }, { valor: 'PAUSADA', rotulo: 'Pausadas' },
+  { valor: 'ATENCAO', rotulo: 'Com atenção' },
 ];
 
-function Situacao({ execucao, referencia }: { execucao: ExecucaoAcompanhada; referencia: string }) {
+function textoAtencao(atencao: Atencao, referencia: string): string {
+  return atencao.tipo === 'ACIMA_DO_PREVISTO'
+    ? `Acima do previsto (${formatarDuracao(atencao.previstoSegundos)})`
+    : `Iniciada em outro dia (${formatarHorario(atencao.inicio, referencia)})`;
+}
+
+function Situacao({ execucao, referencia, atencoes }: { execucao: ExecucaoAcompanhada; referencia: string; atencoes: Atencao[] }) {
   const pausa = pausaAtual(execucao);
   return (
     <div className="space-y-1">
@@ -25,6 +32,15 @@ function Situacao({ execucao, referencia }: { execucao: ExecucaoAcompanhada; ref
         {pausa ? 'Pausada' : 'Em execução'}
       </span>
       {pausa && <p className="text-xs leading-5 text-muted">{pausa.motivo ?? 'Motivo não informado'} · desde {formatarHorario(pausa.desde, referencia)}</p>}
+      {atencoes.length > 0 && (
+        <ul aria-label="Atenção" className="space-y-1">
+          {atencoes.map((atencao) => (
+            <li key={atencao.tipo} className="flex items-start gap-1.5 text-xs font-medium leading-5 text-[#ffcf99]">
+              <AlertTriangle aria-hidden="true" size={14} strokeWidth={2} className="mt-0.5 shrink-0" />{textoAtencao(atencao, referencia)}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -83,9 +99,12 @@ export function ExecucoesAcompanhamento() {
   const execucoes = useMemo(() => dados?.execucoes ?? [], [dados]);
   const setores = useMemo(() => setoresDasExecucoes(execucoes), [execucoes]);
   const setorValido = setor !== null && setores.includes(setor) ? setor : null;
-  const visiveis = useMemo(() => filtrarExecucoes(execucoes, { setor: setorValido, situacao }), [execucoes, setorValido, situacao]);
-  const contagem = { todas: execucoes.length, EM_EXECUCAO: execucoes.filter((e) => e.status === 'EM_EXECUCAO').length, PAUSADA: execucoes.filter((e) => e.status === 'PAUSADA').length };
   const agoraServidor = dados ? agoraDoServidor(dados.meta.consultadoEm, recebidoEm, agora) : 0;
+  const visiveis = useMemo(() => filtrarExecucoes(execucoes, { setor: setorValido, situacao }, agoraServidor), [execucoes, setorValido, situacao, agoraServidor]);
+  const contagem = {
+    todas: execucoes.length, EM_EXECUCAO: execucoes.filter((e) => e.status === 'EM_EXECUCAO').length,
+    PAUSADA: execucoes.filter((e) => e.status === 'PAUSADA').length, ATENCAO: execucoes.filter((e) => atencoesDaExecucao(e, agoraServidor).length > 0).length,
+  };
   const referencia = dados?.meta.consultadoEm ?? '';
 
   return (
@@ -94,6 +113,7 @@ export function ExecucoesAcompanhamento() {
         <div className="min-w-0">
           <h2 id="acompanhamento-titulo" className="text-lg font-semibold">Execuções em andamento</h2>
           <p className="mt-1.5 text-sm leading-6 text-muted">Execuções em execução ou pausadas agora, da mais antiga para a mais recente. O tempo é da execução e não mede o desempenho de uma pessoa.</p>
+          <p className="mt-1 text-sm leading-6 text-muted">Pedem atenção as execuções com tempo produtivo acima do previsto para a ordem (tempo padrão × quantidade) e as iniciadas em outro dia.</p>
           <p aria-live="polite" className="mt-1 text-xs text-muted">
             {dados ? `Atualizado às ${formatarHoraCompleta(dados.meta.consultadoEm)} · atualiza sozinho a cada ${INTERVALO_ATUALIZACAO_MS / 1000} s` : carregando ? 'Carregando…' : ''}
           </p>
@@ -151,9 +171,10 @@ export function ExecucoesAcompanhamento() {
                   {visiveis.map((execucao) => {
                     const tempos = temposAteAgora(execucao, agoraServidor);
                     const inicio = inicioDaExecucao(execucao);
+                    const atencoes = atencoesDaExecucao(execucao, agoraServidor);
                     return (
-                      <tr key={execucao.id} className="align-top">
-                        <td className="px-3 py-3"><Situacao execucao={execucao} referencia={referencia} /></td>
+                      <tr key={execucao.id} className={`align-top ${atencoes.length > 0 ? 'bg-[#ffcf99]/[0.04] shadow-[inset_3px_0_0_#ffcf99]' : ''}`}>
+                        <td className="px-3 py-3"><Situacao execucao={execucao} referencia={referencia} atencoes={atencoes} /></td>
                         <td className="px-3 py-3"><p className="font-medium">{execucao.operador.nome}</p><p className="text-xs text-muted">{execucao.operador.matricula}</p></td>
                         <td className="px-3 py-3"><p className="font-medium">{execucao.ordem.numero}</p><p className="text-xs text-muted">{execucao.produto.codigo} – {execucao.produto.nome} · {execucao.ordem.quantidade.toLocaleString('pt-BR')} {execucao.ordem.unidade}</p></td>
                         <td className="px-3 py-3">{execucao.etapa.ordem}. {execucao.etapa.operacao}</td>
@@ -172,11 +193,12 @@ export function ExecucoesAcompanhamento() {
               {visiveis.map((execucao) => {
                 const tempos = temposAteAgora(execucao, agoraServidor);
                 const inicio = inicioDaExecucao(execucao);
+                const atencoes = atencoesDaExecucao(execucao, agoraServidor);
                 return (
-                  <li key={execucao.id} className="min-w-0 space-y-3 rounded-lg border border-[#2b353e] bg-background/40 p-4">
+                  <li key={execucao.id} className={`min-w-0 space-y-3 rounded-lg border bg-background/40 p-4 ${atencoes.length > 0 ? 'border-[#ffcf99]/50' : 'border-[#2b353e]'}`}>
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0"><p className="font-semibold [overflow-wrap:anywhere]">{execucao.operador.nome}</p><p className="text-xs text-muted">{execucao.operador.matricula}</p></div>
-                      <Situacao execucao={execucao} referencia={referencia} />
+                      <Situacao execucao={execucao} referencia={referencia} atencoes={atencoes} />
                     </div>
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                       <div className="min-w-0"><dt className="text-xs text-muted">Ordem</dt><dd className="[overflow-wrap:anywhere]">{execucao.ordem.numero} · {execucao.produto.codigo}</dd></div>

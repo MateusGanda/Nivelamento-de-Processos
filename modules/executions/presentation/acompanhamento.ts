@@ -7,7 +7,14 @@ import { tempoDecorrido } from './tempo-decorrido.ts';
 export const INTERVALO_ATUALIZACAO_MS = 30_000;
 
 export type RespostaAcompanhamento = { meta: { consultadoEm: string }; execucoes: ExecucaoAcompanhada[] };
-export type FiltroSituacao = 'todas' | 'EM_EXECUCAO' | 'PAUSADA';
+export type FiltroSituacao = 'todas' | 'EM_EXECUCAO' | 'PAUSADA' | 'ATENCAO';
+
+/**
+ * Sinais de atenção mostrados no acompanhamento (decisão de 05/11/2026). Só destacam; não mudam a execução.
+ * - ACIMA_DO_PREVISTO: tempo produtivo maior que o previsto para a ordem (tempo padrão × quantidade).
+ * - INICIADA_EM_OUTRO_DIA: começou antes do dia de hoje no horário de Brasília, sinal de execução esquecida.
+ */
+export type Atencao = { tipo: 'ACIMA_DO_PREVISTO'; previstoSegundos: number } | { tipo: 'INICIADA_EM_OUTRO_DIA'; inicio: string };
 
 export class ErroApiAcompanhamento extends Error {
   readonly status: number;
@@ -27,7 +34,9 @@ const TIPOS_EVENTO = ['INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO'];
 function ehExecucaoAcompanhada(valor: unknown): valor is ExecucaoAcompanhada {
   if (!objeto(valor)) return false;
   const { ordem, produto, etapa, posto, operador, eventos } = valor;
+  const tempoPadrao = valor.tempoPadraoSegundos;
   return texto(valor.id) && (valor.status === 'EM_EXECUCAO' || valor.status === 'PAUSADA') && texto(valor.setor) &&
+    (tempoPadrao === null || (typeof tempoPadrao === 'number' && Number.isFinite(tempoPadrao) && tempoPadrao >= 0)) &&
     objeto(ordem) && texto(ordem.id) && texto(ordem.numero) && typeof ordem.quantidade === 'number' && Number.isFinite(ordem.quantidade) && texto(ordem.unidade) &&
     objeto(produto) && texto(produto.codigo) && texto(produto.nome) &&
     objeto(etapa) && texto(etapa.id) && Number.isInteger(etapa.ordem) && texto(etapa.operacao) &&
@@ -60,9 +69,28 @@ export function setoresDasExecucoes(execucoes: readonly ExecucaoAcompanhada[]): 
   return [...new Set(execucoes.map((execucao) => execucao.setor))].sort(new Intl.Collator('pt-BR', { sensitivity: 'base' }).compare);
 }
 
-export function filtrarExecucoes(execucoes: readonly ExecucaoAcompanhada[], filtro: { setor: string | null; situacao: FiltroSituacao }): ExecucaoAcompanhada[] {
-  return execucoes.filter((execucao) => (filtro.setor === null || execucao.setor === filtro.setor) &&
-    (filtro.situacao === 'todas' || execucao.status === filtro.situacao));
+/** Filtra por setor e situação; "ATENCAO" usa os sinais calculados no instante `agoraServidorMs`. */
+export function filtrarExecucoes(
+  execucoes: readonly ExecucaoAcompanhada[], filtro: { setor: string | null; situacao: FiltroSituacao }, agoraServidorMs: number,
+): ExecucaoAcompanhada[] {
+  return execucoes.filter((execucao) => (filtro.setor === null || execucao.setor === filtro.setor) && (
+    filtro.situacao === 'todas' ||
+    (filtro.situacao === 'ATENCAO' ? atencoesDaExecucao(execucao, agoraServidorMs).length > 0 : execucao.status === filtro.situacao)));
+}
+
+const DIA_COMPLETO = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
+
+export function atencoesDaExecucao(execucao: ExecucaoAcompanhada, agoraServidorMs: number): Atencao[] {
+  const atencoes: Atencao[] = [];
+  if (execucao.tempoPadraoSegundos !== null && execucao.tempoPadraoSegundos > 0) {
+    const previstoSegundos = Math.round(execucao.tempoPadraoSegundos * execucao.ordem.quantidade);
+    if (temposAteAgora(execucao, agoraServidorMs).produtivoSegundos > previstoSegundos) atencoes.push({ tipo: 'ACIMA_DO_PREVISTO', previstoSegundos });
+  }
+  const inicio = inicioDaExecucao(execucao);
+  if (inicio && DIA_COMPLETO.format(new Date(inicio)) !== DIA_COMPLETO.format(new Date(agoraServidorMs))) {
+    atencoes.push({ tipo: 'INICIADA_EM_OUTRO_DIA', inicio });
+  }
+  return atencoes;
 }
 
 export function inicioDaExecucao(execucao: ExecucaoAcompanhada): string | null {

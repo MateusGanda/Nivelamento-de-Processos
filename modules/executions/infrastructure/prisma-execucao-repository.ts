@@ -115,14 +115,21 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
       .include('eventosTempo', (eventos) => eventos.select('tipo', 'dataHora', 'motivoPausaId').orderBy((evento) => evento.dataHora.asc()))
       .all();
     const nomeMotivo = await nomesDosMotivos(execucoes);
+    // Tempo padrão de cada etapa para o produto da ordem, numa única consulta.
+    const etapas = [...new Set(execucoes.map((execucao) => execucao.etapaRoteiroId))];
+    const tempos = etapas.length === 0 ? [] : await db.orm.public.ProdutoEtapa
+      .where((ligacao) => ligacao.etapaRoteiroId.in(etapas)).select('produtoId', 'etapaRoteiroId', 'tempoPadrao').all();
+    const tempoPadrao = new Map(tempos.map((t) => [`${t.produtoId}:${t.etapaRoteiroId}`, decimal(t.tempoPadrao)]));
     return execucoes.flatMap((execucao) => {
       if (execucao.status === 'FINALIZADA') return [];
       const posto = relacionado(execucao.posto, 'posto da execução');
       const operador = relacionado(execucao.operador, 'operador da execução');
+      const ordem = relacionado(execucao.ordemProducao, 'ordem da execução');
       return [{
         ...paraExecucaoAberta({ ...execucao, status: execucao.status, posto: { id: posto.id, codigo: posto.codigo, nome: posto.nome } }, nomeMotivo),
         operador: { matricula: operador.matricula, nome: operador.nome },
         setor: relacionado(posto.setor, 'setor do posto').nome,
+        tempoPadraoSegundos: tempoPadrao.get(`${ordem.produtoId}:${execucao.etapaRoteiroId}`) ?? null,
       }];
     });
   }

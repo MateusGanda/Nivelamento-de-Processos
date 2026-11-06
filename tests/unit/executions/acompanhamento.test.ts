@@ -6,7 +6,7 @@ import type { ExecucaoAcompanhada, EventoDaExecucao } from '../../../modules/exe
 import { criarHandlersAcompanhamento } from '../../../modules/executions/presentation/http-painel.ts';
 import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
 import {
-  agoraDoServidor, filtrarExecucoes, formatarHorario, inicioDaExecucao, lerRespostaAcompanhamento, pausaAtual, setoresDasExecucoes, temposAteAgora,
+  agoraDoServidor, atencoesDaExecucao, filtrarExecucoes, formatarHorario, inicioDaExecucao, lerRespostaAcompanhamento, pausaAtual, setoresDasExecucoes, temposAteAgora,
 } from '../../../modules/executions/presentation/acompanhamento.ts';
 
 const t = (hora: string) => `2026-11-05T${hora}:00.000Z`;
@@ -18,6 +18,7 @@ function execucao(id: string, mudancas: Partial<ExecucaoAcompanhada> = {}): Exec
     ordem: { id: `ordem-${id}`, numero: 'OP-0001', quantidade: 40, unidade: 'un' }, produto: { codigo: 'PRD-001', nome: 'Produto A' },
     etapa: { id: `etapa-${id}`, ordem: 1, operacao: 'Corte' }, posto: { id: `posto-${id}`, codigo: 'PRE-01', nome: 'Corte 1' },
     eventos: [evento('INICIO', '11:00')], operador: { matricula: 'OF-PRE1', nome: 'Operador Fictício 1' }, setor: 'Preparação',
+    tempoPadraoSegundos: null,
     ...mudancas,
   };
 }
@@ -79,6 +80,8 @@ test('acompanhamento: a tela recusa resposta malformada', () => {
     { ...valida, execucoes: [{ ...execucao('a'), status: 'FINALIZADA' }] },
     { ...valida, execucoes: [{ ...execucao('a'), operador: null }] },
     { ...valida, execucoes: [{ ...execucao('a'), eventos: [] }] },
+    { ...valida, execucoes: [{ ...execucao('a'), tempoPadraoSegundos: -1 }] },
+    { ...valida, execucoes: [{ ...execucao('a'), tempoPadraoSegundos: '60' }] },
     { ...valida, execucoes: [{ ...execucao('a'), eventos: [{ tipo: 'INICIO', dataHora: 'x', motivo: null }] }] },
   ];
   for (const corpo of invalidas) assert.throws(() => lerRespostaAcompanhamento(corpo), /Resposta inválida/);
@@ -90,10 +93,37 @@ test('acompanhamento: filtros por setor e situação e lista de setores', () => 
     execucao('b', { setor: 'Acabamento' }), execucao('c', { setor: 'Montagem' }),
   ];
   assert.deepEqual(setoresDasExecucoes(lista), ['Acabamento', 'Montagem']);
-  assert.deepEqual(filtrarExecucoes(lista, { setor: null, situacao: 'todas' }).map((e) => e.id), ['a', 'b', 'c']);
-  assert.deepEqual(filtrarExecucoes(lista, { setor: 'Montagem', situacao: 'todas' }).map((e) => e.id), ['a', 'c']);
-  assert.deepEqual(filtrarExecucoes(lista, { setor: 'Montagem', situacao: 'PAUSADA' }).map((e) => e.id), ['a']);
-  assert.deepEqual(filtrarExecucoes(lista, { setor: 'Acabamento', situacao: 'PAUSADA' }), []);
+  const agora = Date.parse(t('12:00'));
+  assert.deepEqual(filtrarExecucoes(lista, { setor: null, situacao: 'todas' }, agora).map((e) => e.id), ['a', 'b', 'c']);
+  assert.deepEqual(filtrarExecucoes(lista, { setor: 'Montagem', situacao: 'todas' }, agora).map((e) => e.id), ['a', 'c']);
+  assert.deepEqual(filtrarExecucoes(lista, { setor: 'Montagem', situacao: 'PAUSADA' }, agora).map((e) => e.id), ['a']);
+  assert.deepEqual(filtrarExecucoes(lista, { setor: 'Acabamento', situacao: 'PAUSADA' }, agora), []);
+});
+
+test('acompanhamento: atenção quando o tempo produtivo passa do previsto (tempo padrão × quantidade)', () => {
+  // 40 un × 60 s = 40 min previstos; iniciada às 11:00.
+  const comPadrao = execucao('a', { tempoPadraoSegundos: 60 });
+  assert.deepEqual(atencoesDaExecucao(comPadrao, Date.parse(t('11:40'))), []);
+  assert.deepEqual(atencoesDaExecucao(comPadrao, Date.parse(t('11:41'))), [{ tipo: 'ACIMA_DO_PREVISTO', previstoSegundos: 2400 }]);
+  // A pausa não conta como tempo produtivo.
+  const comPausa = execucao('b', { tempoPadraoSegundos: 60, status: 'PAUSADA', eventos: [evento('INICIO', '11:00'), evento('PAUSA', '11:30', 'Falta de material')] });
+  assert.deepEqual(atencoesDaExecucao(comPausa, Date.parse(t('12:30'))), []);
+  // Sem tempo padrão (ou zero) não há previsto para comparar.
+  assert.deepEqual(atencoesDaExecucao(execucao('c'), Date.parse(t('18:00'))), []);
+  assert.deepEqual(atencoesDaExecucao(execucao('d', { tempoPadraoSegundos: 0 }), Date.parse(t('18:00'))), []);
+});
+
+test('acompanhamento: atenção para execução iniciada em outro dia, no horário de Brasília', () => {
+  // 02:30 UTC do dia 05 = 23:30 do dia 04 em Brasília; às 12:00 UTC do dia 05 já é outro dia.
+  const deOntem = execucao('a', { eventos: [{ tipo: 'INICIO', dataHora: '2026-11-05T02:30:00.000Z', motivo: null }] });
+  assert.deepEqual(atencoesDaExecucao(deOntem, Date.parse(t('12:00'))), [{ tipo: 'INICIADA_EM_OUTRO_DIA', inicio: '2026-11-05T02:30:00.000Z' }]);
+  // Às 02:45 UTC ainda é dia 04 em Brasília: mesmo dia.
+  assert.deepEqual(atencoesDaExecucao(deOntem, Date.parse('2026-11-05T02:45:00.000Z')), []);
+  // Os dois sinais juntos, e o filtro "Com atenção".
+  const ambos = execucao('b', { tempoPadraoSegundos: 1, eventos: [{ tipo: 'INICIO', dataHora: '2026-11-04T12:00:00.000Z', motivo: null }] });
+  assert.deepEqual(atencoesDaExecucao(ambos, Date.parse(t('12:00'))).map((a) => a.tipo), ['ACIMA_DO_PREVISTO', 'INICIADA_EM_OUTRO_DIA']);
+  const lista = [execucao('c'), ambos, deOntem];
+  assert.deepEqual(filtrarExecucoes(lista, { setor: null, situacao: 'ATENCAO' }, Date.parse(t('12:00'))).map((e) => e.id), ['b', 'a']);
 });
 
 test('acompanhamento: início e pausa atual com o motivo da última pausa', () => {
