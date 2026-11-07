@@ -81,7 +81,9 @@ export function AdminShell({ usuario, children }: { usuario: { nome: string; mat
   }, [pathname]);
 
   return (
-    <div className="relative flex h-dvh min-h-0 min-w-0 flex-1 overflow-hidden bg-background print:block print:h-auto print:overflow-visible">
+    // Altura fixa da tela, sem flex-1: com flex-1 a moldura acompanhava a altura do conteúdo (o body só tem
+    // altura mínima), a página inteira rolava e o menu lateral subia junto. Assim, só o <main> rola.
+    <div className="relative flex h-dvh min-h-0 w-full min-w-0 shrink-0 overflow-hidden bg-background print:block print:h-auto print:overflow-visible print:bg-white">
       <a href="#painel-conteudo" className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:font-medium focus:text-[#171b1f]">Ir para o conteúdo</a>
       <aside aria-label="Menu lateral" className={`hidden h-full shrink-0 print:hidden! flex-col border-r border-white/10 bg-[#11171c] lg:flex ${recolhido ? 'w-20' : 'w-[260px]'}`}>
         <Link href="/painel" prefetch={false} aria-label="GUNP — Início" className="flex h-16 shrink-0 items-center justify-center border-b border-white/10 px-4 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent">
