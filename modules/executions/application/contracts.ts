@@ -27,5 +27,7 @@ export interface ExecucaoRepository {
   pausar(execucaoId: string, motivoId: string, agora: string): Promise<boolean>;
   retomar(execucaoId: string, agora: string): Promise<boolean>;
   trocar(execucaoId: string, operadorId: string, destino: Destino, agora: string): Promise<string | null>;
+  // Na mesma transação, encerra as outras execuções abertas (em execução ou pausadas) da mesma ordem e
+  // etapa, sem quantidades: a etapa foi concluída e elas não teriam como terminar (decisão de 07/11/2026).
   baixar(execucaoId: string, baixa: Baixa, agora: string): Promise<boolean>;
 }

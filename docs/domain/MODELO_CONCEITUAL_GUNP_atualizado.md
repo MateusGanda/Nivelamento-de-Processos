@@ -113,7 +113,8 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Uma Ordem pode possuir várias execuções, inclusive várias para a mesma etapa.
 - A baixa efetiva de uma etapa ocorre uma única vez.
 - Estados: `EM_EXECUCAO`, `PAUSADA`, `FINALIZADA`.
-- Transições: EM_EXECUCAO → PAUSADA; PAUSADA → EM_EXECUCAO; EM_EXECUCAO → FINALIZADA.
+- Transições: EM_EXECUCAO → PAUSADA; PAUSADA → EM_EXECUCAO; EM_EXECUCAO → FINALIZADA. PAUSADA → FINALIZADA só ocorre no encerramento pela baixa de outro operador (regra abaixo).
+- Quando uma etapa recebe a baixa, as outras execuções abertas (em execução ou pausadas) da mesma ordem e etapa são encerradas na mesma transação, sem quantidades e com finalização do tipo troca de operação (decisão de 07/11/2026). O trecho final conta como produtivo ou como pausa, conforme a situação da execução encerrada. Sem essa regra, a execução de quem trabalhava junto ficaria aberta numa etapa já concluída, sem poder dar baixa.
 - Não há `NAO_INICIADA` persistido. Ausência de execução pode ser apresentada como não iniciada.
 - Execução finalizada é terminal e não recebe novos eventos.
 - Troca de operação finaliza a execução atual e cria outra.

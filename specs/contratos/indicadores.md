@@ -140,7 +140,7 @@ Tempos das execuções do posto, recortados ao período. Uma linha por posto com
 | --- | --- | --- |
 | `posto` | objeto | `id`, `codigo`, `nome`, `setorNome`. |
 | `produtivoSegundos` | número | Soma dos intervalos entre `INICIO` ou `RETOMADA` e a `PAUSA` ou `FINALIZACAO` seguinte. |
-| `pausaSegundos` | número | Soma dos intervalos entre `PAUSA` e `RETOMADA`. |
+| `pausaSegundos` | número | Soma dos intervalos entre `PAUSA` e `RETOMADA` (ou a `FINALIZACAO`, quando uma execução pausada é encerrada pela baixa de outro operador na mesma etapa). |
 | `totalSegundos` | número | `produtivoSegundos + pausaSegundos`, no mesmo recorte do período. |
 | `pausasPorMotivo[]` | lista | `motivoNome`, `segundos`, `ocorrencias`, da maior para a menor duração. |
 | `execucoesFinalizadas` | inteiro | Execuções do posto com `FINALIZACAO` dentro do período. |

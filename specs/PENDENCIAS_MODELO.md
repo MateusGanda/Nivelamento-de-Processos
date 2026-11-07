@@ -38,6 +38,7 @@ A numeração antiga foi mantida para não quebrar referências; os itens 1, 2, 
 - **Motivos de pausa sem número no nome (26/10):** o motivo é identificado só pelo nome; a lista proposta está em `docs/MOTIVOS_DE_PAUSA.md`.
 - **Operador com execução aberta não pode ser inativado (26/10):** a ilha recusa operador inativo, e a execução não poderia mais ser encerrada.
 - **Saída automática da ilha (05/11, item 9):** depois de iniciar, pausar, retomar, trocar ou dar baixa, a tela mostra a confirmação com contagem de 10 s e volta para a leitura do crachá; sem toque, clique, tecla ou leitura por 30 s, a identificação também é limpa. A limpeza só muda a tela: a execução continua como está, sem pausa nem finalização, e o banco não muda. Detalhes em `docs/design/ILHA_GUNP.md`.
+- **Baixa encerra as outras execuções da etapa (07/11):** os testes da etapa 8 mostraram que, com dois operadores na mesma etapa, a execução de quem não deu a baixa ficava aberta numa etapa já concluída e só saía por troca de operação. A baixa agora encerra essas execuções na mesma transação, sem quantidades (tipo `TROCA_OPERACAO`), inclusive as pausadas; por isso a transição `PAUSADA → FINALIZADA` passou a existir só nesse caso. Sem migration.
 
 ## Resolvido na implementação
 

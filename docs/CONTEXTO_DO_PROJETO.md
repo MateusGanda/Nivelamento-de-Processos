@@ -57,7 +57,8 @@ Consultar `MODELO_CONCEITUAL_GUNP_atualizado.md` para relações e regras detalh
 - Não registrar quantidades incrementais a cada evento de execução. O apontamento final segue a regra do modelo conceitual.
 - Pode haver várias execuções associadas à mesma ordem e etapa, mas apenas uma baixa efetiva para a combinação definida pelo modelo.
 - Estados de execução: `EM_EXECUCAO`, `PAUSADA` e `FINALIZADA`. A execução finalizada é terminal; não reabri-la silenciosamente.
-- Transições previstas: `EM_EXECUCAO → PAUSADA`, `PAUSADA → EM_EXECUCAO` e `EM_EXECUCAO → FINALIZADA`.
+- Transições previstas: `EM_EXECUCAO → PAUSADA`, `PAUSADA → EM_EXECUCAO` e `EM_EXECUCAO → FINALIZADA`. `PAUSADA → FINALIZADA` só no encerramento pela baixa de outro operador.
+- A baixa de uma etapa encerra, na mesma transação, as outras execuções abertas da mesma ordem e etapa, sem quantidades (tipo `TROCA_OPERACAO`), para que ninguém fique preso numa etapa já concluída (decisão de 07/11/2026, após os testes da etapa 8).
 - Não persistir `NAO_INICIADA` como estado de execução; a interface pode inferi-lo quando ainda não há execução.
 - Trocar de operação finaliza a execução atual e inicia outra, de acordo com o fluxo validado.
 - Um operador não pode manter duas execuções abertas simultaneamente, incluindo execuções pausadas. A regra é garantida também pelo banco (índice único parcial `Execucao_operador_aberta_unica`).

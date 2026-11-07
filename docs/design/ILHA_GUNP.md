@@ -66,6 +66,12 @@ Decisão da equipe em 05/11/2026 (item 9 de `specs/PENDENCIAS_MODELO.md`), para 
 
 Verificação de 05/11/2026: 9 testes unitários da regra e, no navegador, com o sistema compilado e um banco de teste local, 23 de 23 conferências: volta em 10,0 s depois do registro; limpeza entre 29,6 s e 30,1 s sem uso, inclusive com a pausa aberta; execução sem evento novo depois da limpeza; digitação a cada 20 s sem limpeza; outro crachá durante a contagem em 0,4 s; Sair agora; 375 px sem rolagem lateral. Sem mudança de API, banco ou dependência.
 
+## Baixa com mais de um operador na etapa — 07/11/2026
+
+Falha encontrada nos testes da etapa 8: dois operadores podem executar a mesma etapa da mesma ordem (trabalho em célula). Depois que um deles dava a baixa, a execução do outro continuava aberta numa etapa já concluída: podia pausar e retomar, a baixa era recusada ("Esta etapa da ordem já teve baixa") e a única saída era trocar de operação para outra etapa livre.
+
+Correção: a baixa encerra, na mesma transação, as outras execuções abertas da mesma ordem e etapa, em execução ou pausadas, sem quantidades e com finalização do tipo `TROCA_OPERACAO`. O horário do encerramento é o da baixa ou, se o último evento da execução for no mesmo milissegundo ou depois (uma pausa simultânea), 1 ms depois desse evento, para a ordem dos eventos nunca empatar. O trecho final conta como produtivo ou como pausa, conforme a situação da execução encerrada; para isso, `PAUSA → FINALIZACAO` passou a ser uma sequência válida em `derivarIntervalos`. Um pedido simultâneo do outro operador é resolvido pela condição de estado no próprio UPDATE. Na ilha, uma tela antiga desse operador recebe conflito na próxima ação e oferece atualizar a situação. Sem mudança de API ou banco.
+
 ## Arquivos principais
 
 - [Escolha do destino](../../modules/executions/presentation/components/ilha-destino.tsx).

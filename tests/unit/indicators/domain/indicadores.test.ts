@@ -57,9 +57,18 @@ test('sequência de eventos fora das transições do modelo é rejeitada', () =>
   assert.throws(() => derivarIntervalos([evento('PAUSA', '08:00', AJUSTE)]), /começa por INICIO/);
   assert.throws(() => derivarIntervalos([evento('INICIO', '08:00'), evento('INICIO', '08:10')]), /INICIO depois de INICIO/);
   assert.throws(() => derivarIntervalos([evento('INICIO', '08:00'), evento('RETOMADA', '08:10')]), /RETOMADA depois de INICIO/);
-  assert.throws(() => derivarIntervalos([evento('INICIO', '08:00'), evento('PAUSA', '08:10', AJUSTE), evento('FINALIZACAO', '08:20')]), /FINALIZACAO depois de PAUSA/);
+  assert.throws(() => derivarIntervalos([evento('INICIO', '08:00'), evento('PAUSA', '08:10', AJUSTE), evento('RETOMADA', '08:20'), evento('RETOMADA', '08:30')]), /RETOMADA depois de RETOMADA/);
   assert.throws(() => derivarIntervalos([...execucao, evento('PAUSA', '09:40', AJUSTE)]), /PAUSA depois de FINALIZACAO/);
   assert.throws(() => derivarIntervalos([{ tipo: 'INICIO', instanteMs: NaN, motivoPausaId: null }]), /Instante inválido/);
+});
+test('execução pausada encerrada pela baixa de outro operador: o trecho final conta como pausa', () => {
+  const { intervalos, aberta } = derivarIntervalos([evento('INICIO', '08:00'), evento('PAUSA', '08:10', AJUSTE), evento('FINALIZACAO', '08:40')]);
+  assert.equal(aberta, false);
+  const tempos = calcularTempos(intervalos, janela('08:00', '09:00'));
+  assert.equal(tempos.produtivoSegundos, 600);
+  assert.equal(tempos.pausaSegundos, 1800);
+  assert.equal(intervalos.at(-1)?.tipo, 'PAUSA');
+  assert.equal(intervalos.at(-1)?.motivoPausaId, AJUSTE);
 });
 test('pausa e retomada no mesmo instante não geram intervalo de duração zero', () => {
   const { intervalos } = derivarIntervalos([evento('INICIO', '08:00'), evento('PAUSA', '08:30', AJUSTE), evento('RETOMADA', '08:30'), evento('FINALIZACAO', '09:00')]);
