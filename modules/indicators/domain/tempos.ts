@@ -9,13 +9,16 @@ export type Intervalo = Janela & { tipo: 'PRODUTIVO' | 'PAUSA'; motivoPausaId: s
 const seguintes: Record<TipoEvento, readonly TipoEvento[]> = {
   INICIO: ['PAUSA', 'FINALIZACAO'],
   RETOMADA: ['PAUSA', 'FINALIZACAO'],
-  PAUSA: ['RETOMADA'],
+  // PAUSA → FINALIZACAO só ocorre quando a baixa de outro operador conclui a etapa
+  // e encerra esta execução pausada (decisão de 07/11/2026); o trecho conta como pausa.
+  PAUSA: ['RETOMADA', 'FINALIZACAO'],
   FINALIZACAO: [],
 };
 
 /** Intervalos de UMA execução, derivados dos seus eventos de tempo.
  * A sequência segue as transições do modelo: INICIO, depois PAUSA e RETOMADA
- * alternadas, e FINALIZACAO a partir de execução ativa; sequência diferente é erro.
+ * alternadas, e FINALIZACAO a partir de execução ativa ou, no encerramento pela
+ * baixa de outro operador, de execução pausada; sequência diferente é erro.
  * Sem FINALIZACAO a execução está aberta: o trecho em andamento fica de fora,
  * sem horário de término presumido.
  */

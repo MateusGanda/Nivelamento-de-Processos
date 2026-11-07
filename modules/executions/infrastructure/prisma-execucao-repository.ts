@@ -39,6 +39,31 @@ async function mudarEstado(tx: Transacao, execucaoId: string, de: 'EM_EXECUCAO' 
   return (await tx.execute(plano)).affectedRows === 1;
 }
 
+// Depois da baixa, as outras execuções abertas da mesma ordem e etapa (trabalho em célula) são encerradas
+// sem quantidades, como uma troca de operação. Cada UPDATE confere o estado na própria condição, então um
+// pedido simultâneo do outro operador (pausar, retomar) ou passa antes e é considerado, ou recebe conflito.
+// O encerramento fica sempre depois do último evento da execução (pelo menos 1 ms), para a sequência continuar
+// válida mesmo quando uma pausa simultânea do outro operador grava no mesmo milissegundo.
+async function encerrarOutrasDaEtapa(tx: Transacao, execucaoId: string, agora: string): Promise<void> {
+  const t = tx.orm.public;
+  const atual = await t.Execucao.where({ id: execucaoId }).select('ordemProducaoId', 'etapaRoteiroId').first();
+  if (!atual) return;
+  const outras = await t.Execucao
+    .where({ ordemProducaoId: atual.ordemProducaoId, etapaRoteiroId: atual.etapaRoteiroId })
+    .where((e) => e.status.neq('FINALIZADA'))
+    .select('id')
+    .all();
+  for (const { id } of outras) {
+    const encerrada = await mudarEstado(tx, id, 'EM_EXECUCAO', { status: 'FINALIZADA', tipoFinalizacao: 'TROCA_OPERACAO' })
+      || await mudarEstado(tx, id, 'PAUSADA', { status: 'FINALIZADA', tipoFinalizacao: 'TROCA_OPERACAO' });
+    if (!encerrada) continue;
+    const ultimo = await t.EventoTempo.where({ execucaoId: id }).select('dataHora').orderBy((evento) => evento.dataHora.desc()).first();
+    const ultimoMs = ultimo ? Date.parse(ultimo.dataHora) : Number.NEGATIVE_INFINITY;
+    const quando = ultimoMs >= Date.parse(agora) ? new Date(ultimoMs + 1).toISOString() : agora;
+    await t.EventoTempo.create({ execucaoId: id, tipo: 'FINALIZACAO', dataHora: quando, motivoPausaId: null });
+  }
+}
+
 async function abrirExecucao(t: Tabelas, operadorId: string, destino: Destino, agora: string): Promise<string> {
   const execucao = await t.Execucao.create({
     ordemProducaoId: destino.ordemId, etapaRoteiroId: destino.etapaId, operadorId, postoId: destino.postoId, status: 'EM_EXECUCAO',
@@ -251,6 +276,7 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
         });
         if (!finalizada) return false;
         await t.EventoTempo.create({ execucaoId, tipo: 'FINALIZACAO', dataHora: agora, motivoPausaId: null });
+        await encerrarOutrasDaEtapa(tx, execucaoId, agora);
         return true;
       });
     } catch (erro) {

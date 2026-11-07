@@ -99,6 +99,12 @@ class RepositorioEmMemoria implements ExecucaoRepository {
     if (!e) return false;
     Object.assign(e, { tipoFinalizacao: 'BAIXA', baixa });
     e.eventos.push({ tipo: 'FINALIZACAO', dataHora: agora, motivoId: null });
+    // Mesmo contrato do repositório real: encerra as outras execuções abertas da etapa, sem quantidades.
+    for (const outra of this.execucoes) {
+      if (outra.status === 'FINALIZADA' || outra.destino.ordemId !== e.destino.ordemId || outra.destino.etapaId !== e.destino.etapaId) continue;
+      Object.assign(outra, { status: 'FINALIZADA', tipoFinalizacao: 'TROCA_OPERACAO' });
+      outra.eventos.push({ tipo: 'FINALIZACAO', dataHora: agora, motivoId: null });
+    }
     return true;
   }
 }
@@ -209,9 +215,25 @@ test('execução: baixa exige a quantidade inteira da ordem, sem negativos, e s�
     await assert.rejects(() => service.baixar('AS-MON1', ana, baixa), erroCom('ENTRADA_INVALIDA', mensagem));
   }
   await service.baixar('AS-MON1', ana, baixaDe(39.5, 0.25, 0.25));
-  // A segunda execução da mesma etapa não consegue dar outra baixa.
-  await assert.rejects(() => service.baixar('BL-MON1', bia, baixaDe(40)), erroCom('CONFLITO', /já teve baixa/));
+  // A segunda execução da mesma etapa foi encerrada pela baixa e não consegue dar outra.
+  await assert.rejects(() => service.baixar('BL-MON1', bia, baixaDe(40)), erroCom('CONFLITO'));
   assert.deepEqual(validarBaixa(baixaDe(0, 0, 40), 40), baixaDe(0, 0, 40));
+});
+
+test('execução: a baixa encerra as outras execuções abertas da mesma etapa, inclusive pausadas', async () => {
+  const { service, repositorio } = novoServico();
+  const ana = (await service.iniciar('AS-MON1', destino())).execucaoAberta!.id;
+  const bia = (await service.iniciar('BL-MON1', destino({ postoId: POSTO2 }))).execucaoAberta!.id;
+  await service.pausar('BL-MON1', bia, MOTIVO);
+  await service.baixar('AS-MON1', ana, baixaDe(40));
+  const linhaBia = repositorio.execucoes.find((e) => e.id === bia)!;
+  assert.deepEqual([linhaBia.status, linhaBia.tipoFinalizacao, linhaBia.baixa], ['FINALIZADA', 'TROCA_OPERACAO', null]);
+  assert.deepEqual(linhaBia.eventos.map((e) => e.tipo), ['INICIO', 'PAUSA', 'FINALIZACAO']);
+  assert.equal((await service.identificar('BL-MON1')).execucaoAberta, null);
+  // Execução encerrada não volta: a tela antiga de Bia recebe conflito.
+  await assert.rejects(() => service.retomar('BL-MON1', bia), erroCom('CONFLITO'));
+  // Bia fica livre para iniciar outra etapa.
+  assert.equal((await service.iniciar('BL-MON1', destino({ etapaId: ETAPA2, postoId: POSTO2 }))).execucaoAberta!.status, 'EM_EXECUCAO');
 });
 
 test('execução: troca de operação finaliza sem quantidades e abre a próxima junto', async () => {
