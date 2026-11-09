@@ -185,7 +185,7 @@ Acesso do painel de TV (decisão de 09/11/2026, contrato em `specs/contratos/pai
 - cada TV é um `Dispositivo` cadastrado em `/painel/tvs`, com um código de acesso próprio de 10 caracteres gerado pelo servidor; o banco guarda só o resumo SHA-256 do código;
 - `POST /api/tv/acesso` confere o código e grava o cookie `gunp_tv`, HttpOnly, SameSite=Strict, Secure em produção, válido por 365 dias; código errado recebe resposta atrasada (0,8 s);
 - `GET /api/tv/painel` exige o cookie de uma TV ativa e não aceita a sessão administrativa nem o cookie da ilha; a resposta não traz nome nem matrícula de operador;
-- desativar a TV ou gerar um código novo corta o acesso na próxima atualização; cada busca de dados registra a última conexão (no máximo uma gravação a cada 10 s), usada para mostrar a TV como online (até 45 s) ou offline.
+- desativar a TV ou gerar um código novo corta o acesso na próxima atualização; cada busca de dados registra a última conexão (no máximo uma gravação a cada 10 s), usada para mostrar a TV como online (até 20 s) ou offline. A TV busca os dados a cada 5 s (decisão de 09/11/2026; antes eram 15 s e offline depois de 45 s).
 
 Proteções definidas após os testes da etapa 8 (04/11/2026):
 

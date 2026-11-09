@@ -3,10 +3,16 @@ import { excedeLimite, LIMITES_TEXTO } from '../../../shared/validation.ts';
 // Dispositivo conectado do chão de fábrica: hoje, as TVs do painel de gestão à vista (decisão de 09/11/2026).
 // A TV só exibe dados; o código de acesso é guardado apenas como hash.
 
-/** A TV busca os dados e informa a conexão neste intervalo. */
-export const INTERVALO_ATUALIZACAO_MS = 15_000;
-/** Sem sinal por mais que isto, a TV aparece como offline (três atualizações perdidas). */
-export const LIMITE_ONLINE_MS = 45_000;
+/**
+ * A TV busca os dados e informa a conexão neste intervalo (decisão de 09/11/2026: era 15 s).
+ * O relógio e os cronômetros da tela andam a cada segundo sozinhos; a busca só traz as mudanças.
+ */
+export const INTERVALO_ATUALIZACAO_MS = 5_000;
+/**
+ * Sem sinal por mais que isto, a TV aparece como offline. Com a gravação a cada 10 s no máximo,
+ * a última conexão de uma TV ligada tem até uns 15 s; os 20 s deixam folga para um pedido lento.
+ */
+export const LIMITE_ONLINE_MS = 20_000;
 /** A última conexão é gravada no máximo uma vez neste intervalo, para não escrever no banco a cada pedido. */
 export const INTERVALO_MINIMO_REGISTRO_MS = 10_000;
 

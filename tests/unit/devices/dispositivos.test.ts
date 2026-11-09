@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ALFABETO_CODIGO, ErroDeDispositivo, formatarCodigo, LIMITE_ONLINE_MS, normalizarCodigo, situacaoConexao,
+  ALFABETO_CODIGO, ErroDeDispositivo, formatarCodigo, INTERVALO_ATUALIZACAO_MS, LIMITE_ONLINE_MS, normalizarCodigo, situacaoConexao,
   validarAlteracaoDispositivo, validarCadastroDispositivo, type AlteracaoDispositivo, type DadosDispositivo, type Dispositivo,
 } from '../../../modules/devices/domain/dispositivo.ts';
 import { DispositivosService } from '../../../modules/devices/application/dispositivos.ts';
@@ -89,7 +89,8 @@ test('TV: o banco guarda só o resumo do código, que não revela o código', ()
   assert.notEqual(codigosDeAcesso.resumo('ABCDEFGH24'), resumo);
 });
 
-test('TV: online até 45 s sem sinal; depois offline; sem nenhuma conexão, nunca conectou', () => {
+test('TV: atualiza a cada 5 s; online até 20 s sem sinal; depois offline; sem nenhuma conexão, nunca conectou', () => {
+  assert.deepEqual([INTERVALO_ATUALIZACAO_MS, LIMITE_ONLINE_MS], [5_000, 20_000]);
   const agora = Date.parse('2026-11-09T12:00:00.000Z');
   assert.equal(situacaoConexao(null, agora), 'NUNCA_CONECTOU');
   assert.equal(situacaoConexao(new Date(agora - LIMITE_ONLINE_MS).toISOString(), agora), 'ONLINE');
