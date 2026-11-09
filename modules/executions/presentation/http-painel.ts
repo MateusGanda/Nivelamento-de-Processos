@@ -1,4 +1,5 @@
 import type { ExecucoesService } from '../application/execucoes.ts';
+import type { ChaveIlhaService } from '../application/chave-ilha.ts';
 import { ErroDeAcesso } from '../../access/domain/usuario.ts';
 
 const STATUS_ACESSO = { ENTRADA_INVALIDA: 400, NAO_AUTENTICADO: 401, SEM_AUTORIZACAO: 403, NAO_ENCONTRADO: 404, CONFLITO: 409 } as const;
@@ -28,6 +29,37 @@ export function criarHandlersAcompanhamento({ autorizar, execucoes, agora = () =
         }
         const lista = await execucoes.listarAbertas();
         return Response.json({ meta: { consultadoEm: agora().toISOString() }, execucoes: lista }, { headers: SEM_CACHE });
+      } catch (erro) {
+        return respostaErro(erro);
+      }
+    },
+  };
+}
+
+// /api/execucoes/chave-ilha: situação da chave do terminal (GET) e geração de uma chave nova (POST), só para o administrador.
+// A chave nova aparece somente na resposta do POST; o banco guarda o resumo. Gerar bloqueia todos os terminais da ilha.
+export function criarHandlersChaveIlha({ autorizar, chaves }: {
+  autorizar: () => Promise<{ id: string }>;
+  chaves: Pick<ChaveIlhaService, 'situacao' | 'gerarNova'>;
+}) {
+  return {
+    async GET(): Promise<Response> {
+      try {
+        await autorizar();
+        return Response.json(await chaves.situacao(), { headers: SEM_CACHE });
+      } catch (erro) {
+        return respostaErro(erro);
+      }
+    },
+    async POST(request: Request): Promise<Response> {
+      try {
+        const { id } = await autorizar();
+        // Sem corpo, ou um objeto vazio: a chave é sempre gerada pelo servidor, nunca escolhida.
+        const texto = await request.text();
+        if (texto.trim() && texto.trim() !== '{}') {
+          return Response.json({ erro: { codigo: 'ENTRADA_INVALIDA', mensagem: 'A chave é gerada pelo sistema; não envie dados.' } }, { status: 400, headers: SEM_CACHE });
+        }
+        return Response.json(await chaves.gerarNova(id), { status: 201, headers: SEM_CACHE });
       } catch (erro) {
         return respostaErro(erro);
       }

@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'346d135fd2c61440707aa3a6a6a6469962920b7ff24fbc740767858b6eea69bd'>;
+  StorageHashBase<'c172ef842aedcf5daa623427d147d0d60dd89caa22dcc58ebb68edfe1011ba7a'>;
 export type ExecutionHash =
-  ExecutionHashBase<'d9f1363d4688d46d937ff2747b1bb401ff5bd382aa397e6fd3c4f082560394e1'>;
+  ExecutionHashBase<'a1ef384d8bd6528ddadbd0e183c91f2a9f990140a3e9e0aac7de1afbb92da119'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -250,6 +250,12 @@ type DefaultLiteralValue<CodecId extends string, Encoded> = CodecId extends keyo
 
 export type FieldOutputTypes = {
   readonly public: {
+    readonly ChaveIlha: {
+      readonly chaveHash: CodecTypes['pg/text@1']['output'];
+      readonly criadaEm: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly criadaPorId: CodecTypes['pg/uuid@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+    };
     readonly Dispositivo: {
       readonly ativo: CodecTypes['pg/bool@1']['output'];
       readonly codigoHash: CodecTypes['pg/text@1']['output'];
@@ -405,6 +411,12 @@ export type FieldOutputTypes = {
 };
 export type FieldInputTypes = {
   readonly public: {
+    readonly ChaveIlha: {
+      readonly chaveHash: CodecTypes['pg/text@1']['input'];
+      readonly criadaEm: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly criadaPorId: CodecTypes['pg/uuid@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+    };
     readonly Dispositivo: {
       readonly ativo: CodecTypes['pg/bool@1']['input'];
       readonly codigoHash: CodecTypes['pg/text@1']['input'];
@@ -560,6 +572,12 @@ export type FieldInputTypes = {
 };
 export type StorageColumnTypes = {
   readonly public: {
+    readonly ChaveIlha: {
+      readonly chaveHash: CodecTypes['pg/text@1']['output'];
+      readonly criadaEm: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly criadaPorId: CodecTypes['pg/uuid@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+    };
     readonly Dispositivo: {
       readonly ativo: CodecTypes['pg/bool@1']['output'];
       readonly codigoHash: CodecTypes['pg/text@1']['output'];
@@ -715,6 +733,12 @@ export type StorageColumnTypes = {
 };
 export type StorageColumnInputTypes = {
   readonly public: {
+    readonly ChaveIlha: {
+      readonly chaveHash: CodecTypes['pg/text@1']['input'];
+      readonly criadaEm: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly criadaPorId: CodecTypes['pg/uuid@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+    };
     readonly Dispositivo: {
       readonly ativo: CodecTypes['pg/bool@1']['input'];
       readonly codigoHash: CodecTypes['pg/text@1']['input'];
@@ -870,6 +894,14 @@ export type StorageColumnInputTypes = {
 };
 
 export namespace Models {
+  export type public_ChaveIlha = {
+    chaveHash: CodecTypes['pg/text@1']['output'];
+    criadaEm: CodecTypes['pg/timestamptz-string@1']['output'];
+    criadaPorId: CodecTypes['pg/uuid@1']['output'];
+    id: CodecTypes['pg/uuid@1']['output'];
+    criadaPor: public_Usuario;
+    readonly [RelationKeys]?: 'criadaPor';
+  };
   export type public_Dispositivo = {
     ativo: CodecTypes['pg/bool@1']['output'];
     codigoHash: CodecTypes['pg/text@1']['output'];
@@ -1077,12 +1109,14 @@ export namespace Models {
     papel: 'ADMIN';
     senhaHash: CodecTypes['pg/text@1']['output'];
     updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
-    readonly [RelationKeys]?: never;
+    chavesIlha: public_ChaveIlha[];
+    readonly [RelationKeys]?: 'chavesIlha';
   };
 }
 
 export declare const models: {
   public: {
+    ChaveIlha: Models.public_ChaveIlha;
     Dispositivo: Models.public_Dispositivo;
     EtapaPosto: Models.public_EtapaPosto;
     EtapaRoteiro: Models.public_EtapaRoteiro;
@@ -1121,6 +1155,61 @@ type ContractBase = Omit<
         readonly kind: 'postgres-schema';
         readonly entries: {
           readonly table: {
+            readonly ChaveIlha: {
+              columns: {
+                readonly chaveHash: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly criadaEm: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly criadaPorId: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+                readonly id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['chaveHash'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'ChaveIlha_criadaEm_idx_f45975f7';
+                  readonly prefix: 'ChaveIlha_criadaEm_idx';
+                  readonly columns: readonly ['criadaEm'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'ChaveIlha_criadaPorId_idx_27579ca1';
+                  readonly prefix: 'ChaveIlha_criadaPorId_idx';
+                  readonly columns: readonly ['criadaPorId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ChaveIlha';
+                    readonly columns: readonly ['criadaPorId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Usuario';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly Dispositivo: {
               columns: {
                 readonly ativo: {
@@ -2366,6 +2455,7 @@ type ContractBase = Omit<
   readonly target: 'postgres';
   readonly targetFamily: 'sql';
   readonly roots: {
+    readonly ChaveIlha: { readonly namespace: 'public' & NamespaceId; readonly model: 'ChaveIlha' };
     readonly Dispositivo: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'Dispositivo';
@@ -2415,6 +2505,53 @@ type ContractBase = Omit<
     readonly namespaces: {
       readonly public: {
         readonly models: {
+          readonly ChaveIlha: {
+            readonly fields: {
+              readonly chaveHash: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly criadaEm: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly criadaPorId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+            };
+            readonly relations: {
+              readonly criadaPor: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Usuario';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['criadaPorId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'ChaveIlha';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly chaveHash: { readonly column: 'chaveHash' };
+                readonly criadaEm: { readonly column: 'criadaEm' };
+                readonly criadaPorId: { readonly column: 'criadaPorId' };
+                readonly id: { readonly column: 'id' };
+              };
+            };
+          };
           readonly Dispositivo: {
             readonly fields: {
               readonly ativo: {
@@ -3762,7 +3899,19 @@ type ContractBase = Omit<
                 };
               };
             };
-            readonly relations: Record<string, never>;
+            readonly relations: {
+              readonly chavesIlha: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ChaveIlha';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['criadaPorId'];
+                };
+              };
+            };
             readonly storage: {
               readonly table: 'Usuario';
               readonly namespaceId: 'public';
@@ -3838,6 +3987,14 @@ type ContractBase = Omit<
     readonly executionHash: ExecutionHash;
     readonly mutations: {
       readonly defaults: readonly [
+        {
+          readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'ChaveIlha';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
         {
           readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
           readonly ref: {

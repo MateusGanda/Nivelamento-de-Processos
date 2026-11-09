@@ -21,6 +21,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Usuario: conta individual para acesso administrativo autenticado. É separado de Operador.
 - Dispositivo (TV do painel): tela de gestão à vista cadastrada pelo administrador, com nome, local opcional, setor exibido opcional, código de acesso guardado só como resumo e última conexão. Só exibe dados; não registra apontamentos (decisão de 09/11/2026).
 - Terminal/Ilha de Produção: ponto compartilhado e controlado para realizar apontamentos. Não tem tabela própria; o terminal é liberado pela chave da ilha (ver "Acesso administrativo e ilha de produção").
+- Chave da Ilha: chave do terminal gerada por um administrador no painel. Guarda só o resumo da chave, quando foi gerada e por quem; vale a mais recente (decisão de 04/11/2026).
 
 ## Relações
 
@@ -41,6 +42,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Execução → Evento de Tempo: 1:N.
 - Evento de Tempo → Motivo de Pausa: N:0..1.
 - Setor → Dispositivo: 1:N, opcional; sem setor, a TV mostra todos os postos ativos.
+- Usuario → Chave da Ilha: 1:N; cada chave registra o administrador que a gerou.
 
 ## Regras de negócio
 
@@ -141,6 +143,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - A ilha é um terminal compartilhado, com acesso restrito às ações operacionais de apontamento, e não uma conta administrativa compartilhada.
 - QR Code ou código funcional identifica o operador para associar apontamentos; não autentica o usuário nem concede privilégios. A digitação manual deve permanecer como alternativa ao leitor físico.
 - O terminal é autorizado pela chave da ilha (decisão de 25/10/2026): informada uma vez, libera o terminal por um cookie derivado da chave. Não há tabela de terminais nem papel novo; a ilha não usa a sessão administrativa.
+- O administrador troca a chave pelo painel (decisão de 04/11/2026): a chave nova bloqueia todos os terminais e as execuções abertas não mudam. Enquanto nenhuma chave for gerada pelo painel, vale a variável `ILHA_CHAVE`.
 - A matrícula age somente sobre as execuções do próprio operador.
 - As TVs do painel (`Dispositivo`) são liberadas por um código próprio, sem a chave da ilha e sem a sessão administrativa. A tela não mostra nome nem matrícula de operador, pois o tempo é da execução e não avalia uma pessoa.
 - A identificação na tela é limpa pelo botão Sair, 10 s depois de um registro (com contagem na tela) e após 30 s sem uso (decisão de 05/11/2026). A limpeza só muda a tela: não pausa nem finaliza uma execução persistida.

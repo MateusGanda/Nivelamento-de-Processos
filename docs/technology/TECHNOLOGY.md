@@ -20,7 +20,7 @@ Classificação usada:
 | Comunicação UI-servidor | Obrigatório | API REST interna |
 | Persistência | Obrigatório | Prisma 8 e PostgreSQL (Neon no ambiente atual) |
 | Autenticação administrativa | Obrigatório como capacidade | Auth.js (Credentials Provider), JWT de 12 horas e Argon2id |
-| Acesso da ilha | Obrigatório como capacidade | Chave da ilha (`ILHA_CHAVE`) e cookie HttpOnly assinado com HMAC-SHA256 |
+| Acesso da ilha | Obrigatório como capacidade | Chave da ilha gerada no painel (só o resumo no banco) ou, na transição, a variável `ILHA_CHAVE`; cookie HttpOnly assinado com HMAC-SHA256 |
 | Testes automatizados | Obrigatório | `node:test`, executado com `npm test` |
 | Qualidade estática | Necessária | ESLint 9 com `eslint-config-next` (`npm run lint`) e `npm run typecheck` |
 | Verificação automática | Padrão adotado | GitHub Actions (`.github/workflows/verificacao.yml`): instalação, lint, tipos, testes e build em Node 22 |
@@ -172,6 +172,13 @@ Acesso da ilha (decisão de 25/10/2026):
 - chave errada recebe resposta atrasada; `DELETE /api/ilha/acesso` bloqueia o terminal; trocar a chave bloqueia todos os terminais;
 - as rotas `/api/ilha/*` exigem o cookie e não aceitam a sessão administrativa como substituta;
 - a chave é gerada e guardada fora do repositório e passada à equipe em particular, nunca em grupo.
+
+Troca da chave pelo painel (decisão de 04/11/2026, implementada em 09/11/2026, contrato em `specs/contratos/chave-ilha.md`):
+
+- o administrador gera a chave na página Execuções, bloco "Chave da ilha"; a chave tem 20 caracteres gerados pelo servidor e aparece uma única vez; a tabela `ChaveIlha` guarda só o resumo SHA-256, quando foi gerada e por quem;
+- vale a chave mais recente do painel; enquanto nenhuma for gerada, vale `ILHA_CHAVE`, e os terminais liberados continuam funcionando; depois da primeira chave do painel, a variável é ignorada;
+- com a chave do painel, o cookie `gunp_ilha` é um HMAC-SHA256 com o segredo do servidor (`NEXTAUTH_SECRET`) sobre o resumo; a chave em uso é lida a cada pedido, então gerar uma chave nova bloqueia todos os terminais na hora;
+- rotas `GET` e `POST /api/execucoes/chave-ilha`, só para administrador ativo; a consulta nunca devolve a chave.
 
 Acesso do painel de TV (decisão de 09/11/2026, contrato em `specs/contratos/painel-tv.md`):
 

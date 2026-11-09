@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: 'Ilha de apontamento' };
 
 // A ilha não usa a sessão administrativa: o terminal é liberado pela chave da ilha.
 export default async function IlhaPage() {
-  const chave = chaveIlha();
+  const chave = await chaveIlha();
   const liberado = chave.credencialValida((await cookies()).get(COOKIE_ILHA)?.value);
-  return liberado ? <IlhaScreen /> : <IlhaAcesso configurada={chave.configurada} />;
+  return liberado ? <IlhaScreen /> : <IlhaAcesso configurada={chave.configurada} chaveDoPainel={chave.origem === 'PAINEL'} />;
 }

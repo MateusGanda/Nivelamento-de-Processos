@@ -1,6 +1,6 @@
 import type { ExecucoesService } from '../application/execucoes.ts';
 import { ErroDeExecucao } from '../domain/execucao.ts';
-import type { ChaveIlha } from '../infrastructure/chave-ilha.ts';
+import type { ChaveIlha } from '../application/chave-ilha.ts';
 
 export const COOKIE_ILHA = 'gunp_ilha';
 const DURACAO_COOKIE = 30 * 24 * 60 * 60;
@@ -50,7 +50,8 @@ async function lerCorpo(request: Request, campos: readonly string[]): Promise<Re
 }
 
 type Dependencias = {
-  chave: () => ChaveIlha;
+  // A chave em uso é lida a cada pedido (banco ou ILHA_CHAVE): trocar a chave bloqueia os terminais na hora.
+  chave: () => ChaveIlha | Promise<ChaveIlha>;
   execucoes: Pick<ExecucoesService, 'identificar' | 'listarOrdensDisponiveis' | 'listarMotivos' | 'iniciar' | 'pausar' | 'retomar' | 'trocar' | 'baixar'>;
   // Atraso depois de uma chave errada, para dificultar tentativas em sequência.
   esperarAposErro?: () => Promise<void>;
@@ -60,28 +61,30 @@ const DESTINO = ['matricula', 'ordemId', 'etapaId', 'postoId'] as const;
 
 // A ilha não usa a sessão administrativa: só o cookie do terminal liberado pela chave.
 export function criarHandlersIlha({ chave, execucoes, esperarAposErro = () => new Promise((ok) => setTimeout(ok, 800)) }: Dependencias) {
-  function exigirTerminal(request: Request) {
-    const atual = chave();
-    if (!atual.configurada) throw new ErroDeAcessoIlha('NAO_CONFIGURADO', 'A ilha ainda não foi configurada no servidor.');
+  async function exigirTerminal(request: Request) {
+    const atual = await chave();
+    if (!atual.configurada) throw new ErroDeAcessoIlha('NAO_CONFIGURADO', 'A ilha ainda não tem chave. Um administrador precisa gerá-la no painel, em Execuções.');
     if (!atual.credencialValida(lerCookie(request, COOKIE_ILHA))) throw new ErroDeAcessoIlha('NAO_AUTENTICADO', 'Este terminal não está liberado para a ilha.');
   }
 
   async function responder(request: Request, acao: () => Promise<unknown>, status = 200): Promise<Response> {
     try {
-      exigirTerminal(request);
+      await exigirTerminal(request);
       return Response.json(await acao(), { status, headers: { 'Cache-Control': 'no-store' } });
     } catch (erro) { return respostaErroIlha(erro); }
   }
 
   return {
-    ACESSO_GET(request: Request): Response {
-      const atual = chave();
-      return Response.json({ configurada: atual.configurada, liberado: atual.credencialValida(lerCookie(request, COOKIE_ILHA)) }, { headers: { 'Cache-Control': 'no-store' } });
+    async ACESSO_GET(request: Request): Promise<Response> {
+      try {
+        const atual = await chave();
+        return Response.json({ configurada: atual.configurada, liberado: atual.credencialValida(lerCookie(request, COOKIE_ILHA)) }, { headers: { 'Cache-Control': 'no-store' } });
+      } catch (erro) { return respostaErroIlha(erro); }
     },
     async ACESSO_POST(request: Request): Promise<Response> {
       try {
-        const atual = chave();
-        if (!atual.configurada) throw new ErroDeAcessoIlha('NAO_CONFIGURADO', 'A ilha ainda não foi configurada no servidor.');
+        const atual = await chave();
+        if (!atual.configurada) throw new ErroDeAcessoIlha('NAO_CONFIGURADO', 'A ilha ainda não tem chave. Um administrador precisa gerá-la no painel, em Execuções.');
         const { chave: informada } = await lerCorpo(request, ['chave']);
         if (typeof informada !== 'string' || !atual.confere(informada)) {
           await esperarAposErro();

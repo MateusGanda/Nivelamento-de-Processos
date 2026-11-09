@@ -10,6 +10,7 @@
 --   migrations/app/20261022T1404_planos_datas_como_texto (2026-10-22)
 --   migrations/app/20261026T0258_execucao_aberta_unica_por_operador (2026-10-26)
 --   migrations/app/20261109T0323_add_dispositivo (2026-11-09)
+--   migrations/app/20261109T1235_add_chave_ilha (2026-11-09)
 -- Serve para consulta e para criar o banco manualmente em um PostgreSQL vazio.
 -- Em um banco vazio não há dados a converter: o preenchimento do código dos setores
 -- existentes, feito pela migração de 21/10, não aparece aqui. A migração de 22/10
@@ -28,6 +29,14 @@ CREATE SCHEMA IF NOT EXISTS "public";
 -- ============================================================
 -- Tabelas
 -- ============================================================
+
+CREATE TABLE "public"."ChaveIlha" (
+  "chaveHash" text NOT NULL,
+  "criadaEm" timestamptz DEFAULT (now()) NOT NULL,
+  "criadaPorId" uuid NOT NULL,
+  "id" uuid NOT NULL,
+  PRIMARY KEY ("id")
+);
 
 CREATE TABLE "public"."Dispositivo" (
   "ativo" bool DEFAULT true NOT NULL,
@@ -225,6 +234,8 @@ CREATE TABLE "public"."Usuario" (
 -- Restrições de unicidade
 -- ============================================================
 
+ALTER TABLE "public"."ChaveIlha" ADD CONSTRAINT "ChaveIlha_chaveHash_key" UNIQUE ("chaveHash");
+
 ALTER TABLE "public"."Dispositivo" ADD CONSTRAINT "Dispositivo_codigoHash_key" UNIQUE ("codigoHash");
 
 ALTER TABLE "public"."Dispositivo" ADD CONSTRAINT "Dispositivo_nome_key" UNIQUE ("nome");
@@ -262,6 +273,10 @@ ALTER TABLE "public"."Usuario" ADD CONSTRAINT "Usuario_matricula_key" UNIQUE ("m
 -- ============================================================
 -- Índices
 -- ============================================================
+
+CREATE INDEX "ChaveIlha_criadaEm_idx_f45975f7" ON "public"."ChaveIlha" ("criadaEm");
+
+CREATE INDEX "ChaveIlha_criadaPorId_idx_27579ca1" ON "public"."ChaveIlha" ("criadaPorId");
 
 CREATE INDEX "Dispositivo_setorId_idx_e3349e5c" ON "public"."Dispositivo" ("setorId");
 
@@ -315,6 +330,11 @@ CREATE UNIQUE INDEX "ProdutoRoteiro_vigente_unica_c7c5c582" ON "public"."Produto
 -- ============================================================
 -- Chaves estrangeiras
 -- ============================================================
+
+ALTER TABLE "public"."ChaveIlha"
+ADD CONSTRAINT "ChaveIlha_criadaPorId_fkey"
+FOREIGN KEY ("criadaPorId")
+REFERENCES "public"."Usuario" ("id");
 
 ALTER TABLE "public"."Dispositivo"
 ADD CONSTRAINT "Dispositivo_setorId_fkey"

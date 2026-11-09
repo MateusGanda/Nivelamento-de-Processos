@@ -4,6 +4,10 @@
   "target": "postgres",
   "profileHash": "3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2",
   "roots": {
+    "ChaveIlha": {
+      "model": "ChaveIlha",
+      "namespace": "public"
+    },
     "Dispositivo": {
       "model": "Dispositivo",
       "namespace": "public"
@@ -139,6 +143,74 @@
           }
         },
         "models": {
+          "ChaveIlha": {
+            "fields": {
+              "chaveHash": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "criadaEm": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "criadaPorId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "criadaPor": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "criadaPorId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Usuario",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "chaveHash": {
+                  "column": "chaveHash"
+                },
+                "criadaEm": {
+                  "column": "criadaEm"
+                },
+                "criadaPorId": {
+                  "column": "criadaPorId"
+                },
+                "id": {
+                  "column": "id"
+                }
+              },
+              "namespaceId": "public",
+              "table": "ChaveIlha"
+            }
+          },
           "Dispositivo": {
             "fields": {
               "ativo": {
@@ -2141,7 +2213,23 @@
                 }
               }
             },
-            "relations": {},
+            "relations": {
+              "chavesIlha": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "criadaPorId"
+                  ]
+                },
+                "to": {
+                  "model": "ChaveIlha",
+                  "namespace": "public"
+                }
+              }
+            },
             "storage": {
               "fields": {
                 "ativo": {
@@ -2185,6 +2273,82 @@
       "public": {
         "entries": {
           "table": {
+            "ChaveIlha": {
+              "columns": {
+                "chaveHash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "criadaEm": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "criadaPorId": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "criadaPorId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "ChaveIlha"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Usuario"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "criadaEm"
+                  ],
+                  "name": "ChaveIlha_criadaEm_idx_f45975f7",
+                  "prefix": "ChaveIlha_criadaEm_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "criadaPorId"
+                  ],
+                  "name": "ChaveIlha_criadaPorId_idx_27579ca1",
+                  "prefix": "ChaveIlha_criadaPorId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "chaveHash"
+                  ]
+                }
+              ]
+            },
             "Dispositivo": {
               "columns": {
                 "ativo": {
@@ -3902,12 +4066,23 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "346d135fd2c61440707aa3a6a6a6469962920b7ff24fbc740767858b6eea69bd"
+    "storageHash": "c172ef842aedcf5daa623427d147d0d60dd89caa22dcc58ebb68edfe1011ba7a"
   },
   "execution": {
-    "executionHash": "d9f1363d4688d46d937ff2747b1bb401ff5bd382aa397e6fd3c4f082560394e1",
+    "executionHash": "a1ef384d8bd6528ddadbd0e183c91f2a9f990140a3e9e0aac7de1afbb92da119",
     "mutations": {
       "defaults": [
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "ChaveIlha",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
         {
           "onCreate": {
             "id": "uuidv4",

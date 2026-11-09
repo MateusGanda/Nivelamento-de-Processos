@@ -2,16 +2,18 @@
 
 import { useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, KeyRound, LoaderCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, KeyRound, LoaderCircle } from 'lucide-react';
 import { BrandGunp } from '../../../access/presentation/components/brand-gunp';
 import { ErroApiIlha, liberarTerminal } from '../api-client';
 
-export function IlhaAcesso({ configurada }: { configurada: boolean }) {
+// `chaveDoPainel`: a chave em uso foi gerada no painel, que aceita hífen, espaços e minúsculas.
+export function IlhaAcesso({ configurada, chaveDoPainel = false }: { configurada: boolean; chaveDoPainel?: boolean }) {
   const router = useRouter();
   const emEnvio = useRef(false);
   const [chave, setChave] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState('');
+  const [mostrar, setMostrar] = useState(false);
 
   async function liberar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,8 +43,15 @@ export function IlhaAcesso({ configurada }: { configurada: boolean }) {
             <p className="text-sm leading-6 text-muted">Este terminal ainda não está liberado. Quem tiver a chave da ilha digita uma vez e o terminal fica liberado por 30 dias, só para apontamentos.</p>
             <div>
               <label htmlFor="ilha-chave" className="block text-sm font-medium">Chave da ilha</label>
-              <input id="ilha-chave" type="password" autoComplete="off" required value={chave} onChange={(event) => setChave(event.target.value)} disabled={enviando}
-                className="mt-2 h-12 w-full rounded-lg border border-[#3b454e] bg-background px-4 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60" aria-describedby={erro ? 'ilha-chave-erro' : undefined} />
+              <div className="relative mt-2">
+                <input id="ilha-chave" type={mostrar ? 'text' : 'password'} autoComplete="off" autoCapitalize="characters" spellCheck={false} required value={chave} onChange={(event) => { setChave(chaveDoPainel ? event.target.value.toUpperCase() : event.target.value); setErro(''); }} disabled={enviando}
+                  className="h-12 w-full rounded-lg border border-[#3b454e] bg-background pr-14 pl-4 font-mono text-base tracking-wider outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60" aria-describedby={[erro && 'ilha-chave-erro', chaveDoPainel && 'ilha-chave-dica'].filter(Boolean).join(' ') || undefined} />
+                <button type="button" onClick={() => setMostrar((m) => !m)} aria-label={mostrar ? 'Ocultar a chave' : 'Mostrar a chave'} aria-pressed={mostrar}
+                  className="absolute top-1/2 right-1 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent">
+                  {mostrar ? <EyeOff aria-hidden="true" size={20} /> : <Eye aria-hidden="true" size={20} />}
+                </button>
+              </div>
+              {chaveDoPainel && <p id="ilha-chave-dica" className="mt-2 text-xs leading-5 text-muted">Chave de 20 caracteres gerada no painel, em Execuções. Pode digitar com ou sem hífen.</p>}
             </div>
             {erro && <p id="ilha-chave-erro" role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
             <button type="submit" disabled={enviando || !chave} className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-base font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60">
@@ -50,7 +59,7 @@ export function IlhaAcesso({ configurada }: { configurada: boolean }) {
             </button>
           </form>
         ) : (
-          <p role="alert" className="mt-4 text-sm leading-6 text-[#ffcf99]">A ilha ainda não foi configurada no servidor. O responsável pelo sistema precisa definir a variável ILHA_CHAVE.</p>
+          <p role="alert" className="mt-4 text-sm leading-6 text-[#ffcf99]">A ilha ainda não tem chave. Um administrador precisa gerá-la no painel, em Execuções › Chave da ilha.</p>
         )}
       </section>
     </main>
