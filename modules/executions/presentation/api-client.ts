@@ -98,3 +98,24 @@ export async function liberarTerminal(chave: string): Promise<void> {
 export async function bloquearTerminal(): Promise<void> {
   await lerResposta(await fetch('/api/ilha/acesso', { method: 'DELETE', credentials: 'same-origin' }));
 }
+
+// ---------- chave da ilha, no painel do administrador ----------
+export type SituacaoChaveIlha = { origem: 'PAINEL' | 'AMBIENTE' | 'NENHUMA'; trocadaEm: string | null; trocadaPor: string | null };
+
+function ehSituacaoChave(valor: unknown): valor is SituacaoChaveIlha {
+  return objeto(valor) && typeof valor.origem === 'string' && ['PAINEL', 'AMBIENTE', 'NENHUMA'].includes(valor.origem) &&
+    (valor.trocadaEm === null || (typeof valor.trocadaEm === 'string' && Number.isFinite(Date.parse(valor.trocadaEm)))) &&
+    (valor.trocadaPor === null || typeof valor.trocadaPor === 'string');
+}
+
+export async function consultarChaveIlha(signal?: AbortSignal): Promise<SituacaoChaveIlha> {
+  const situacao = await lerResposta(await get('/api/execucoes/chave-ilha', signal));
+  if (!ehSituacaoChave(situacao)) throw new ErroApiIlha(500, 'Resposta inválida ao consultar a chave. Tente novamente.');
+  return situacao;
+}
+
+export async function gerarChaveIlha(): Promise<{ chave: string; situacao: SituacaoChaveIlha }> {
+  const corpo = await lerResposta(await post('/api/execucoes/chave-ilha', {}));
+  if (!objeto(corpo) || typeof corpo.chave !== 'string' || !ehSituacaoChave(corpo.situacao)) throw new ErroApiIlha(500, 'Resposta inválida ao gerar a chave. Tente novamente.');
+  return { chave: corpo.chave, situacao: corpo.situacao };
+}

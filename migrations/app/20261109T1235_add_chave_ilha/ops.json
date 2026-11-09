@@ -1,0 +1,203 @@
+[
+  {
+    "id": "table.ChaveIlha",
+    "label": "Create table \"ChaveIlha\"",
+    "summary": "Creates table \"ChaveIlha\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "ChaveIlha"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"ChaveIlha\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ChaveIlha\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"ChaveIlha\"",
+        "sql": "CREATE TABLE \"public\".\"ChaveIlha\" (\n  \"chaveHash\" text NOT NULL,\n  \"criadaEm\" timestamptz DEFAULT (now()) NOT NULL,\n  \"criadaPorId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"ChaveIlha\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ChaveIlha\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.ChaveIlha.ChaveIlha_chaveHash_key",
+    "label": "Add unique constraint on \"ChaveIlha\" (chaveHash)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "ChaveIlha_chaveHash_key",
+        "table": "ChaveIlha"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"ChaveIlha_chaveHash_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ChaveIlha_chaveHash_key",
+          "public",
+          "\"public\".\"ChaveIlha\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"ChaveIlha_chaveHash_key\"",
+        "sql": "ALTER TABLE \"public\".\"ChaveIlha\" ADD CONSTRAINT \"ChaveIlha_chaveHash_key\" UNIQUE (\"chaveHash\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"ChaveIlha_chaveHash_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ChaveIlha_chaveHash_key",
+          "public",
+          "\"public\".\"ChaveIlha\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ChaveIlha.ChaveIlha_criadaEm_idx_f45975f7",
+    "label": "Create index \"ChaveIlha_criadaEm_idx_f45975f7\" on \"ChaveIlha\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ChaveIlha_criadaEm_idx_f45975f7",
+        "table": "ChaveIlha"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ChaveIlha_criadaEm_idx_f45975f7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ChaveIlha_criadaEm_idx_f45975f7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ChaveIlha_criadaEm_idx_f45975f7\"",
+        "sql": "CREATE INDEX \"ChaveIlha_criadaEm_idx_f45975f7\" ON \"public\".\"ChaveIlha\" (\"criadaEm\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ChaveIlha_criadaEm_idx_f45975f7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ChaveIlha_criadaEm_idx_f45975f7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ChaveIlha.ChaveIlha_criadaPorId_idx_27579ca1",
+    "label": "Create index \"ChaveIlha_criadaPorId_idx_27579ca1\" on \"ChaveIlha\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ChaveIlha_criadaPorId_idx_27579ca1",
+        "table": "ChaveIlha"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ChaveIlha_criadaPorId_idx_27579ca1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ChaveIlha_criadaPorId_idx_27579ca1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ChaveIlha_criadaPorId_idx_27579ca1\"",
+        "sql": "CREATE INDEX \"ChaveIlha_criadaPorId_idx_27579ca1\" ON \"public\".\"ChaveIlha\" (\"criadaPorId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ChaveIlha_criadaPorId_idx_27579ca1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ChaveIlha_criadaPorId_idx_27579ca1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ChaveIlha.ChaveIlha_criadaPorId_fkey",
+    "label": "Add foreign key \"ChaveIlha_criadaPorId_fkey\" on \"ChaveIlha\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ChaveIlha_criadaPorId_fkey",
+        "table": "ChaveIlha"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ChaveIlha_criadaPorId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ChaveIlha_criadaPorId_fkey",
+          "public",
+          "\"public\".\"ChaveIlha\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ChaveIlha_criadaPorId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ChaveIlha\"\nADD CONSTRAINT \"ChaveIlha_criadaPorId_fkey\"\nFOREIGN KEY (\"criadaPorId\")\nREFERENCES \"public\".\"Usuario\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ChaveIlha_criadaPorId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ChaveIlha_criadaPorId_fkey",
+          "public",
+          "\"public\".\"ChaveIlha\""
+        ]
+      }
+    ]
+  }
+]

@@ -32,6 +32,8 @@ model Usuario {
   ativo     Boolean           @default(true)
   createdAt TimestamptzString @default(now())
   updatedAt TimestamptzString @default(now())
+
+  chavesIlha ChaveIlha[]
 }
 
 model Produto {
@@ -336,4 +338,18 @@ model MotivoPausa {
   updatedAt TimestamptzString @default(now())
 
   eventosTempo EventoTempo[]
+}
+
+// Chave da ilha gerada pelo painel: só o resumo da chave, quando foi gerada e por quem.
+// A mais recente vale; sem nenhuma linha, a ilha usa a variável ILHA_CHAVE.
+model ChaveIlha {
+  id          Uuid              @id @default(uuid())
+  chaveHash   String            @unique
+  criadaPorId Uuid
+  criadaEm    TimestamptzString @default(now())
+
+  criadaPor Usuario @relation(fields: [criadaPorId], references: [id])
+
+  @@index([criadaPorId])
+  @@index([criadaEm])
 }

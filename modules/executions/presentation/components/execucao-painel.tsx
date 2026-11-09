@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
+import { ChaveIlhaPainel } from './chave-ilha-painel';
 import { ExecucoesAcompanhamento } from './execucoes-acompanhamento';
 
 // Página Execuções do painel: acompanhamento das execuções abertas (só leitura) e atalho para a ilha.
@@ -24,6 +25,7 @@ export function ExecucaoPainel() {
         </div>
       </div>
       <ExecucoesAcompanhamento />
+      <ChaveIlhaPainel />
     </div>
   );
 }

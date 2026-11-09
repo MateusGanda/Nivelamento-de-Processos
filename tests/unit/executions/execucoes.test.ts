@@ -286,7 +286,7 @@ test('ilha: só o terminal liberado pela chave chega à API; a sessão administr
   const setCookie = liberado.headers.get('Set-Cookie')!;
   assert.match(setCookie, new RegExp(`^${COOKIE_ILHA}=[^;]+; Path=/; HttpOnly; SameSite=Strict; Max-Age=2592000`));
   const cookie = setCookie.split(';')[0];
-  assert.deepEqual(await handlers.ACESSO_GET(pedido('/api/ilha/acesso', 'GET', undefined, cookie)).json(), { configurada: true, liberado: true });
+  assert.deepEqual(await (await handlers.ACESSO_GET(pedido('/api/ilha/acesso', 'GET', undefined, cookie))).json(), { configurada: true, liberado: true });
   const operador = await handlers.OPERADOR_GET(pedido('/api/ilha/operadores/AS-MON1', 'GET', undefined, cookie), 'AS-MON1');
   assert.equal(operador.status, 200);
   assert.equal((await operador.json()).nome, 'Ana Souza');
