@@ -1,0 +1,206 @@
+[
+  {
+    "id": "table.Dispositivo",
+    "label": "Create table \"Dispositivo\"",
+    "summary": "Creates table \"Dispositivo\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Dispositivo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Dispositivo\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Dispositivo\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Dispositivo\"",
+        "sql": "CREATE TABLE \"public\".\"Dispositivo\" (\n  \"ativo\" bool DEFAULT true NOT NULL,\n  \"codigoHash\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"local\" text,\n  \"nome\" text NOT NULL,\n  \"setorId\" uuid,\n  \"ultimaConexaoEm\" timestamptz,\n  \"updatedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Dispositivo\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Dispositivo\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Dispositivo.Dispositivo_nome_key",
+    "label": "Add unique constraint on \"Dispositivo\" (nome)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Dispositivo_nome_key",
+        "table": "Dispositivo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Dispositivo_nome_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Dispositivo_nome_key",
+          "public",
+          "\"public\".\"Dispositivo\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Dispositivo_nome_key\"",
+        "sql": "ALTER TABLE \"public\".\"Dispositivo\" ADD CONSTRAINT \"Dispositivo_nome_key\" UNIQUE (\"nome\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Dispositivo_nome_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Dispositivo_nome_key",
+          "public",
+          "\"public\".\"Dispositivo\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Dispositivo.Dispositivo_codigoHash_key",
+    "label": "Add unique constraint on \"Dispositivo\" (codigoHash)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Dispositivo_codigoHash_key",
+        "table": "Dispositivo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Dispositivo_codigoHash_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Dispositivo_codigoHash_key",
+          "public",
+          "\"public\".\"Dispositivo\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Dispositivo_codigoHash_key\"",
+        "sql": "ALTER TABLE \"public\".\"Dispositivo\" ADD CONSTRAINT \"Dispositivo_codigoHash_key\" UNIQUE (\"codigoHash\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"Dispositivo_codigoHash_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Dispositivo_codigoHash_key",
+          "public",
+          "\"public\".\"Dispositivo\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Dispositivo.Dispositivo_setorId_idx_e3349e5c",
+    "label": "Create index \"Dispositivo_setorId_idx_e3349e5c\" on \"Dispositivo\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Dispositivo_setorId_idx_e3349e5c",
+        "table": "Dispositivo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Dispositivo_setorId_idx_e3349e5c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Dispositivo_setorId_idx_e3349e5c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Dispositivo_setorId_idx_e3349e5c\"",
+        "sql": "CREATE INDEX \"Dispositivo_setorId_idx_e3349e5c\" ON \"public\".\"Dispositivo\" (\"setorId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Dispositivo_setorId_idx_e3349e5c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Dispositivo_setorId_idx_e3349e5c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Dispositivo.Dispositivo_setorId_fkey",
+    "label": "Add foreign key \"Dispositivo_setorId_fkey\" on \"Dispositivo\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Dispositivo_setorId_fkey",
+        "table": "Dispositivo"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Dispositivo_setorId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Dispositivo_setorId_fkey",
+          "public",
+          "\"public\".\"Dispositivo\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Dispositivo_setorId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Dispositivo\"\nADD CONSTRAINT \"Dispositivo_setorId_fkey\"\nFOREIGN KEY (\"setorId\")\nREFERENCES \"public\".\"Setor\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Dispositivo_setorId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Dispositivo_setorId_fkey",
+          "public",
+          "\"public\".\"Dispositivo\""
+        ]
+      }
+    ]
+  }
+]

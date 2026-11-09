@@ -1,4 +1,4 @@
-export type IconePainel = 'inicio' | 'produtos' | 'operacoes' | 'setores' | 'postos' | 'operadores' | 'pausas' | 'roteiros' | 'planos' | 'ordens' | 'execucoes' | 'indicadores';
+export type IconePainel = 'inicio' | 'produtos' | 'operacoes' | 'setores' | 'postos' | 'operadores' | 'pausas' | 'roteiros' | 'planos' | 'ordens' | 'execucoes' | 'tvs' | 'indicadores';
 export type GrupoPainel = 'Início' | 'Cadastros' | 'Produção' | 'Relatórios';
 
 export type DestinoPainel = {
@@ -22,6 +22,7 @@ export const destinosPainel: readonly DestinoPainel[] = [
   { titulo: 'Planos de Produção', slug: 'planos-de-producao', grupo: 'Produção', descricao: 'Organização dos planos de produção.', icone: 'planos' },
   { titulo: 'Ordens de Produção', slug: 'ordens-de-producao', grupo: 'Produção', descricao: 'Acompanhamento das ordens de produção.', icone: 'ordens' },
   { titulo: 'Execuções', slug: 'execucoes', grupo: 'Produção', descricao: 'Acompanhamento das execuções em andamento e acesso à ilha.', icone: 'execucoes' },
+  { titulo: 'TVs', slug: 'tvs', grupo: 'Produção', descricao: 'Painéis de TV do chão de fábrica e a conexão de cada um.', icone: 'tvs' },
   { titulo: 'Indicadores', slug: 'indicadores', grupo: 'Relatórios', descricao: 'Análise dos registros da produção.', icone: 'indicadores' },
 ];
 

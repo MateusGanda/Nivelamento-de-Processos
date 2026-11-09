@@ -1,4 +1,4 @@
-import { Box, Building2, CalendarDays, ChartColumnIncreasing, ClipboardList, Clock3, Cog, Factory, House, Play, Route, UsersRound, type LucideIcon } from 'lucide-react';
+import { Box, Building2, CalendarDays, ChartColumnIncreasing, ClipboardList, Clock3, Cog, Factory, House, Play, Route, Tv, UsersRound, type LucideIcon } from 'lucide-react';
 import type { IconePainel } from '../painel-navigation';
 
 const icones: Record<IconePainel, LucideIcon> = {
@@ -13,6 +13,7 @@ const icones: Record<IconePainel, LucideIcon> = {
   planos: CalendarDays,
   ordens: ClipboardList,
   execucoes: Play,
+  tvs: Tv,
   indicadores: ChartColumnIncreasing,
 };
 

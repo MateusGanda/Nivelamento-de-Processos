@@ -76,6 +76,7 @@ Telas e rotas do painel em 26/10/2026, todas com sessão de ADMIN ativo:
 | `/painel/planos-de-producao` | `/api/planos-de-producao`, `/api/planos-de-producao/[id]` | `modules/production-plans` |
 | `/painel/ordens-de-producao` | `/api/ordens-de-producao`, `/api/ordens-de-producao/[id]` | `modules/production-orders` |
 | `/painel/indicadores` | `/api/indicadores` | `modules/indicators` |
+| `/painel/tvs` | `/api/dispositivos`, `/api/dispositivos/[id]`, `/api/dispositivos/[id]/status`, `/api/dispositivos/[id]/codigo` | `modules/devices` |
 
 A edição usa `PATCH /api/<cadastro>/[id]` e a mudança de status usa `PATCH /api/<cadastro>/[id]/status`, com o corpo `{ "ativo": true | false }`. A página Execução (`/painel/execucoes`) abre a ilha em uma nova aba, sem registrar apontamentos pelo painel. Os gráficos da tela de indicadores são feitos com HTML e CSS, sem biblioteca de gráficos; as cores foram validadas para daltonismo e contraste contra o fundo dos cartões, e cada gráfico tem uma tabela equivalente.
 
@@ -171,6 +172,13 @@ Acesso da ilha (decisão de 25/10/2026):
 - chave errada recebe resposta atrasada; `DELETE /api/ilha/acesso` bloqueia o terminal; trocar a chave bloqueia todos os terminais;
 - as rotas `/api/ilha/*` exigem o cookie e não aceitam a sessão administrativa como substituta;
 - a chave é gerada e guardada fora do repositório e passada à equipe em particular, nunca em grupo.
+
+Acesso do painel de TV (decisão de 09/11/2026, contrato em `specs/contratos/painel-tv.md`):
+
+- cada TV é um `Dispositivo` cadastrado em `/painel/tvs`, com um código de acesso próprio de 10 caracteres gerado pelo servidor; o banco guarda só o resumo SHA-256 do código;
+- `POST /api/tv/acesso` confere o código e grava o cookie `gunp_tv`, HttpOnly, SameSite=Strict, Secure em produção, válido por 365 dias; código errado recebe resposta atrasada (0,8 s);
+- `GET /api/tv/painel` exige o cookie de uma TV ativa e não aceita a sessão administrativa nem o cookie da ilha; a resposta não traz nome nem matrícula de operador;
+- desativar a TV ou gerar um código novo corta o acesso na próxima atualização; cada busca de dados registra a última conexão (no máximo uma gravação a cada 10 s), usada para mostrar a TV como online (até 45 s) ou offline.
 
 Proteções definidas após os testes da etapa 8 (04/11/2026):
 
