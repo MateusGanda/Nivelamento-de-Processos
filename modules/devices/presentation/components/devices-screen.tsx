@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, CheckCircle2, ExternalLink, KeyRound, LoaderCircle, Pencil, Plus, Power, PowerOff, Tv } from 'lucide-react';
 import type { Dispositivo, DispositivoListado, SituacaoConexao } from '../../domain/dispositivo';
-import { INTERVALO_ATUALIZACAO_MS } from '../../domain/dispositivo';
+import { INTERVALO_ATUALIZACAO_MS, LIMITE_ONLINE_MS } from '../../domain/dispositivo';
 import { definirStatusDispositivo, ErroApiDispositivos, listarDispositivos } from '../api-client';
 import { listarSetores } from '../../../sectors/presentation/api-client';
 import { DeviceFormDialog, type PedidoFormularioDispositivo } from './device-form-dialog';
@@ -117,7 +117,7 @@ export function DevicesScreen() {
       {erro && <p role="alert" className="mt-6 flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-4 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
 
       <section aria-label="TVs cadastradas" aria-busy={carregando} className="mt-7 min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
-        <p className="border-b border-white/10 px-5 py-3 text-xs text-muted">Online: a TV conectou nos últimos 45 segundos. A lista atualiza sozinha a cada {INTERVALO_ATUALIZACAO_MS / 1000} s.</p>
+        <p className="border-b border-white/10 px-5 py-3 text-xs text-muted">Online: a TV conectou nos últimos {LIMITE_ONLINE_MS / 1000} segundos. A lista atualiza sozinha a cada {INTERVALO_ATUALIZACAO_MS / 1000} s.</p>
         {carregando && dispositivos.length === 0 ? (
           <p role="status" className="flex min-h-40 items-center justify-center gap-3 p-6 text-sm text-muted"><LoaderCircle aria-hidden="true" size={22} className="motion-safe:animate-spin" />Carregando TVs…</p>
         ) : (

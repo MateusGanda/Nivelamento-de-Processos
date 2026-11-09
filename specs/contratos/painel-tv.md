@@ -1,6 +1,8 @@
 # Contrato do painel de TV
 
-Versão 1.0, de 09/11/2026. Responsável: Mateus.
+Versão 1.1, de 09/11/2026. Responsável: Mateus.
+
+Versão 1.1: a TV passa a atualizar a cada 5 s, e não mais a cada 15 s. Ela aparece como offline depois de 20 s sem sinal, e não mais 45 s. O pedido veio do Gustavo e foi aprovado pela equipe.
 
 **Status: implementado na branch `feat/painel-tv`.** A migration `20261109T0323_add_dispositivo` ainda não foi aplicada no banco do site. Ela só pode ser aplicada antes do merge e com autorização da equipe.
 
@@ -44,7 +46,7 @@ Todas as rotas exigem administrador ativo, como os cadastros. Os erros seguem o 
 | `POST /api/dispositivos/[id]/codigo` | — | `{ dispositivo, codigo }` |
 
 - Nome repetido: `409 CONFLITO`. Setor inexistente: `400 ENTRADA_INVALIDA`. Dispositivo inexistente: `404 NAO_ENCONTRADO`.
-- **Online:** a última conexão foi há até 45 s, o equivalente a três atualizações da TV. **Offline:** já conectou, mas passou desse tempo. **Nunca conectou:** ainda não recebeu nenhuma conexão.
+- **Online:** a última conexão foi há até 20 s. A TV busca os dados a cada 5 s, e a conexão é gravada no máximo a cada 10 s, então sobra folga para um pedido lento. **Offline:** já conectou, mas passou desse tempo. **Nunca conectou:** ainda não recebeu nenhuma conexão.
 
 ## Rotas da TV
 
@@ -56,7 +58,7 @@ As rotas da TV não usam a sessão administrativa nem o cookie da ilha.
 
 ```json
 {
-  "meta": { "consultadoEm": "2026-11-09T14:05:00.000Z", "intervaloSegundos": 15 },
+  "meta": { "consultadoEm": "2026-11-09T14:05:00.000Z", "intervaloSegundos": 5 },
   "dispositivo": { "nome": "TV da Montagem", "local": "Parede da montagem", "setor": "Montagem" },
   "postos": [{
     "codigo": "MON-01", "nome": "Montagem 1", "setor": "Montagem", "situacao": "PAUSADA",
@@ -84,12 +86,12 @@ As rotas da TV não usam a sessão administrativa nem o cookie da ilha.
 - `/tv` fica fora do painel. Sem o cookie de uma TV ativa, a tela pede o código. Com o cookie, mostra o painel em tela cheia, com letras proporcionais à largura e sem cursor.
 - O cabeçalho mostra o nome da TV, o setor e o relógio. Em seguida vêm o resumo (em execução, pausados e livres), os cartões dos postos, a produção de hoje e as barras da carga por posto.
 - O cartão do posto mostra a ordem, o produto, a etapa, o tempo produtivo até agora e, na pausa, o motivo. Os sinais de atenção ("acima do previsto", "iniciada em outro dia") seguem a regra da página Execuções.
-- Os dados são atualizados a cada 15 s. Se uma atualização falhar, a tela mantém os dados anteriores e avisa de quando eles são. Se a TV perder o acesso, a tela volta a pedir o código.
+- Os dados são atualizados a cada 5 s. Se uma atualização falhar, a tela mantém os dados anteriores e avisa de quando eles são. Se a TV perder o acesso, a tela volta a pedir o código.
 - São 9 postos por página. Quando há mais postos, as páginas se alternam a cada 20 s. A tela pede ao navegador para não apagar (Wake Lock) e se recarrega a cada 6 h.
 
 ## Página do administrador
 
-`/painel/tvs` (item **TVs** do menu, grupo Produção) lista as TVs com setor, local, situação da conexão, última conexão e status. A lista se atualiza a cada 15 s. Ações: cadastrar, editar, gerar novo código, desativar ou ativar, e abrir a tela da TV em outra aba.
+`/painel/tvs` (item **TVs** do menu, grupo Produção) lista as TVs com setor, local, situação da conexão, última conexão e status. A lista se atualiza a cada 5 s. Ações: cadastrar, editar, gerar novo código, desativar ou ativar, e abrir a tela da TV em outra aba.
 
 ## Fora deste contrato
 
