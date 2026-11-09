@@ -12,6 +12,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// A política de conteúdo (proxy.ts) usa um nonce por pedido: toda página, inclusive a de "não encontrada",
+// precisa ser montada a cada pedido para os scripts do Next.js receberem esse nonce.
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: { default: "GUNP", template: "%s | GUNP" },
   description: "Gerenciamento de Nivelamento de Processos: cadastros, execuções e acompanhamento da produção.",

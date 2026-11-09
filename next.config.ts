@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 // Cabeçalhos de segurança enviados em todas as respostas.
-// A política de conteúdo (CSP) fica para a etapa de segurança, pois precisa ser testada com os scripts do Next.
+// A política de conteúdo (CSP) é aplicada no proxy.ts, porque usa um nonce novo a cada página.
 const cabecalhosDeSeguranca = [
   // Impede que o GUNP seja aberto dentro de outro site (clickjacking).
   { key: "X-Frame-Options", value: "DENY" },
