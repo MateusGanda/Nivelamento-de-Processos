@@ -26,6 +26,7 @@ Este documento organiza o desenvolvimento do GUNP em etapas executáveis, com de
 - [x] Cálculo de tempos
 - [x] Indicadores
 - [x] Acompanhamento das execuções abertas no painel (05/11/2026, `specs/contratos/execucoes-acompanhamento.md`)
+- [x] Painel de TV para gestão à vista, com TVs cadastradas e situação da conexão (09/11/2026, `specs/contratos/painel-tv.md`; migration pendente no banco do site)
 - [ ] Dashboard
 - [x] Seed/dados demonstrativos
 - [x] Testes das regras críticas

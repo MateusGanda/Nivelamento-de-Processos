@@ -18,7 +18,7 @@ const modulosEsperados = [
   ['produtos', 'Produtos'], ['operacoes', 'Operações'], ['setores', 'Setores'],
   ['postos', 'Postos'], ['operadores', 'Operadores'], ['motivos-de-pausa', 'Motivos de Pausa'],
   ['roteiros', 'Roteiros'], ['planos-de-producao', 'Planos de Produção'],
-  ['ordens-de-producao', 'Ordens de Produção'], ['execucoes', 'Execuções'], ['indicadores', 'Indicadores'],
+  ['ordens-de-producao', 'Ordens de Produção'], ['execucoes', 'Execuções'], ['tvs', 'TVs'], ['indicadores', 'Indicadores'],
 ] as const;
 
 function guardarCookies(resposta: Response, cookies: Map<string, string>) {

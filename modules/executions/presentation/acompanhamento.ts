@@ -6,6 +6,9 @@ import { tempoDecorrido } from './tempo-decorrido.ts';
 /** Intervalo da atualização automática da lista. */
 export const INTERVALO_ATUALIZACAO_MS = 30_000;
 
+/** Campos que bastam para tempos, pausa e atenção; a tela da TV usa estas funções sem dados do operador. */
+export type ExecucaoComTempos = Pick<ExecucaoAcompanhada, 'status' | 'eventos' | 'tempoPadraoSegundos'> & { ordem: { quantidade: number } };
+
 export type RespostaAcompanhamento = { meta: { consultadoEm: string }; execucoes: ExecucaoAcompanhada[] };
 export type FiltroSituacao = 'todas' | 'EM_EXECUCAO' | 'PAUSADA' | 'ATENCAO';
 
@@ -80,7 +83,7 @@ export function filtrarExecucoes(
 
 const DIA_COMPLETO = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' });
 
-export function atencoesDaExecucao(execucao: ExecucaoAcompanhada, agoraServidorMs: number): Atencao[] {
+export function atencoesDaExecucao(execucao: ExecucaoComTempos, agoraServidorMs: number): Atencao[] {
   const atencoes: Atencao[] = [];
   if (execucao.tempoPadraoSegundos !== null && execucao.tempoPadraoSegundos > 0) {
     const previstoSegundos = Math.round(execucao.tempoPadraoSegundos * execucao.ordem.quantidade);
@@ -93,12 +96,12 @@ export function atencoesDaExecucao(execucao: ExecucaoAcompanhada, agoraServidorM
   return atencoes;
 }
 
-export function inicioDaExecucao(execucao: ExecucaoAcompanhada): string | null {
+export function inicioDaExecucao(execucao: ExecucaoComTempos): string | null {
   return execucao.eventos.find((evento) => evento.tipo === 'INICIO')?.dataHora ?? null;
 }
 
 /** Motivo e horário da pausa em andamento; null se a execução não está pausada. */
-export function pausaAtual(execucao: ExecucaoAcompanhada): { motivo: string | null; desde: string } | null {
+export function pausaAtual(execucao: ExecucaoComTempos): { motivo: string | null; desde: string } | null {
   if (execucao.status !== 'PAUSADA') return null;
   const pausa = execucao.eventos.findLast((evento) => evento.tipo === 'PAUSA');
   return pausa ? { motivo: pausa.motivo, desde: pausa.dataHora } : null;
@@ -113,7 +116,7 @@ export function agoraDoServidor(consultadoEm: string, recebidoEmMs: number, agor
 }
 
 /** Tempo produtivo e em pausa até agora, com a mesma regra da ilha e dos indicadores. */
-export function temposAteAgora(execucao: ExecucaoAcompanhada, agoraServidorMs: number) {
+export function temposAteAgora(execucao: ExecucaoComTempos, agoraServidorMs: number) {
   return tempoDecorrido(execucao.eventos, execucao.status, agoraServidorMs);
 }
 

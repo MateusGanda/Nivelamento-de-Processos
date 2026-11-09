@@ -34,9 +34,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'f3205b33a13d5e1ae51bf72ce1037c0bf6b9ba5d058610e405835df987b5eea4'>;
+  StorageHashBase<'346d135fd2c61440707aa3a6a6a6469962920b7ff24fbc740767858b6eea69bd'>;
 export type ExecutionHash =
-  ExecutionHashBase<'d3c12040a57d99adbe8e708fbb69a74a409d36620d004ab5171234559c048f33'>;
+  ExecutionHashBase<'d9f1363d4688d46d937ff2747b1bb401ff5bd382aa397e6fd3c4f082560394e1'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -250,6 +250,17 @@ type DefaultLiteralValue<CodecId extends string, Encoded> = CodecId extends keyo
 
 export type FieldOutputTypes = {
   readonly public: {
+    readonly Dispositivo: {
+      readonly ativo: CodecTypes['pg/bool@1']['output'];
+      readonly codigoHash: CodecTypes['pg/text@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly local: CodecTypes['pg/text@1']['output'] | null;
+      readonly nome: CodecTypes['pg/text@1']['output'];
+      readonly setorId: CodecTypes['pg/uuid@1']['output'] | null;
+      readonly ultimaConexaoEm: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
     readonly EtapaPosto: {
       readonly etapaRoteiroId: CodecTypes['pg/uuid@1']['output'];
       readonly postoId: CodecTypes['pg/uuid@1']['output'];
@@ -394,6 +405,17 @@ export type FieldOutputTypes = {
 };
 export type FieldInputTypes = {
   readonly public: {
+    readonly Dispositivo: {
+      readonly ativo: CodecTypes['pg/bool@1']['input'];
+      readonly codigoHash: CodecTypes['pg/text@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly local: CodecTypes['pg/text@1']['input'] | null;
+      readonly nome: CodecTypes['pg/text@1']['input'];
+      readonly setorId: CodecTypes['pg/uuid@1']['input'] | null;
+      readonly ultimaConexaoEm: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
     readonly EtapaPosto: {
       readonly etapaRoteiroId: CodecTypes['pg/uuid@1']['input'];
       readonly postoId: CodecTypes['pg/uuid@1']['input'];
@@ -538,6 +560,17 @@ export type FieldInputTypes = {
 };
 export type StorageColumnTypes = {
   readonly public: {
+    readonly Dispositivo: {
+      readonly ativo: CodecTypes['pg/bool@1']['output'];
+      readonly codigoHash: CodecTypes['pg/text@1']['output'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly id: CodecTypes['pg/uuid@1']['output'];
+      readonly local: CodecTypes['pg/text@1']['output'] | null;
+      readonly nome: CodecTypes['pg/text@1']['output'];
+      readonly setorId: CodecTypes['pg/uuid@1']['output'] | null;
+      readonly ultimaConexaoEm: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    };
     readonly EtapaPosto: {
       readonly etapaRoteiroId: CodecTypes['pg/uuid@1']['output'];
       readonly postoId: CodecTypes['pg/uuid@1']['output'];
@@ -682,6 +715,17 @@ export type StorageColumnTypes = {
 };
 export type StorageColumnInputTypes = {
   readonly public: {
+    readonly Dispositivo: {
+      readonly ativo: CodecTypes['pg/bool@1']['input'];
+      readonly codigoHash: CodecTypes['pg/text@1']['input'];
+      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly id: CodecTypes['pg/uuid@1']['input'];
+      readonly local: CodecTypes['pg/text@1']['input'] | null;
+      readonly nome: CodecTypes['pg/text@1']['input'];
+      readonly setorId: CodecTypes['pg/uuid@1']['input'] | null;
+      readonly ultimaConexaoEm: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    };
     readonly EtapaPosto: {
       readonly etapaRoteiroId: CodecTypes['pg/uuid@1']['input'];
       readonly postoId: CodecTypes['pg/uuid@1']['input'];
@@ -826,6 +870,19 @@ export type StorageColumnInputTypes = {
 };
 
 export namespace Models {
+  export type public_Dispositivo = {
+    ativo: CodecTypes['pg/bool@1']['output'];
+    codigoHash: CodecTypes['pg/text@1']['output'];
+    createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    id: CodecTypes['pg/uuid@1']['output'];
+    local: CodecTypes['pg/text@1']['output'] | null;
+    nome: CodecTypes['pg/text@1']['output'];
+    setorId: CodecTypes['pg/uuid@1']['output'] | null;
+    ultimaConexaoEm: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+    updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    setor: public_Setor | null;
+    readonly [RelationKeys]?: 'setor';
+  };
   export type public_EtapaPosto = {
     etapaRoteiroId: CodecTypes['pg/uuid@1']['output'];
     postoId: CodecTypes['pg/uuid@1']['output'];
@@ -1005,9 +1062,10 @@ export namespace Models {
     id: CodecTypes['pg/uuid@1']['output'];
     nome: CodecTypes['pg/text@1']['output'];
     updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    dispositivos: public_Dispositivo[];
     operadores: public_Operador[];
     postos: public_Posto[];
-    readonly [RelationKeys]?: 'operadores' | 'postos';
+    readonly [RelationKeys]?: 'dispositivos' | 'operadores' | 'postos';
   };
   export type public_Usuario = {
     ativo: CodecTypes['pg/bool@1']['output'];
@@ -1025,6 +1083,7 @@ export namespace Models {
 
 export declare const models: {
   public: {
+    Dispositivo: Models.public_Dispositivo;
     EtapaPosto: Models.public_EtapaPosto;
     EtapaRoteiro: Models.public_EtapaRoteiro;
     EventoTempo: Models.public_EventoTempo;
@@ -1062,6 +1121,88 @@ type ContractBase = Omit<
         readonly kind: 'postgres-schema';
         readonly entries: {
           readonly table: {
+            readonly Dispositivo: {
+              columns: {
+                readonly ativo: {
+                  readonly nativeType: 'bool';
+                  readonly codecId: 'pg/bool@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/bool@1', true>;
+                  };
+                };
+                readonly codigoHash: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly createdAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly id: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                };
+                readonly local: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly nome: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
+                readonly setorId: {
+                  readonly nativeType: 'uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: true;
+                };
+                readonly ultimaConexaoEm: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly updatedAt: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [
+                { readonly columns: readonly ['nome'] },
+                { readonly columns: readonly ['codigoHash'] },
+              ];
+              indexes: readonly [
+                {
+                  readonly name: 'Dispositivo_setorId_idx_e3349e5c';
+                  readonly prefix: 'Dispositivo_setorId_idx';
+                  readonly columns: readonly ['setorId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Dispositivo';
+                    readonly columns: readonly ['setorId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Setor';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly EtapaPosto: {
               columns: {
                 readonly etapaRoteiroId: {
@@ -2225,6 +2366,10 @@ type ContractBase = Omit<
   readonly target: 'postgres';
   readonly targetFamily: 'sql';
   readonly roots: {
+    readonly Dispositivo: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'Dispositivo';
+    };
     readonly EtapaPosto: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'EtapaPosto';
@@ -2270,6 +2415,84 @@ type ContractBase = Omit<
     readonly namespaces: {
       readonly public: {
         readonly models: {
+          readonly Dispositivo: {
+            readonly fields: {
+              readonly ativo: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
+              };
+              readonly codigoHash: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly local: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly nome: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly setorId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly ultimaConexaoEm: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+            };
+            readonly relations: {
+              readonly setor: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Setor';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: true;
+                readonly on: {
+                  readonly localFields: readonly ['setorId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'Dispositivo';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly ativo: { readonly column: 'ativo' };
+                readonly codigoHash: { readonly column: 'codigoHash' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly id: { readonly column: 'id' };
+                readonly local: { readonly column: 'local' };
+                readonly nome: { readonly column: 'nome' };
+                readonly setorId: { readonly column: 'setorId' };
+                readonly ultimaConexaoEm: { readonly column: 'ultimaConexaoEm' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+              };
+            };
+          };
           readonly EtapaPosto: {
             readonly fields: {
               readonly etapaRoteiroId: {
@@ -3446,6 +3669,17 @@ type ContractBase = Omit<
               };
             };
             readonly relations: {
+              readonly dispositivos: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Dispositivo';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['setorId'];
+                };
+              };
               readonly operadores: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
@@ -3604,6 +3838,14 @@ type ContractBase = Omit<
     readonly executionHash: ExecutionHash;
     readonly mutations: {
       readonly defaults: readonly [
+        {
+          readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'Dispositivo';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
         {
           readonly onCreate: { readonly id: 'uuidv4'; readonly kind: 'generator' };
           readonly ref: {

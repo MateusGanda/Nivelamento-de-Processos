@@ -194,6 +194,25 @@ model Setor {
 
   postos Posto[]
   operadores Operador[]
+  dispositivos Dispositivo[]
+}
+
+// Dispositivo conectado do chão de fábrica: hoje, as TVs do painel de gestão à vista.
+// O código de acesso fica só como hash; a TV informa a última conexão a cada atualização.
+model Dispositivo {
+  id              Uuid               @id @default(uuid())
+  nome            String             @unique
+  local           String?
+  setorId         Uuid?
+  codigoHash      String             @unique
+  ativo           Boolean            @default(true)
+  ultimaConexaoEm TimestamptzString?
+  createdAt       TimestamptzString  @default(now())
+  updatedAt       TimestamptzString  @default(now())
+
+  setor Setor? @relation(fields: [setorId], references: [id])
+
+  @@index([setorId])
 }
 
 model Posto {
