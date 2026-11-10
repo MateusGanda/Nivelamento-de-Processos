@@ -145,6 +145,7 @@ As regras de cada camada estão em [`docs/architecture/ARCHITECTURE.md`](docs/ar
 - [`specs/contratos/operadores-setores.md`](specs/contratos/operadores-setores.md): formatos e regras já implementados de matrícula e código de setor
 - [`specs/contratos/indicadores.md`](specs/contratos/indicadores.md): contrato da consulta de indicadores
 - [`docs/tcc`](docs/tcc): texto do TCC
+- [`docs/manual`](docs/manual): manual de utilização do sistema, em PDF e Word
 - [`AGENTS.md`](AGENTS.md): regras para o uso de ferramentas de IA no projeto
 
 ## Como contribuir
