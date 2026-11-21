@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
+import { COOKIE_TEMA, temaDoCookie } from "@/shared/presentation/tema";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,10 +23,13 @@ export const metadata: Metadata = {
   description: "Gerenciamento de Nivelamento de Processos: cadastros, execuções e acompanhamento da produção.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // O tema vem do cookie para a página já chegar com as cores certas, sem piscar e sem script na página.
+  const tema = temaDoCookie((await cookies()).get(COOKIE_TEMA)?.value);
   return (
     <html
       lang="pt-BR"
+      data-theme={tema}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >

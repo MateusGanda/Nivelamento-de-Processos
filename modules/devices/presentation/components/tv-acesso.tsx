@@ -33,8 +33,8 @@ export function TvAcesso() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background p-4 text-foreground">
-      <section aria-labelledby="tv-acesso-titulo" className="w-full max-w-md rounded-xl border border-[#2b353e] bg-[#192128]/80 p-6 sm:p-8">
+    <main data-theme="dark" className="flex min-h-dvh items-center justify-center bg-background p-4 text-foreground">
+      <section aria-labelledby="tv-acesso-titulo" className="w-full max-w-md rounded-lg border border-line-soft bg-surface p-6 sm:p-8">
         <BrandGunp variante="painel" />
         <h1 id="tv-acesso-titulo" className="mt-6 text-2xl font-semibold">Painel de TV</h1>
         <form onSubmit={liberar} aria-busy={enviando} className="mt-4 space-y-5">
@@ -43,10 +43,10 @@ export function TvAcesso() {
             <label htmlFor="tv-codigo" className="block text-sm font-medium">Código de acesso</label>
             <input id="tv-codigo" autoComplete="off" autoCapitalize="characters" spellCheck={false} required value={codigo} onChange={(event) => setCodigo(event.target.value)} disabled={enviando}
               placeholder="ABCDE-FGH23" maxLength={20}
-              className="mt-2 h-12 w-full rounded-lg border border-[#3b454e] bg-background px-4 font-mono text-lg tracking-widest uppercase outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60" aria-describedby={erro ? 'tv-codigo-erro' : undefined} />
+              className="mt-2 h-12 w-full rounded-md border border-line bg-background px-4 font-mono text-lg tracking-widest uppercase outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60" aria-describedby={erro ? 'tv-codigo-erro' : undefined} />
           </div>
-          {erro && <p id="tv-codigo-erro" role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
-          <button type="submit" disabled={enviando || !codigo.trim()} className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-base font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60">
+          {erro && <p id="tv-codigo-erro" role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-3 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
+          <button type="submit" disabled={enviando || !codigo.trim()} className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-base font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60">
             {enviando ? <LoaderCircle aria-hidden="true" size={20} strokeWidth={2} className="motion-safe:animate-spin" /> : <Tv aria-hidden="true" size={20} strokeWidth={2} />}Liberar TV
           </button>
         </form>

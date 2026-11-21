@@ -4,8 +4,9 @@ import { COR_PAUSA, COR_PRODUTIVO } from './indicadores-graficos';
 import type { Qualidade } from '../resumo';
 
 // Linha de referência em tom neutro, para não competir com as colunas.
-const COR_PADRAO = '#e6e9ec';
-const SUPERFICIE = '#171e23';
+// Seguem o tema: o tempo padrão usa a cor do texto e a borda da marca usa a cor do cartão.
+const COR_PADRAO = 'var(--foreground)';
+const SUPERFICIE = 'var(--surface)';
 const ALTURA_PX = 224;
 export const MAXIMO_DE_COLUNAS = 62;
 
@@ -56,7 +57,7 @@ export function GraficoPorDia({ dias }: { dias: DiaDoPeriodo[] }) {
         </div>
         <div className="min-w-0">
           <div className="relative" style={{ height: ALTURA_PX }}>
-            {marcas.map((m) => <div key={m} aria-hidden="true" className="absolute inset-x-0 h-px bg-white/10" style={{ top: `${100 - (m / topo) * 100}%` }} />)}
+            {marcas.map((m) => <div key={m} aria-hidden="true" className="absolute inset-x-0 h-px bg-foreground/10" style={{ top: `${100 - (m / topo) * 100}%` }} />)}
             <ul className="absolute inset-0 grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
               {dias.map((d, i) => {
                 const dica = `dica-dia-${d.data}`;
@@ -64,12 +65,12 @@ export function GraficoPorDia({ dias }: { dias: DiaDoPeriodo[] }) {
                 return (
                   <li key={d.data} tabIndex={0} aria-describedby={dica}
                     aria-label={`${diaMes(d.data)}: ${formatarDuracao(d.produtivoSegundos)} produtivo, ${formatarDuracao(d.pausaSegundos)} em pausa, tempo padrão das baixas ${padrao === null ? 'indisponível' : formatarDuracao(padrao)}`}
-                    className="group relative flex h-full flex-col items-center justify-end rounded-sm outline-none hover:bg-white/[0.03] focus:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-accent">
+                    className="group relative flex h-full flex-col items-center justify-end rounded-sm outline-none hover:bg-foreground/[0.03] focus:bg-foreground/[0.05] focus-visible:ring-2 focus-visible:ring-accent">
                     <div className="flex w-3/5 max-w-6 flex-col items-stretch gap-[2px]">
                       {d.pausaSegundos > 0 && <span style={{ height: `max(2px, ${altura(d.pausaSegundos)}px)`, backgroundColor: COR_PAUSA, borderRadius: '4px 4px 0 0' }} />}
                       {d.produtivoSegundos > 0 && <span style={{ height: `max(2px, ${altura(d.produtivoSegundos)}px)`, backgroundColor: COR_PRODUTIVO, borderRadius: d.pausaSegundos > 0 ? 0 : '4px 4px 0 0' }} />}
                     </div>
-                    <div id={dica} role="tooltip" className={`pointer-events-none absolute bottom-full z-10 mb-2 hidden min-w-56 rounded-lg border border-white/10 bg-[#0f1418] px-3 py-2 text-xs shadow-lg group-hover:block group-focus:block ${i < n / 2 ? 'left-0' : 'right-0'}`}>
+                    <div id={dica} role="tooltip" className={`pointer-events-none absolute bottom-full z-10 mb-2 hidden min-w-56 rounded-md border border-foreground/10 bg-inset px-3 py-2 text-xs shadow-lg group-hover:block group-focus:block ${i < n / 2 ? 'left-0' : 'right-0'}`}>
                       <p className="mb-1 font-semibold text-foreground">{diaMes(d.data)}</p>
                       <LinhaDaDica valor={formatarDuracao(d.produtivoSegundos)} rotulo="produtivo" cor={COR_PRODUTIVO} />
                       <LinhaDaDica valor={formatarDuracao(d.pausaSegundos)} rotulo="em pausa" cor={COR_PAUSA} />
@@ -82,7 +83,7 @@ export function GraficoPorDia({ dias }: { dias: DiaDoPeriodo[] }) {
             </ul>
             <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
               {trechos.filter((t) => t.length > 1).map((t, k) => (
-                <polyline key={k} className="linha-padrao" points={t.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke={COR_PADRAO} strokeWidth={2}
+                <polyline key={k} className="linha-padrao" points={t.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" style={{ stroke: COR_PADRAO }} strokeWidth={2}
                   strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
               ))}
             </svg>
@@ -130,7 +131,7 @@ export function GraficoQualidade({ qualidade }: { qualidade: Qualidade }) {
     <div className="flex flex-col items-center gap-6 sm:flex-row">
       <svg width="168" height="168" viewBox="0 0 168 168" role="img" className="shrink-0"
         aria-label={`${formatarPercentual(percentual(qualidade.boa))} de peças boas em ${formatarQuantidade(total, qualidade.unidade)}`}>
-        <circle cx="84" cy="84" r={raio} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="18" />
+        <circle cx="84" cy="84" r={raio} fill="none" style={{ stroke: 'var(--line-soft)' }} strokeWidth="18" />
         {visiveis.map((f, i) => (
           <circle key={f.rotulo} cx="84" cy="84" r={raio} fill="none" stroke={f.cor} strokeWidth="18" transform="rotate(-90 84 84)"
             strokeDasharray={`${Math.max((f.valor / total) * circunferencia - folga, 0.5)} ${circunferencia}`} strokeDashoffset={-inicios[i]} />
@@ -147,7 +148,7 @@ export function GraficoQualidade({ qualidade }: { qualidade: Qualidade }) {
             <span className="w-14 text-right text-xs tabular-nums text-muted">{formatarPercentual(percentual(f.valor))}</span>
           </li>
         ))}
-        <li className="flex items-center gap-3 border-t border-white/10 pt-2 text-xs text-muted">
+        <li className="flex items-center gap-3 border-t border-foreground/10 pt-2 text-xs text-muted">
           <span className="flex-1">Total na última etapa</span><span className="tabular-nums">{formatarQuantidade(total, qualidade.unidade)}</span>
         </li>
       </ul>

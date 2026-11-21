@@ -17,8 +17,8 @@ const ATALHOS: { valor: Escolha; rotulo: string }[] = [
   { valor: 'hoje', rotulo: 'Hoje' }, { valor: '7dias', rotulo: 'Últimos 7 dias' },
   { valor: '30dias', rotulo: 'Últimos 30 dias' }, { valor: 'personalizado', rotulo: 'Personalizado' },
 ];
-const campoData = 'h-11 rounded-lg border border-[#3b454e] bg-background px-3 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 [color-scheme:dark]';
-const botaoSecundario = 'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
+const campoData = 'h-11 rounded-md border border-line bg-background px-3 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 [color-scheme:dark]';
+const botaoSecundario = 'inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
 const celula = 'px-4 py-3';
 const numero = 'px-4 py-3 text-right tabular-nums';
 
@@ -29,11 +29,11 @@ function dataDoInstante(iso: string, fimExclusivo = false) {
 
 function Secao({ id, titulo, tipo, descricao, children }: { id: string; titulo: string; tipo: 'periodo' | 'agora'; descricao: string; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
-      <header className="border-b border-white/10 p-4 sm:p-5">
+    <section aria-labelledby={id} className="min-w-0 rounded-lg border border-line-soft bg-surface">
+      <header className="border-b border-foreground/10 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-3">
           <h2 id={id} className="text-lg font-semibold">{titulo}</h2>
-          <span className="rounded-full border border-white/10 px-2.5 py-0.5 text-xs text-muted">{tipo === 'periodo' ? 'No período' : 'Situação agora'}</span>
+          <span className="rounded-full border border-foreground/10 px-2.5 py-0.5 text-xs text-muted">{tipo === 'periodo' ? 'No período' : 'Situação agora'}</span>
         </div>
         <p className="mt-1.5 text-sm leading-6 text-muted">{descricao}</p>
       </header>
@@ -49,12 +49,12 @@ function Vazio({ children }: { children: ReactNode }) {
 function Tabela({ legenda, cabecalho, children, minimo = 720 }: { legenda: string; cabecalho: { titulo: string; direita?: boolean }[]; children: ReactNode; minimo?: number }) {
   return (
     <div className="max-w-full overflow-x-auto">
-      <table className="w-full text-left text-sm" style={{ minWidth: minimo }}>
+      <table className="tabular-nums w-full text-left text-sm" style={{ minWidth: minimo }}>
         <caption className="sr-only">{legenda}</caption>
-        <thead className="border-b border-white/10 text-muted"><tr>
+        <thead className="border-b border-foreground/10 text-muted"><tr>
           {cabecalho.map((coluna) => <th key={coluna.titulo} scope="col" className={`px-4 py-2.5 font-medium ${coluna.direita ? 'text-right' : ''}`}>{coluna.titulo}</th>)}
         </tr></thead>
-        <tbody className="divide-y divide-white/5">{children}</tbody>
+        <tbody className="divide-y divide-foreground/5">{children}</tbody>
       </table>
     </div>
   );
@@ -62,7 +62,7 @@ function Tabela({ legenda, cabecalho, children, minimo = 720 }: { legenda: strin
 
 function Resumo({ rotulo, valor, detalhe }: { rotulo: string; valor: ReactNode; detalhe: string }) {
   return (
-    <div className="min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65 p-4 sm:p-5">
+    <div className="min-w-0 rounded-lg border border-line-soft bg-surface p-4 sm:p-5">
       <p className="text-sm text-muted">{rotulo}</p>
       <p className="mt-2 text-2xl font-semibold tracking-tight [overflow-wrap:anywhere]">{valor}</p>
       <p className="mt-1 text-xs leading-5 text-muted">{detalhe}</p>
@@ -152,12 +152,12 @@ export function IndicatorsScreen() {
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">Produção, tempos e carga calculados a partir dos apontamentos da ilha. Os indicadores apoiam a análise da distribuição de carga; o tempo é da execução, não mede o desempenho de uma pessoa.</p>
       </header>
 
-      <div className="mt-6 flex flex-col gap-4 rounded-xl border border-[#2b353e] bg-[#192128]/65 p-4 sm:p-5">
+      <div className="mt-6 flex flex-col gap-4 rounded-lg border border-line-soft bg-surface p-4 sm:p-5">
         <fieldset className="flex flex-wrap items-center gap-2 print:hidden">
           <legend className="sr-only">Período</legend>
           {ATALHOS.map((atalho) => (
             <button key={atalho.valor} type="button" aria-pressed={escolha === atalho.valor} onClick={() => escolher(atalho.valor)}
-              className={`min-h-10 cursor-pointer rounded-lg border px-3.5 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${escolha === atalho.valor ? 'border-accent bg-accent/10 font-semibold' : 'border-[#3b454e] hover:border-accent'}`}>
+              className={`min-h-10 cursor-pointer rounded-md border px-3.5 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${escolha === atalho.valor ? 'border-accent bg-accent/10 font-semibold' : 'border-line hover:border-accent'}`}>
               {atalho.rotulo}
             </button>
           ))}
@@ -179,8 +179,8 @@ export function IndicatorsScreen() {
               <input id="indicadores-de" type="date" value={datas.primeiro} onChange={(event) => setDatas({ ...datas, primeiro: event.target.value })} className={campoData} /></div>
             <div><label htmlFor="indicadores-ate" className="mb-1.5 block text-sm font-medium">Até</label>
               <input id="indicadores-ate" type="date" value={datas.ultimo} onChange={(event) => setDatas({ ...datas, ultimo: event.target.value })} className={campoData} /></div>
-            <button type="submit" className="min-h-11 cursor-pointer rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Aplicar</button>
-            {erroDatas && <p role="alert" className="flex w-full items-center gap-2 text-sm text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={18} strokeWidth={2} />{erroDatas}</p>}
+            <button type="submit" className="min-h-11 cursor-pointer rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Aplicar</button>
+            {erroDatas && <p role="alert" className="flex w-full items-center gap-2 text-sm text-danger"><AlertCircle aria-hidden="true" size={18} strokeWidth={2} />{erroDatas}</p>}
           </form>
         )}
         <p aria-live="polite" className="flex items-center gap-2 text-xs text-muted">
@@ -190,23 +190,23 @@ export function IndicatorsScreen() {
       </div>
 
       {erro && (
-        <div className="mt-6 flex flex-col items-start gap-3 rounded-xl border border-[#ffb4a5]/25 bg-[#ffb4a5]/5 p-4 sm:flex-row sm:items-center">
-          <p role="alert" className="flex flex-1 items-start gap-2 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>
+        <div className="mt-6 flex flex-col items-start gap-3 rounded-lg border border-danger/25 bg-danger/5 p-4 sm:flex-row sm:items-center">
+          <p role="alert" className="flex flex-1 items-start gap-2 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>
           <button type="button" onClick={() => consultar()} className={botaoSecundario}>Tentar novamente</button>
         </div>
       )}
 
       {!dados && !erro && (
-        <p role="status" className="mt-6 flex min-h-48 items-center justify-center gap-3 rounded-xl border border-[#2b353e] text-sm text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Carregando indicadores…</p>
+        <p role="status" className="mt-6 flex min-h-48 items-center justify-center gap-3 rounded-lg border border-line-soft text-sm text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Carregando indicadores…</p>
       )}
 
       {dados && resumo && (
         // Ao trocar o período, os números anteriores ficam visíveis e esmaecidos até a resposta chegar.
         <div aria-busy={carregando} className={`mt-6 space-y-6 transition-opacity ${carregando ? 'opacity-60' : ''}`}>
           {resumo.pendencias.length > 0 && (
-            <section aria-labelledby="indicadores-atencao" className="rounded-xl border border-[#fab219]/30 bg-[#fab219]/5 p-4 sm:p-5">
-              <h2 id="indicadores-atencao" className="flex items-center gap-2 text-sm font-semibold text-[#ffd77a]"><AlertTriangle aria-hidden="true" size={18} strokeWidth={2} />Atenção aos dados</h2>
-              <ul className="mt-2 list-disc space-y-1 pl-6 text-sm leading-6 text-[#e6e9ec]">{resumo.pendencias.map((texto) => <li key={texto}>{texto}</li>)}</ul>
+            <section aria-labelledby="indicadores-atencao" className="rounded-lg border border-warning-fill/30 bg-warning-fill/5 p-4 sm:p-5">
+              <h2 id="indicadores-atencao" className="flex items-center gap-2 text-sm font-semibold text-warning"><AlertTriangle aria-hidden="true" size={18} strokeWidth={2} />Atenção aos dados</h2>
+              <ul className="mt-2 list-disc space-y-1 pl-6 text-sm leading-6 text-foreground">{resumo.pendencias.map((texto) => <li key={texto}>{texto}</li>)}</ul>
             </section>
           )}
 
@@ -250,7 +250,7 @@ export function IndicatorsScreen() {
                     <td className={celula}>{ordem.produtoCodigo} <span className="text-muted">– {ordem.produtoNome}</span></td>
                     <td className={`${celula} text-muted`}>{ordem.planoCodigo}</td>
                     <td className={numero}>{formatarQuantidade(ordem.quantidade, ordem.unidade)}</td>
-                    <td className={numero}>{ordem.etapasBaixadas} de {ordem.etapasTotal}{ordem.etapasInconsistentes > 0 && <span className="block text-xs text-[#ffd77a]">{ordem.etapasInconsistentes} com baixa inconsistente</span>}</td>
+                    <td className={numero}>{ordem.etapasBaixadas} de {ordem.etapasTotal}{ordem.etapasInconsistentes > 0 && <span className="block text-xs text-warning">{ordem.etapasInconsistentes} com baixa inconsistente</span>}</td>
                     <td className={celula}>{situacaoDaOrdem(ordem)}</td>
                     <td className={`${celula} whitespace-nowrap text-muted`}>{formatarInstante(ordem.ultimaBaixaEm)}</td>
                   </tr>
@@ -273,7 +273,7 @@ export function IndicatorsScreen() {
                 {dados.producao.map((item) => (
                   <tr key={item.produtoCodigo + item.etapaRoteiroId}>
                     <td className={`${celula} font-medium`}>{item.produtoCodigo}</td>
-                    <td className={celula}>{item.ordem}. {item.operacaoNome}{item.ultimaEtapa && <span className="ml-2 rounded-full border border-white/10 px-2 py-0.5 text-xs text-muted">última etapa</span>}</td>
+                    <td className={celula}>{item.ordem}. {item.operacaoNome}{item.ultimaEtapa && <span className="ml-2 rounded-full border border-foreground/10 px-2 py-0.5 text-xs text-muted">última etapa</span>}</td>
                     <td className={numero}>{item.ordensBaixadas}</td>
                     <td className={numero}>{formatarQuantidade(item.quantidadeBoa, item.unidade)}</td>
                     <td className={numero}>{formatarQuantidade(item.quantidadeRetrabalho, item.unidade)}</td>

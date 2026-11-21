@@ -32,7 +32,7 @@ function DocumentoOrdem({ ficha, aoCarregar, aoFalhar }: { ficha: FichaOrdem; ao
         <div><dt>Plano de produção</dt><dd>{ordem.plano.codigo}</dd></div>
         <div className="ficha-ordem-roteiro"><dt>Roteiro</dt><dd>{ordem.roteiro.nome} — versão {ordem.roteiro.versao}</dd></div>
       </dl>
-      <table className="ficha-ordem-etapas">
+      <table className="tabular-nums ficha-ordem-etapas">
         <caption>Etapas do roteiro</caption>
         <thead><tr><th scope="col">Sequência</th><th scope="col">Operação</th></tr></thead>
         <tbody>{ficha.etapas.map((etapa) => <tr key={etapa.id}><td>{etapa.ordem}</td><td>{etapa.operacao}</td></tr>)}</tbody>
@@ -96,24 +96,24 @@ export function OrderSheetDialog({ ordemId, aoFechar }: { ordemId: string; aoFec
     document.body.appendChild(link); link.click(); link.remove();
   }
 
-  const secundario = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 py-2 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50';
+  const secundario = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-4 py-2 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50';
   return <>
     <dialog ref={dialogRef} id="ficha-ordem" aria-labelledby="ficha-ordem-titulo" aria-describedby="ficha-ordem-descricao"
       onCancel={() => consultaRef.current?.abort()}
       onClose={() => { consultaRef.current?.abort(); aoFechar(); }}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto rounded-xl border border-[#34404b] bg-[#1b232a] p-0 text-foreground shadow-2xl backdrop:bg-black/65">
-      <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6">
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto rounded-lg border border-line-raised bg-raised p-0 text-foreground shadow-lg backdrop:bg-black/50">
+      <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-4 py-3 sm:px-6">
         <h2 id="ficha-ordem-titulo" className="text-xl font-semibold">Ficha com QR</h2>
-        <button ref={fecharRef} type="button" onClick={fechar} aria-label="Fechar ficha da ordem" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent"><X aria-hidden="true" size={22} /></button>
+        <button ref={fecharRef} type="button" onClick={fechar} aria-label="Fechar ficha da ordem" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-accent"><X aria-hidden="true" size={22} /></button>
       </div>
       <div className="space-y-5 p-4 sm:p-6" aria-busy={carregando}>
         <p id="ficha-ordem-descricao" className="text-sm leading-6 text-muted">Dados da ordem e etapas da versão de roteiro vinculada a ela. O QR permanece igual mesmo após alterar o número da ordem.</p>
         {carregando && <p role="status" className="flex min-h-44 items-center justify-center gap-3 text-sm text-muted"><LoaderCircle aria-hidden="true" size={22} className="motion-safe:animate-spin" />Preparando ficha…</p>}
-        {erro && <div className="space-y-3"><p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} className="shrink-0" />{erro}</p><button type="button" onClick={tentarNovamente} className={secundario}><RefreshCw aria-hidden="true" size={18} />Tentar novamente</button></div>}
+        {erro && <div className="space-y-3"><p role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-3 text-sm text-danger"><AlertCircle aria-hidden="true" size={20} className="shrink-0" />{erro}</p><button type="button" onClick={tentarNovamente} className={secundario}><RefreshCw aria-hidden="true" size={18} />Tentar novamente</button></div>}
         {ficha && <>
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
             <button type="button" onClick={baixarQr} disabled={!pronta} className={secundario}><Download aria-hidden="true" size={18} />Baixar QR em PNG</button>
-            <button type="button" onClick={() => { if (pronta) window.print(); }} disabled={!pronta} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"><Printer aria-hidden="true" size={18} />Imprimir ficha</button>
+            <button type="button" onClick={() => { if (pronta) window.print(); }} disabled={!pronta} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"><Printer aria-hidden="true" size={18} />Imprimir ficha</button>
           </div>
           <p className="text-xs leading-5 text-muted">Imprima em A4, escala de 100%, sem cabeçalhos e rodapés do navegador. Fichas extensas continuam nas páginas seguintes. Você também pode salvar em PDF na impressão.</p>
           <DocumentoOrdem ficha={ficha} aoCarregar={() => setQrCarregado(true)} aoFalhar={() => { setQrCarregado(false); setErro('Não foi possível exibir o QR Code. Tente novamente.'); }} />

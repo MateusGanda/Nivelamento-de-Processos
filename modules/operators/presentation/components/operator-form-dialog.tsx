@@ -80,8 +80,8 @@ export function OperatorFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: 
     } finally { emEnvio.current = false; setEnviando(false); }
   }
 
-  const campo = 'mt-2 h-12 w-full rounded-lg border border-[#3b454e] bg-background px-4 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60';
-  const secundario = 'min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
+  const campo = 'mt-2 h-12 w-full rounded-md border border-line bg-background px-4 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60';
+  const secundario = 'min-h-11 cursor-pointer rounded-md border border-line px-4 py-2 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
   return (
     <dialog id="cadastro-operador" ref={dialogRef} aria-labelledby="cadastro-operador-titulo" aria-describedby="cadastro-operador-descricao"
       onCancel={(event) => { if (emEnvio.current) event.preventDefault(); }}
@@ -90,10 +90,10 @@ export function OperatorFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: 
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) fechar();
       } }}
       onClose={() => { abortSetores.current?.abort(); setNome(''); setFuncao(''); setSetorPrincipalId(''); setErro(''); aoFechar(); }}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-[#34404b] bg-[#1b232a] p-0 text-foreground shadow-2xl backdrop:bg-black/65">
-      <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-line-raised bg-raised p-0 text-foreground shadow-lg backdrop:bg-black/50">
+      <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-6 py-4">
         <h2 id="cadastro-operador-titulo" className="text-xl font-semibold">{edicao ? 'Editar operador' : 'Adicionar operador'}</h2>
-        <button type="button" onClick={fechar} disabled={enviando} aria-label={edicao ? 'Fechar edição' : 'Fechar cadastro'} className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"><X aria-hidden="true" size={22} /></button>
+        <button type="button" onClick={fechar} disabled={enviando} aria-label={edicao ? 'Fechar edição' : 'Fechar cadastro'} className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-60"><X aria-hidden="true" size={22} /></button>
       </div>
       <form onSubmit={enviar} aria-busy={enviando} className="space-y-5 p-6">
         <p id="cadastro-operador-descricao" className="text-sm leading-6 text-muted">{edicao ? 'Atualize os dados do operador. A matrícula é permanente, mesmo após mudança de nome ou setor.' : 'A matrícula será gerada automaticamente após cadastrar. O novo operador será criado como ativo.'}</p>
@@ -108,13 +108,13 @@ export function OperatorFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: 
           </select>
           <p id="operador-setor-ajuda" className="mt-2 text-xs leading-5 text-muted">O setor principal informa a lotação habitual e não limita os postos de trabalho.</p>
           {!carregandoSetores && !erroSetores && setores.length === 0 && <p role="status" className="mt-2 text-sm text-muted">Nenhum setor cadastrado. Cadastre um setor antes de adicionar operadores.</p>}
-          {erroSetores && <div className="mt-2 space-y-2"><p role="alert" className="text-sm text-[#ffb4a5]">{erroSetores}</p><button type="button" onClick={carregarSetores} disabled={enviando} className={secundario}>Tentar carregar setores novamente</button></div>}
+          {erroSetores && <div className="mt-2 space-y-2"><p role="alert" className="text-sm text-danger">{erroSetores}</p><button type="button" onClick={carregarSetores} disabled={enviando} className={secundario}>Tentar carregar setores novamente</button></div>}
         </div>
         <div><label htmlFor="operador-funcao" className="block text-sm font-medium">Função <span className="font-normal text-muted">(opcional)</span></label><input id="operador-funcao" maxLength={LIMITES_TEXTO.nome} name="funcao" type="text" value={funcao} onChange={(event) => setFuncao(event.target.value)} disabled={enviando} placeholder="Ex.: Costureiro" className={campo} /></div>
-        {erro && <p id="cadastro-operador-erro" role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} className="shrink-0" />{erro}</p>}
-        <div className="flex flex-col-reverse justify-end gap-3 border-t border-white/10 pt-5 sm:flex-row">
+        {erro && <p id="cadastro-operador-erro" role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-3 text-sm text-danger"><AlertCircle aria-hidden="true" size={20} className="shrink-0" />{erro}</p>}
+        <div className="flex flex-col-reverse justify-end gap-3 border-t border-foreground/10 pt-5 sm:flex-row">
           <button type="button" onClick={fechar} disabled={enviando} className={secundario}>Cancelar</button>
-          <button type="submit" disabled={enviando || carregandoSetores || !!erroSetores || (!edicao && setores.length === 0)} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60">
+          <button type="submit" disabled={enviando || carregandoSetores || !!erroSetores || (!edicao && setores.length === 0)} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60">
             {enviando && <LoaderCircle aria-hidden="true" size={20} className="motion-safe:animate-spin" />}{edicao ? (enviando ? 'Salvando…' : 'Salvar alterações') : (enviando ? 'Cadastrando…' : 'Cadastrar operador')}
           </button>
         </div>

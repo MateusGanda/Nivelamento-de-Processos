@@ -101,27 +101,27 @@ export function OperatorBadgeDialog({ operadorId, aoFechar }: { operadorId: stri
     document.body.appendChild(link); link.click(); link.remove();
   }
 
-  const secundario = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 py-2 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50';
+  const secundario = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-4 py-2 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50';
   return <>
     <dialog ref={dialogRef} id="cracha-operador" aria-labelledby="cracha-operador-titulo" aria-describedby="cracha-operador-descricao"
       onCancel={() => consultaRef.current?.abort()}
       onClose={() => { consultaRef.current?.abort(); aoFechar(); }}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-xl border border-[#34404b] bg-[#1b232a] p-0 text-foreground shadow-2xl backdrop:bg-black/65">
-      <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6">
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-lg border border-line-raised bg-raised p-0 text-foreground shadow-lg backdrop:bg-black/50">
+      <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-4 py-3 sm:px-6">
         <h2 id="cracha-operador-titulo" className="text-xl font-semibold">Crachá do operador</h2>
-        <button ref={fecharRef} type="button" onClick={fechar} aria-label="Fechar crachá" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent"><X aria-hidden="true" size={22} /></button>
+        <button ref={fecharRef} type="button" onClick={fechar} aria-label="Fechar crachá" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-accent"><X aria-hidden="true" size={22} /></button>
       </div>
       <div className="space-y-5 p-4 sm:p-6" aria-busy={carregando}>
         <p id="cracha-operador-descricao" className="text-sm leading-6 text-muted">Leia este crachá na identificação da ilha. As ações de execução continuam sendo confirmadas na tela.</p>
         {carregando && <p role="status" className="flex min-h-44 items-center justify-center gap-3 text-sm text-muted"><LoaderCircle aria-hidden="true" size={22} className="motion-safe:animate-spin" />Preparando crachá…</p>}
-        {erro && <div className="space-y-3"><p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} className="shrink-0" />{erro}</p><button type="button" onClick={tentarNovamente} className={secundario}><RefreshCw aria-hidden="true" size={18} />Tentar novamente</button></div>}
+        {erro && <div className="space-y-3"><p role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-3 text-sm text-danger"><AlertCircle aria-hidden="true" size={20} className="shrink-0" />{erro}</p><button type="button" onClick={tentarNovamente} className={secundario}><RefreshCw aria-hidden="true" size={18} />Tentar novamente</button></div>}
         {cracha && <>
           <CartaoOperador cracha={cracha} cartaoRef={cartaoRef} aoCarregar={() => setQrCarregado(true)} aoFalhar={() => { setQrCarregado(false); setCabeNoCartao(null); setErro('Não foi possível exibir o QR Code. Tente novamente.'); }} />
-          {cabeNoCartao === false && <p role="alert" className="text-sm leading-6 text-[#ffb4a5]">Os dados completos não cabem neste tamanho de crachá. A impressão está indisponível para evitar cortes. Você pode baixar o QR em PNG e preparar um cartão maior.</p>}
+          {cabeNoCartao === false && <p role="alert" className="text-sm leading-6 text-danger">Os dados completos não cabem neste tamanho de crachá. A impressão está indisponível para evitar cortes. Você pode baixar o QR em PNG e preparar um cartão maior.</p>}
           <p className="text-xs leading-5 text-muted">Crachá de 86 × 54 mm. Na impressão, use escala de 100% e desative os cabeçalhos e rodapés. O setor é o atual; a matrícula e o QR permanecem iguais após transferências.</p>
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
             <button type="button" onClick={baixarQr} disabled={!qrCarregado} className={secundario}><Download aria-hidden="true" size={18} />Baixar QR em PNG</button>
-            <button type="button" onClick={() => { if (podeImprimir) window.print(); }} disabled={!podeImprimir} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"><Printer aria-hidden="true" size={18} />Imprimir crachá</button>
+            <button type="button" onClick={() => { if (podeImprimir) window.print(); }} disabled={!podeImprimir} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"><Printer aria-hidden="true" size={18} />Imprimir crachá</button>
           </div>
         </>}
       </div>

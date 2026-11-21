@@ -10,9 +10,9 @@ import { consultarOrdemPorQr, ErroLeituraOrdem } from '../ordem-por-qr';
 import { criarControleRequisicoesIlha } from '../requisicoes-ilha';
 import { destinoSelecionado, filtrarOrdensManuais, reduzirSelecaoDestino, selecaoDestinoInicial, type EntradaDestino } from '../selecao-destino';
 
-const cartao = 'w-full cursor-pointer rounded-lg border px-4 py-3 text-left text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40';
-const selecionado = (ativo: boolean) => ativo ? 'border-accent bg-accent/10' : 'border-[#3b454e] hover:border-accent';
-const secundario = 'flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-5 text-base font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50';
+const cartao = 'w-full cursor-pointer rounded-md border px-4 py-3 text-left text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40';
+const selecionado = (ativo: boolean) => ativo ? 'border-accent bg-accent/10' : 'border-line hover:border-accent';
+const secundario = 'flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-5 text-base font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50';
 
 // QR ou pesquisa manual → ordem → etapa → posto. Ler nunca confirma produção.
 export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar, aoFalhar, etapaAtual }: {
@@ -93,7 +93,7 @@ export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar,
             <div className="relative min-w-0 flex-1"><ScanLine aria-hidden="true" size={22} strokeWidth={2} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
               <input id="ilha-qr-ordem" ref={leituraRef} value={codigo} onChange={(event) => setCodigo(event.target.value)} onFocus={() => setFocoLeitura(true)} onBlur={() => setFocoLeitura(false)}
                 autoComplete="off" autoCapitalize="none" spellCheck={false} disabled={indisponivel} aria-describedby="ilha-qr-ordem-ajuda"
-                className="h-14 w-full min-w-0 rounded-lg border border-[#3b454e] bg-background pr-3 pl-11 font-mono text-lg outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-50" />
+                className="h-14 w-full min-w-0 rounded-md border border-line bg-background pr-3 pl-11 font-mono text-lg outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-50" />
             </div>
             <button type="submit" disabled={indisponivel || !codigo.trim()} className={secundario}>Identificar ordem</button>
           </div>
@@ -101,7 +101,7 @@ export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar,
         </form>}
 
         {carregando && <p role="status" className="flex items-center gap-3 py-4 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Consultando ordens…</p>}
-        {erro && <div className="space-y-3"><p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/30 bg-[#f49a8a]/10 p-4 text-base leading-7 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{erro}</p>
+        {erro && <div className="space-y-3"><p role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/30 bg-danger-fill/10 p-4 text-base leading-7 text-danger"><AlertCircle aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{erro}</p>
           {entrada === 'qr' && ultimaLeitura && <button type="button" disabled={indisponivel} onClick={() => void consultar('qr', ultimaLeitura)} className={secundario}><RefreshCw aria-hidden="true" size={20} />Tentar novamente</button>}
         </div>}
 
@@ -110,17 +110,17 @@ export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar,
             <label htmlFor="ilha-busca-ordem" className="sr-only">Buscar ordem por número ou produto</label>
             <input id="ilha-busca-ordem" ref={buscaRef} type="search" value={busca} onChange={(event) => setBusca(event.target.value)} disabled={ocupado}
               onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); if (idDaOrdemNoQr(busca) && !ocupado && !controle.emAndamento()) { dispatch({ tipo: 'mudarEntrada', entrada: 'qr' }); void consultar('qr', busca); } } }}
-              placeholder="Número da ordem ou produto" className="h-12 w-full rounded-lg border border-[#3b454e] bg-background pr-3 pl-10 text-base outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-50" />
+              placeholder="Número da ordem ou produto" className="h-12 w-full rounded-md border border-line bg-background pr-3 pl-10 text-base outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-50" />
           </div>
           {visiveis.length === 0 && <p role="status" className="text-base text-muted">{ordens?.length === 0 ? 'Nenhuma ordem com etapa em aberto.' : 'Nenhuma ordem encontrada.'}</p>}
           <div className="grid gap-2 sm:grid-cols-2">{visiveis.map((item) => <button key={item.id} type="button" disabled={ocupado} aria-pressed={item.id === ordemId}
             onClick={() => { if (!ocupado && !controle.emAndamento()) dispatch({ tipo: 'selecionarOrdem', id: item.id }); }} className={`${cartao} ${selecionado(item.id === ordemId)}`}>
-            <span className="block font-semibold">{item.numero}</span><span className="block text-sm text-[#c1c8cf]">{item.produto.codigo} – {item.produto.nome} · {item.quantidade.toLocaleString('pt-BR')} {item.unidade}</span>
+            <span className="block font-semibold">{item.numero}</span><span className="block text-sm text-subtle">{item.produto.codigo} – {item.produto.nome} · {item.quantidade.toLocaleString('pt-BR')} {item.unidade}</span>
           </button>)}</div>
         </>}
 
-        {ordem && <div className="space-y-1 rounded-lg border border-accent/40 bg-accent/5 p-4">
-          <p className="font-semibold">{ordem.numero}</p><p className="text-base text-[#c1c8cf]">{ordem.produto.codigo} – {ordem.produto.nome}</p>
+        {ordem && <div className="space-y-1 rounded-md border border-accent/40 bg-accent/5 p-4">
+          <p className="font-semibold">{ordem.numero}</p><p className="text-base text-subtle">{ordem.produto.codigo} – {ordem.produto.nome}</p>
           <p className="text-sm text-muted">{ordem.quantidade.toLocaleString('pt-BR')} {ordem.unidade} · Plano {ordem.plano}</p>
         </div>}
 
@@ -136,7 +136,7 @@ export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar,
           const motivo = motivoIndisponibilidadeEtapa(ordem.id, item, etapaAtual);
           return <button key={item.id} type="button" aria-pressed={item.id === etapaId} disabled={motivo !== null || indisponivel}
             onClick={() => { if (!ocupado && !controle.emAndamento()) dispatch({ tipo: 'selecionarEtapa', id: item.id, atual: etapaAtual }); }} className={`${cartao} ${selecionado(item.id === etapaId)}`}>
-            <span className="block font-semibold">{item.ordem}. {item.operacao}</span><span className="block text-sm text-[#c1c8cf]">{motivo ?? `${item.postos.length} ${item.postos.length === 1 ? 'posto' : 'postos'}`}</span>
+            <span className="block font-semibold">{item.ordem}. {item.operacao}</span><span className="block text-sm text-subtle">{motivo ?? `${item.postos.length} ${item.postos.length === 1 ? 'posto' : 'postos'}`}</span>
           </button>;
         })}</div>
       </fieldset>}
@@ -145,15 +145,15 @@ export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar,
         <legend className="mb-2 text-lg font-semibold">3. Posto</legend>
         <div className="grid gap-2 sm:grid-cols-3">{etapa.postos.map((posto) => <button key={posto.id} type="button" disabled={indisponivel} aria-pressed={posto.id === postoId}
           onClick={() => { if (!ocupado && !controle.emAndamento()) dispatch({ tipo: 'selecionarPosto', id: posto.id }); }} className={`${cartao} ${selecionado(posto.id === postoId)}`}>
-          <span className="block font-semibold">{posto.codigo}</span><span className="block text-sm text-[#c1c8cf]">{posto.nome}</span>
+          <span className="block font-semibold">{posto.codigo}</span><span className="block text-sm text-subtle">{posto.nome}</span>
         </button>)}</div>
       </fieldset>}
 
-      <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-3 border-t border-foreground/10 pt-5 sm:flex-row sm:justify-end">
         <button type="button" onClick={() => { if (!ocupado) { controle.invalidar(); aoCancelar(); } }} disabled={ocupado} className={secundario}>Cancelar</button>
         {entrada === 'manual' && <button type="button" onClick={() => void consultar('manual')} disabled={indisponivel} className={secundario}><RefreshCw aria-hidden="true" size={20} />{erro ? 'Tentar novamente' : 'Atualizar ordens'}</button>}
         <button type="button" disabled={!destino || indisponivel} onClick={() => { if (destino && !ocupado && !controle.emAndamento()) aoConfirmar(destino); }}
-          className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-5 text-base font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50">
+          className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-5 text-base font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50">
           {ocupado ? <LoaderCircle aria-hidden="true" size={20} strokeWidth={2} className="motion-safe:animate-spin" /> : <CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} />}{rotuloConfirmar}
         </button>
       </div>

@@ -97,7 +97,7 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
     }
   }
 
-  const campo = 'mt-2 h-12 w-full rounded-lg border border-[#3b454e] bg-background px-4 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60';
+  const campo = 'mt-2 h-12 w-full rounded-md border border-line bg-background px-4 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60';
   const produtoSemRoteiro = !edicao && produtoId !== '' && roteiros.length === 0;
 
   return (
@@ -109,11 +109,11 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) fechar();
       } }}
       onClose={() => { setErro(''); aoFechar(); }}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-[#34404b] bg-[#1b232a] p-0 text-foreground shadow-2xl backdrop:bg-black/65"
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-line-raised bg-raised p-0 text-foreground shadow-lg backdrop:bg-black/50"
     >
-      <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
+      <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-6 py-4">
         <h2 id="formulario-ordem-titulo" className="text-xl font-semibold">{edicao ? 'Editar ordem' : 'Adicionar ordem'}</h2>
-        <button type="button" onClick={fechar} disabled={enviando} aria-label={edicao ? 'Fechar edição' : 'Fechar cadastro'} className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
+        <button type="button" onClick={fechar} disabled={enviando} aria-label={edicao ? 'Fechar edição' : 'Fechar cadastro'} className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
       </div>
       <form onSubmit={enviar} aria-busy={enviando} className="space-y-5 p-6">
         <p id="formulario-ordem-descricao" className="text-sm leading-6 text-muted">
@@ -132,7 +132,7 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
           </select>
         </div>
         {edicao ? (
-          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm leading-6">
+          <div className="rounded-md border border-foreground/10 bg-foreground/[0.03] p-4 text-sm leading-6">
             <p><span className="text-muted">Produto:</span> {ordem.produto.codigo} – {ordem.produto.nome}</p>
             <p><span className="text-muted">Roteiro:</span> {ordem.roteiro.nome}, versão {ordem.roteiro.versao}</p>
           </div>
@@ -151,7 +151,7 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
                 <option value="">{!produtoId ? 'Escolha o produto primeiro' : roteiros.length === 0 ? 'Nenhuma versão disponível' : 'Selecione a versão'}</option>
                 {roteiros.map((roteiro) => <option key={roteiro.id} value={roteiro.id}>{roteiro.nome} – v{roteiro.versao}{roteiro.vigente ? ' (vigente)' : ''}</option>)}
               </select>
-              <p id="ordem-roteiro-ajuda" className={`mt-2 text-xs leading-5 ${produtoSemRoteiro ? 'text-[#ffcf99]' : 'text-muted'}`}>
+              <p id="ordem-roteiro-ajuda" className={`mt-2 text-xs leading-5 ${produtoSemRoteiro ? 'text-warning' : 'text-muted'}`}>
                 {produtoSemRoteiro ? 'Este produto não tem versão de roteiro ativa e com etapas. Ligue-o a um roteiro antes de criar a ordem.' : 'A versão vigente do produto já vem escolhida.'}
               </p>
             </div>
@@ -168,15 +168,15 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
           </div>
         </div>
         {producaoTravada && (
-          <p className="flex items-start gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm leading-6 text-[#c1c8cf]">
+          <p className="flex items-start gap-2 rounded-md border border-foreground/10 bg-foreground/[0.03] p-3 text-sm leading-6 text-subtle">
             <Lock aria-hidden="true" size={18} strokeWidth={2} className="mt-0.5 shrink-0" />
             A ordem já tem execuções. A quantidade ({formatarQuantidade(ordem.quantidade)} {ordem.unidade}) e a unidade ficam fixas porque a baixa é conferida com elas.
           </p>
         )}
-        {erro && <p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
-        <div className="flex flex-col-reverse justify-end gap-3 border-t border-white/10 pt-5 sm:flex-row">
-          <button type="button" onClick={fechar} disabled={enviando} className="min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60">Cancelar</button>
-          <button type="submit" disabled={enviando || produtoSemRoteiro} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70">
+        {erro && <p role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-3 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
+        <div className="flex flex-col-reverse justify-end gap-3 border-t border-foreground/10 pt-5 sm:flex-row">
+          <button type="button" onClick={fechar} disabled={enviando} className="min-h-11 cursor-pointer rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60">Cancelar</button>
+          <button type="submit" disabled={enviando || produtoSemRoteiro} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70">
             {enviando && <LoaderCircle aria-hidden="true" size={20} strokeWidth={2} className="motion-safe:animate-spin" />}
             {edicao ? (enviando ? 'Salvando…' : 'Salvar alterações') : (enviando ? 'Cadastrando…' : 'Cadastrar ordem')}
           </button>

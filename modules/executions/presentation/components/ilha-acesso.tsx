@@ -1,5 +1,6 @@
 'use client';
 
+import { ThemeToggle } from '@/shared/presentation/theme-toggle';
 import { useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, Eye, EyeOff, KeyRound, LoaderCircle } from 'lucide-react';
@@ -34,8 +35,9 @@ export function IlhaAcesso({ configurada, chaveDoPainel = false }: { configurada
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background p-4 text-foreground">
-      <section aria-labelledby="ilha-acesso-titulo" className="w-full max-w-md rounded-xl border border-[#2b353e] bg-[#192128]/80 p-6 sm:p-8">
+    <main className="relative flex min-h-dvh items-center justify-center bg-background p-4 text-foreground">
+      <ThemeToggle className="absolute top-4 right-4" />
+      <section aria-labelledby="ilha-acesso-titulo" className="w-full max-w-md rounded-lg border border-line-soft bg-surface p-6 sm:p-8">
         <BrandGunp variante="painel" />
         <h1 id="ilha-acesso-titulo" className="mt-6 text-2xl font-semibold">Ilha de apontamento</h1>
         {configurada ? (
@@ -45,7 +47,7 @@ export function IlhaAcesso({ configurada, chaveDoPainel = false }: { configurada
               <label htmlFor="ilha-chave" className="block text-sm font-medium">Chave da ilha</label>
               <div className="relative mt-2">
                 <input id="ilha-chave" type={mostrar ? 'text' : 'password'} autoComplete="off" autoCapitalize="characters" spellCheck={false} required value={chave} onChange={(event) => { setChave(chaveDoPainel ? event.target.value.toUpperCase() : event.target.value); setErro(''); }} disabled={enviando}
-                  className="h-12 w-full rounded-lg border border-[#3b454e] bg-background pr-14 pl-4 font-mono text-base tracking-wider outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60" aria-describedby={[erro && 'ilha-chave-erro', chaveDoPainel && 'ilha-chave-dica'].filter(Boolean).join(' ') || undefined} />
+                  className="h-12 w-full rounded-md border border-line bg-background pr-14 pl-4 font-mono text-base tracking-wider outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60" aria-describedby={[erro && 'ilha-chave-erro', chaveDoPainel && 'ilha-chave-dica'].filter(Boolean).join(' ') || undefined} />
                 <button type="button" onClick={() => setMostrar((m) => !m)} aria-label={mostrar ? 'Ocultar a chave' : 'Mostrar a chave'} aria-pressed={mostrar}
                   className="absolute top-1/2 right-1 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent">
                   {mostrar ? <EyeOff aria-hidden="true" size={20} /> : <Eye aria-hidden="true" size={20} />}
@@ -53,13 +55,13 @@ export function IlhaAcesso({ configurada, chaveDoPainel = false }: { configurada
               </div>
               {chaveDoPainel && <p id="ilha-chave-dica" className="mt-2 text-xs leading-5 text-muted">Chave de 20 caracteres gerada no painel, em Execuções. Pode digitar com ou sem hífen.</p>}
             </div>
-            {erro && <p id="ilha-chave-erro" role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
-            <button type="submit" disabled={enviando || !chave} className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-base font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60">
+            {erro && <p id="ilha-chave-erro" role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-3 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
+            <button type="submit" disabled={enviando || !chave} className="flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-base font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60">
               {enviando ? <LoaderCircle aria-hidden="true" size={20} strokeWidth={2} className="motion-safe:animate-spin" /> : <KeyRound aria-hidden="true" size={20} strokeWidth={2} />}Liberar terminal
             </button>
           </form>
         ) : (
-          <p role="alert" className="mt-4 text-sm leading-6 text-[#ffcf99]">A ilha ainda não tem chave. Um administrador precisa gerá-la no painel, em Execuções › Chave da ilha.</p>
+          <p role="alert" className="mt-4 text-sm leading-6 text-warning">A ilha ainda não tem chave. Um administrador precisa gerá-la no painel, em Execuções › Chave da ilha.</p>
         )}
       </section>
     </main>

@@ -10,8 +10,8 @@ import { etapasAlteradas, moverEtapa, paraEdicao, type EtapaEmEdicao } from '../
 import { EtapaPostosDialog, type PedidoPostosEtapa } from './etapa-postos-dialog';
 import { RoteiroProdutosSection } from './roteiro-produtos-section';
 
-const botao = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60';
-const botaoIcone = 'inline-flex size-10 cursor-pointer items-center justify-center rounded-lg border border-[#3b454e] hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40';
+const botao = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60';
+const botaoIcone = 'inline-flex size-10 cursor-pointer items-center justify-center rounded-md border border-line hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40';
 
 export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: string; operacoes: OperacaoDoRoteiro[]; versaoCriada: boolean }) {
   const router = useRouter();
@@ -95,8 +95,8 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
     return (
       <div className="mx-auto w-full max-w-[1440px]">
         <Link href="/painel/roteiros" className="inline-flex min-h-11 items-center gap-2 text-sm text-muted hover:text-foreground"><ArrowLeft aria-hidden="true" size={18} strokeWidth={2} />Roteiros</Link>
-        <div className="mt-6 flex flex-col items-start gap-4 rounded-xl border border-[#2b353e] bg-[#192128]/65 p-6">
-          <p role="alert" className="flex items-start gap-2 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erroCarga}</p>
+        <div className="mt-6 flex flex-col items-start gap-4 rounded-lg border border-line-soft bg-surface p-6">
+          <p role="alert" className="flex items-start gap-2 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erroCarga}</p>
           <button type="button" onClick={() => { setErroCarga(''); carregar(); }} className={botao}>Tentar novamente</button>
         </div>
       </div>
@@ -125,15 +125,15 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight break-words [overflow-wrap:anywhere]">{roteiro.nome}</h1>
-            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${roteiro.ativo ? 'border-[#7bcba5]/20 bg-[#7bcba5]/10 text-[#a6dfbf]' : 'border-white/10 bg-white/5 text-muted'}`}>{roteiro.ativo ? 'Ativo' : 'Inativo'}</span>
+            <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${roteiro.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{roteiro.ativo ? 'Ativo' : 'Inativo'}</span>
           </div>
           <p className="mt-2 text-sm leading-6 text-muted">Versão {roteiro.versao} · {roteiro.etapas.length} {roteiro.etapas.length === 1 ? 'etapa' : 'etapas'} · {roteiro.quantidadeOrdens} {roteiro.quantidadeOrdens === 1 ? 'ordem de produção' : 'ordens de produção'}</p>
           {roteiro.versoes.length > 1 && (
             <nav aria-label="Versões deste roteiro" className="mt-2 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted">Versões:</span>
               {roteiro.versoes.map((versao) => versao.id === roteiro.id
-                ? <span key={versao.id} aria-current="page" className="rounded-md bg-white/10 px-2 py-0.5 font-medium">v{versao.versao}</span>
-                : <Link key={versao.id} href={`/painel/roteiros/${versao.id}`} className="rounded-md px-2 py-0.5 text-[#c1c8cf] underline-offset-4 hover:underline">v{versao.versao}{versao.ativo ? '' : ' (inativa)'}</Link>)}
+                ? <span key={versao.id} aria-current="page" className="rounded-md bg-foreground/10 px-2 py-0.5 font-medium">v{versao.versao}</span>
+                : <Link key={versao.id} href={`/painel/roteiros/${versao.id}`} className="rounded-md px-2 py-0.5 text-subtle underline-offset-4 hover:underline">v{versao.versao}{versao.ativo ? '' : ' (inativa)'}</Link>)}
             </nav>
           )}
         </div>
@@ -147,17 +147,17 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
         </div>
       </header>
 
-      {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-lg border border-[#7bcba5]/25 bg-[#7bcba5]/5 p-4 text-sm leading-6 text-[#a6dfbf]"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
-      {erro && <p role="alert" className="mt-6 flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-4 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
+      {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-md border border-success-fill/25 bg-success-fill/5 p-4 text-sm leading-6 text-success"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
+      {erro && <p role="alert" className="mt-6 flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-4 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
       {roteiro.travado && (
-        <p className="mt-6 flex items-start gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-[#c1c8cf]">
+        <p className="mt-6 flex items-start gap-2 rounded-md border border-foreground/10 bg-foreground/[0.03] p-4 text-sm leading-6 text-subtle">
           <Lock aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />
           Este roteiro já é usado por ordens de produção, por isso as etapas estão travadas. Para mudar as etapas, use Nova versão. Os postos de cada etapa continuam podendo ser alterados.
         </p>
       )}
 
-      <section aria-labelledby="etapas-titulo" className="mt-7 min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
-        <div className="border-b border-white/10 p-4 sm:p-5">
+      <section aria-labelledby="etapas-titulo" className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+        <div className="border-b border-foreground/10 p-4 sm:p-5">
           <h2 id="etapas-titulo" className="text-lg font-semibold">Etapas</h2>
           <p className="mt-1 text-sm leading-6 text-muted">A ordem das etapas é a sequência do processo. Ela não bloqueia nem libera etapas automaticamente.</p>
         </div>
@@ -165,19 +165,19 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
         {edicao.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted">Nenhuma etapa. {roteiro.travado ? '' : 'Adicione a primeira etapa abaixo.'}</p>
         ) : (
-          <ol aria-label="Etapas do roteiro" className="divide-y divide-white/5">
+          <ol aria-label="Etapas do roteiro" className="divide-y divide-foreground/5">
             {edicao.map((etapa, indice) => {
               const salva = etapa.id ? salvas.get(etapa.id) : undefined;
               return (
                 <li key={etapa.chave} className="flex flex-col gap-3 px-4 py-4 sm:px-5 lg:flex-row lg:items-center">
                   <div className="flex min-w-0 flex-1 items-start gap-4">
-                    <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/5 text-sm font-semibold">{indice + 1}</span>
+                    <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground/5 text-sm font-semibold">{indice + 1}</span>
                     <div className="min-w-0">
-                      <p className="font-medium break-words"><span className="sr-only">Etapa {indice + 1}: </span>{etapa.operacao.nome}{!salva && <span className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 text-xs text-accent">nova, não salva</span>}</p>
+                      <p className="font-medium break-words"><span className="sr-only">Etapa {indice + 1}: </span>{etapa.operacao.nome}{!salva && <span className="ml-2 rounded bg-accent/15 px-1.5 py-0.5 text-xs text-accent-ink">nova, não salva</span>}</p>
                       <p className="mt-1 flex flex-wrap gap-1.5 text-xs text-muted">
                         {!salva ? 'Os postos podem ser escolhidos depois de salvar as etapas.'
-                          : salva.postos.length === 0 ? <span className="text-[#ffcf99]">Nenhum posto compatível.</span>
-                          : salva.postos.map((posto) => <span key={posto.id} className={`rounded-md border px-2 py-0.5 ${posto.ativo ? 'border-white/10 text-[#c1c8cf]' : 'border-white/5 text-muted line-through'}`} title={`${posto.nome} (${posto.setorNome})${posto.ativo ? '' : ', inativo'}`}>{posto.codigo}</span>)}
+                          : salva.postos.length === 0 ? <span className="text-warning">Nenhum posto compatível.</span>
+                          : salva.postos.map((posto) => <span key={posto.id} className={`rounded-md border px-2 py-0.5 ${posto.ativo ? 'border-foreground/10 text-subtle' : 'border-foreground/5 text-muted line-through'}`} title={`${posto.nome} (${posto.setorNome})${posto.ativo ? '' : ', inativo'}`}>{posto.codigo}</span>)}
                       </p>
                     </div>
                   </div>
@@ -186,7 +186,7 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
                       <button type="button" aria-haspopup="dialog" aria-controls="postos-etapa" disabled={alterado} title={alterado ? 'Salve ou descarte as alterações das etapas antes de mudar os postos.' : undefined}
                         aria-label={`Postos da etapa ${indice + 1}, ${etapa.operacao.nome}`}
                         onClick={(event) => { origemFoco.current = event.currentTarget; setPedidoPostos((atual) => ({ etapa: salva, seq: (atual?.seq ?? 0) + 1 })); }}
-                        className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
                       ><Factory aria-hidden="true" size={16} strokeWidth={2} />Postos</button>
                     )}
                     {!roteiro.travado && <>
@@ -202,11 +202,11 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
         )}
 
         {!roteiro.travado && (
-          <div className="flex flex-col gap-4 border-t border-white/10 p-4 sm:p-5">
+          <div className="flex flex-col gap-4 border-t border-foreground/10 p-4 sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="min-w-0 flex-1 sm:max-w-md">
                 <label htmlFor="etapa-operacao" className="mb-2 block text-sm font-medium">Operação da nova etapa</label>
-                <select id="etapa-operacao" value={operacaoNova} onChange={(event) => setOperacaoNova(event.target.value)} disabled={operacoes.length === 0 || ocupado !== null} className="h-11 w-full rounded-lg border border-[#3b454e] bg-background px-3 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60">
+                <select id="etapa-operacao" value={operacaoNova} onChange={(event) => setOperacaoNova(event.target.value)} disabled={operacoes.length === 0 || ocupado !== null} className="h-11 w-full rounded-md border border-line bg-background px-3 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60">
                   <option value="">{operacoes.length === 0 ? 'Nenhuma operação cadastrada' : 'Selecione a operação'}</option>
                   {operacoes.map((operacao) => <option key={operacao.id} value={operacao.id}>{operacao.nome}</option>)}
                 </select>
@@ -215,13 +215,13 @@ export function RoutingDetailScreen({ id, operacoes, versaoCriada }: { id: strin
             </div>
             {operacoes.length === 0 && <p className="text-xs text-muted">Cadastre as operações antes de montar as etapas.</p>}
             {alterado && (
-              <div className="flex flex-col gap-3 rounded-lg border border-accent/30 bg-accent/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="flex items-start gap-2 text-sm text-[#ffcf99]"><Info aria-hidden="true" size={18} strokeWidth={2} className="mt-0.5 shrink-0" />Há alterações nas etapas que ainda não foram salvas.{edicao.length === 0 ? ' O roteiro precisa de pelo menos uma etapa.' : ''}</p>
+              <div className="flex flex-col gap-3 rounded-md border border-accent/30 bg-accent/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="flex items-start gap-2 text-sm text-warning"><Info aria-hidden="true" size={18} strokeWidth={2} className="mt-0.5 shrink-0" />Há alterações nas etapas que ainda não foram salvas.{edicao.length === 0 ? ' O roteiro precisa de pelo menos uma etapa.' : ''}</p>
                 <div className="flex gap-3">
                   <button type="button" disabled={ocupado !== null} onClick={() => { setEdicao(paraEdicao(roteiro.etapas)); setErro(''); }} className={`${botao} disabled:opacity-50`}>Descartar</button>
                   <button type="button" aria-disabled={ocupado !== null || edicao.length === 0}
                     onClick={() => { if (edicao.length > 0) void executar('etapas', () => salvarEtapasRoteiro(roteiro.id, edicao.map((etapa) => etapa.id ? { id: etapa.id, operacaoId: etapa.operacao.id } : { operacaoId: etapa.operacao.id })), 'Etapas salvas com sucesso.', 'Não foi possível salvar as etapas. Tente novamente.'); }}
-                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+                    className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
                   >{ocupado === 'etapas' && <LoaderCircle aria-hidden="true" size={18} strokeWidth={2} className="motion-safe:animate-spin" />}Salvar etapas</button>
                 </div>
               </div>

@@ -12,7 +12,7 @@ O [mapeamento e evolução dos cadastros](CADASTROS_GUNP.md), revisado em 22/10/
 
 ## Apresentação
 
-Manter Geist, Lucide, grafite e laranja `#FF7A21`. A marca do painel usa engrenagem à esquerda de GUNP, preservando as variantes do login e da tela de erro. O banner de boas-vindas contém uma engrenagem SVG decorativa, sem outro asset de imagem.
+Manter Geist, Lucide, grafite e laranja `#FF7A21`. A marca do painel usa engrenagem à esquerda de GUNP, preservando as variantes do login e da tela de erro. Desde 20/11/2026 o início não tem banner decorativo: mostra a saudação e os módulos de Cadastros e Produção em duas listas. O cabeçalho tem o botão de tema claro/escuro ao lado da identificação do usuário.
 
 A partir de 1024px, o menu tem largura de 260px, recolhível para 80px. O estado fica somente em memória e inicia expandido. Os itens recolhidos mantêm nomes acessíveis e tooltip nativo. O cabeçalho tem 64px. Menu e conteúdo têm rolagem independente, sem impor altura aos cartões. A grade usa uma coluna, duas a partir de 640px e três a partir de 1280px.
 
