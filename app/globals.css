@@ -1,20 +1,101 @@
 @import "tailwindcss";
 
-:root {
+/*
+ * Cores do GUNP. O tema escuro (grafite e laranja #FF7A21) é o padrão e a identidade do sistema;
+ * o claro é escolhido pelo botão de tema e guardado no cookie gunp-tema (lido pelo layout raiz).
+ * As telas usam somente estes tokens: nenhuma cor fixa nas classes, para os dois temas funcionarem.
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
   --background: #12171b;
   --foreground: #f5f6f7;
-  --accent: #ff7a21;
   --muted: #a7b0ba;
+  --subtle: #c1c8cf;
+  --surface: #192128;
+  --raised: #1b232a;
+  --sidebar: #11171c;
+  --inset: #0f1418;
+  --line: #3b454e;
+  --line-soft: #2b353e;
+  --line-raised: #34404b;
+  --accent: #ff7a21;
+  --accent-hover: #ff8d40;
+  --accent-ink: #ff7a21;
+  --on-accent: #171b1f;
+  --danger: #ffb4a5;
+  --danger-fill: #f49a8a;
+  --success: #a6dfbf;
+  --success-fill: #7bcba5;
+  --success-fill-hover: #93d8b6;
+  --on-success: #13201a;
+  --warning: #ffcf99;
+  --warning-fill: #ffcf99;
+  --warning-fill-hover: #ffdcb3;
+  --on-warning: #2a1d0c;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --background: #f2f3f5;
+  --foreground: #161b20;
+  --muted: #5b6570;
+  --subtle: #39424b;
+  --surface: #ffffff;
+  --raised: #ffffff;
+  --sidebar: #fbfbfc;
+  --inset: #ffffff;
+  --line: #c3cad1;
+  --line-soft: #dde1e6;
+  --line-raised: #d2d8de;
+  --accent: #ff7a21;
+  --accent-hover: #ff8d40;
+  --accent-ink: #b04a05;
+  --on-accent: #171b1f;
+  --danger: #b42318;
+  --danger-fill: #e0584a;
+  --success: #146c43;
+  --success-fill: #3aa776;
+  --success-fill-hover: #4bb684;
+  --on-success: #0f1c15;
+  --warning: #8a4700;
+  --warning-fill: #f2a54a;
+  --warning-fill-hover: #f5b467;
+  --on-warning: #2a1d0c;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
   --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-sidebar: var(--sidebar);
+  --color-inset: var(--inset);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-raised: var(--line-raised);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-danger-fill: var(--danger-fill);
+  --color-success: var(--success);
+  --color-success-fill: var(--success-fill);
+  --color-success-fill-hover: var(--success-fill-hover);
+  --color-on-success: var(--on-success);
+  --color-warning: var(--warning);
+  --color-warning-fill: var(--warning-fill);
+  --color-warning-fill-hover: var(--warning-fill-hover);
+  --color-on-warning: var(--on-warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
+
+/* Variante para pequenos ajustes por tema, ex.: dark:hidden no ícone do botão de tema. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 body {
   background: var(--background);
@@ -23,8 +104,31 @@ body {
 }
 
 ::selection {
-  background: #ff7a2140;
-  color: #ffffff;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--foreground);
+}
+
+/* Impressão sempre com a paleta clara, em qualquer tema escolhido na tela. */
+@media print {
+  :root,
+  [data-theme] {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #111111;
+    --muted: #444b52;
+    --subtle: #2c333a;
+    --surface: #ffffff;
+    --raised: #ffffff;
+    --sidebar: #ffffff;
+    --inset: #ffffff;
+    --line: #c8ccd0;
+    --line-soft: #c8ccd0;
+    --line-raised: #c8ccd0;
+    --accent-ink: #9a4204;
+    --danger: #9b1c12;
+    --success: #0f5a37;
+    --warning: #7a3e00;
+  }
 }
 
 /* O mesmo cartão é usado na prévia responsiva e na impressão em tamanho físico. */

@@ -8,12 +8,13 @@ import { destinosPainel, gruposPainel, hrefDestinoPainel } from '../painel-navig
 import { BrandGunp } from './brand-gunp';
 import { LogoutButton } from './logout-button';
 import { PainelIcon } from './painel-icon';
+import { ThemeToggle } from '@/shared/presentation/theme-toggle';
 
 function MenuPainel({ pathname, recolhido = false, aoNavegar }: { pathname: string; recolhido?: boolean; aoNavegar?: () => void }) {
   return (
     <nav aria-label="Navegação administrativa" className="min-h-0 flex-1 overflow-y-auto px-2 py-5">
       {gruposPainel.map((grupo) => (
-        <div key={grupo} className={grupo === 'Início' ? '' : 'mt-4 border-t border-white/10 pt-4'}>
+        <div key={grupo} className={grupo === 'Início' ? '' : 'mt-4 border-t border-foreground/10 pt-4'}>
           {grupo !== 'Início' && <p className={recolhido ? 'sr-only' : 'mb-2 px-4 text-xs tracking-wide text-muted'}>{grupo}</p>}
           <ul className="space-y-1">
             {destinosPainel.filter((destino) => destino.grupo === grupo).map((destino) => {
@@ -25,7 +26,7 @@ function MenuPainel({ pathname, recolhido = false, aoNavegar }: { pathname: stri
                     href={href} prefetch={false} onClick={aoNavegar}
                     aria-current={ativo ? 'page' : undefined}
                     title={recolhido ? destino.titulo : undefined}
-                    className={`relative flex min-h-11 items-center gap-3 rounded-lg border-l-4 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${recolhido ? 'justify-center px-2' : 'px-4'} ${ativo ? 'border-accent bg-accent/10 font-medium text-accent' : 'border-transparent text-[#c1c8cf] hover:bg-white/5 hover:text-foreground'}`}
+                    className={`relative flex min-h-11 items-center gap-3 rounded-md border-l-4 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${recolhido ? 'justify-center px-2' : 'px-4'} ${ativo ? 'border-accent bg-accent/10 font-medium text-accent-ink' : 'border-transparent text-subtle hover:bg-foreground/5 hover:text-foreground'}`}
                   >
                     <PainelIcon icone={destino.icone} className="shrink-0" />
                     <span className={recolhido ? 'sr-only' : ''}>{destino.titulo}</span>
@@ -84,18 +85,18 @@ export function AdminShell({ usuario, children }: { usuario: { nome: string; mat
     // Altura fixa da tela, sem flex-1: com flex-1 a moldura acompanhava a altura do conteúdo (o body só tem
     // altura mínima), a página inteira rolava e o menu lateral subia junto. Assim, só o <main> rola.
     <div className="relative flex h-dvh min-h-0 w-full min-w-0 shrink-0 overflow-hidden bg-background print:block print:h-auto print:overflow-visible print:bg-white">
-      <a href="#painel-conteudo" className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:font-medium focus:text-[#171b1f]">Ir para o conteúdo</a>
-      <aside aria-label="Menu lateral" className={`hidden h-full shrink-0 print:hidden! flex-col border-r border-white/10 bg-[#11171c] lg:flex ${recolhido ? 'w-20' : 'w-[260px]'}`}>
-        <Link href="/painel" prefetch={false} aria-label="GUNP — Início" className="flex h-16 shrink-0 items-center justify-center border-b border-white/10 px-4 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent">
+      <a href="#painel-conteudo" className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:font-medium focus:text-on-accent">Ir para o conteúdo</a>
+      <aside aria-label="Menu lateral" className={`hidden h-full shrink-0 print:hidden! flex-col border-r border-foreground/10 bg-sidebar lg:flex ${recolhido ? 'w-20' : 'w-[260px]'}`}>
+        <Link href="/painel" prefetch={false} aria-label="GUNP — Início" className="flex h-16 shrink-0 items-center justify-center border-b border-foreground/10 px-4 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent">
           <BrandGunp variante="painel" compacta={recolhido} />
         </Link>
         <div id="menu-desktop" className="flex min-h-0 flex-1 flex-col"><MenuPainel pathname={pathname} recolhido={recolhido} /></div>
-        <div className="shrink-0 border-t border-white/10 p-3">
+        <div className="shrink-0 border-t border-foreground/10 p-3">
           <button
             type="button" onClick={() => setRecolhido(!recolhido)}
             aria-expanded={!recolhido} aria-controls="menu-desktop"
             aria-label={recolhido ? 'Expandir menu' : 'Recolher menu'} title={recolhido ? 'Expandir menu' : undefined}
-            className={`flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg text-sm text-muted transition-colors hover:bg-white/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${recolhido ? 'justify-center' : 'px-3'}`}
+            className={`flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-md text-sm text-muted transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${recolhido ? 'justify-center' : 'px-3'}`}
           >
             {recolhido ? <PanelLeftOpen aria-hidden="true" size={20} strokeWidth={2} /> : <PanelLeftClose aria-hidden="true" size={20} strokeWidth={2} />}
             <span className={recolhido ? 'sr-only' : ''}>{recolhido ? 'Expandir menu' : 'Recolher menu'}</span>
@@ -104,17 +105,19 @@ export function AdminShell({ usuario, children }: { usuario: { nome: string; mat
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col print:block">
-        <header className="flex h-16 shrink-0 items-center justify-between gap-3 print:hidden border-b border-white/10 bg-[#11171c]/80 px-4 sm:px-6 lg:px-8">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-3 print:hidden border-b border-foreground/10 bg-sidebar px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
               ref={abrirMenuRef} type="button" aria-label="Abrir menu" aria-haspopup="dialog" aria-controls="menu-mobile"
               onClick={() => { if (!drawerRef.current?.open) drawerRef.current?.showModal(); }}
-              className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent lg:hidden"
+              className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent lg:hidden"
             ><Menu aria-hidden="true" size={24} strokeWidth={2} /></button>
             <div className="lg:hidden"><BrandGunp variante="painel" /></div>
             <span className="hidden text-xs tracking-wide text-muted lg:block">Área administrativa</span>
           </div>
 
+          <div className="flex shrink-0 items-center gap-1">
+          <ThemeToggle />
           <details
             ref={usuarioRef} className="relative shrink-0"
             onKeyDown={(event) => {
@@ -127,20 +130,21 @@ export function AdminShell({ usuario, children }: { usuario: { nome: string; mat
           >
             <summary
               aria-label={`Identificação de ${usuario.nome}`} aria-controls="identificacao-usuario"
-              className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-lg px-2 text-sm hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden"
+              className="flex min-h-11 cursor-pointer list-none items-center gap-3 rounded-md px-2 text-sm hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden"
             >
-              <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#3b454e] text-xs font-semibold">{iniciais}</span>
+              <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-line-soft text-xs font-semibold text-subtle">{iniciais}</span>
               <span title={usuario.nome} className="hidden max-w-56 truncate sm:block">{usuario.nome}</span>
               <ChevronDown aria-hidden="true" size={16} strokeWidth={2} className="shrink-0 text-muted" />
             </summary>
-            <div id="identificacao-usuario" className="absolute top-full right-0 z-30 mt-2 max-h-[calc(100dvh-88px)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-[#34404b] bg-[#1b232a] p-5 shadow-xl">
-              <p className="text-xs tracking-wide text-accent uppercase">Sua identificação</p>
+            <div id="identificacao-usuario" className="absolute top-full right-0 z-30 mt-2 max-h-[calc(100dvh-88px)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-line-raised bg-raised p-5 shadow-lg">
+              <p className="text-xs font-medium text-muted">Sua identificação</p>
               <p className="mt-3 text-sm font-semibold break-words">{usuario.nome}</p>
               <p className="mt-2 text-sm break-all text-muted">Matrícula: {usuario.matricula}</p>
               <p className="mt-1 text-sm text-muted">Administrador</p>
-              <div className="mt-5 border-t border-white/10 pt-4"><LogoutButton /></div>
+              <div className="mt-5 border-t border-foreground/10 pt-4"><LogoutButton /></div>
             </div>
           </details>
+          </div>
         </header>
         <main id="painel-conteudo" ref={conteudoRef} tabIndex={-1} className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 outline-none sm:px-6 sm:py-8 lg:px-8 print:overflow-visible print:p-0">{children}</main>
       </div>
@@ -149,13 +153,13 @@ export function AdminShell({ usuario, children }: { usuario: { nome: string; mat
         id="menu-mobile" ref={drawerRef} aria-labelledby="menu-mobile-titulo"
         onClose={() => abrirMenuRef.current?.focus()}
         onClick={(event) => { if (event.target === event.currentTarget) fecharMenu(); }}
-        className="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-[min(320px,calc(100vw-48px))] max-w-none border-0 border-r border-white/10 bg-[#11171c] p-0 text-foreground backdrop:bg-black/65"
+        className="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-[min(320px,calc(100vw-48px))] max-w-none border-0 border-r border-foreground/10 bg-sidebar p-0 text-foreground backdrop:bg-black/50"
       >
         <div className="flex h-full flex-col">
-          <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-white/10 px-5">
+          <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-foreground/10 px-5">
             <span id="menu-mobile-titulo" className="sr-only">Menu administrativo GUNP</span>
             <BrandGunp variante="painel" />
-            <button type="button" onClick={fecharMenu} aria-label="Fechar menu" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
+            <button type="button" onClick={fecharMenu} aria-label="Fechar menu" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-accent"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
           </div>
           <MenuPainel pathname={pathname} aoNavegar={fecharMenu} />
         </div>

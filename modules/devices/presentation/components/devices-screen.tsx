@@ -11,12 +11,12 @@ import { DeviceFormDialog, type PedidoFormularioDispositivo } from './device-for
 import { DeviceCodeDialog, type PedidoCodigo } from './device-code-dialog';
 
 const CONEXAO: Record<SituacaoConexao, { rotulo: string; classe: string }> = {
-  ONLINE: { rotulo: 'Online', classe: 'border-[#7bcba5]/30 bg-[#7bcba5]/10 text-[#a6dfbf]' },
-  OFFLINE: { rotulo: 'Offline', classe: 'border-[#f49a8a]/30 bg-[#f49a8a]/10 text-[#ffb4a5]' },
-  NUNCA_CONECTOU: { rotulo: 'Nunca conectou', classe: 'border-white/10 bg-white/5 text-muted' },
+  ONLINE: { rotulo: 'Online', classe: 'border-success-fill/30 bg-success-fill/10 text-success' },
+  OFFLINE: { rotulo: 'Offline', classe: 'border-danger-fill/30 bg-danger-fill/10 text-danger' },
+  NUNCA_CONECTOU: { rotulo: 'Nunca conectou', classe: 'border-foreground/10 bg-foreground/5 text-muted' },
 };
 const DATA_HORA = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'America/Sao_Paulo' });
-const botaoAcao = 'inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60';
+const botaoAcao = 'inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60';
 
 export function DevicesScreen() {
   const router = useRouter();
@@ -103,39 +103,39 @@ export function DevicesScreen() {
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-          <a href="/tv" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+          <a href="/tv" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
             <ExternalLink aria-hidden="true" size={18} />Abrir a tela da TV<span className="sr-only"> (abre em uma nova aba)</span>
           </a>
           <button type="button" aria-haspopup="dialog" aria-controls="formulario-dispositivo" onClick={(event) => abrirFormulario(null, event.currentTarget)}
-            className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+            className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
             <Plus aria-hidden="true" size={20} strokeWidth={2} />Adicionar TV
           </button>
         </div>
       </header>
 
-      {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-lg border border-[#7bcba5]/25 bg-[#7bcba5]/5 p-4 text-sm leading-6 text-[#a6dfbf]"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
-      {erro && <p role="alert" className="mt-6 flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-4 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
+      {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-md border border-success-fill/25 bg-success-fill/5 p-4 text-sm leading-6 text-success"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
+      {erro && <p role="alert" className="mt-6 flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-4 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
 
-      <section aria-label="TVs cadastradas" aria-busy={carregando} className="mt-7 min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
-        <p className="border-b border-white/10 px-5 py-3 text-xs text-muted">Online: a TV conectou nos últimos {LIMITE_ONLINE_MS / 1000} segundos. A lista atualiza sozinha a cada {INTERVALO_ATUALIZACAO_MS / 1000} s.</p>
+      <section aria-label="TVs cadastradas" aria-busy={carregando} className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+        <p className="border-b border-foreground/10 px-5 py-3 text-xs text-muted">Online: a TV conectou nos últimos {LIMITE_ONLINE_MS / 1000} segundos. A lista atualiza sozinha a cada {INTERVALO_ATUALIZACAO_MS / 1000} s.</p>
         {carregando && dispositivos.length === 0 ? (
           <p role="status" className="flex min-h-40 items-center justify-center gap-3 p-6 text-sm text-muted"><LoaderCircle aria-hidden="true" size={22} className="motion-safe:animate-spin" />Carregando TVs…</p>
         ) : (
-          <div className="max-w-full overflow-x-auto rounded-b-xl">
-            <table className="w-full min-w-[900px] text-left text-sm">
+          <div className="max-w-full overflow-x-auto rounded-b-lg">
+            <table className="tabular-nums w-full min-w-[900px] text-left text-sm">
               <caption className="sr-only">TVs cadastradas, com a situação da conexão</caption>
-              <thead className="border-b border-white/10 bg-white/[0.025] text-muted"><tr>
+              <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
                 {['TV', 'Setor exibido', 'Conexão', 'Última conexão', 'Status'].map((t) => <th key={t} scope="col" className="px-5 py-3 font-medium">{t}</th>)}
                 <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
               </tr></thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-foreground/5">
                 {dispositivos.map((d) => (
-                  <tr key={d.id} className="hover:bg-white/[0.025]">
+                  <tr key={d.id} className="hover:bg-foreground/[0.025]">
                     <td className="px-5 py-4"><p className="font-medium [overflow-wrap:anywhere]">{d.nome}</p>{d.local && <p className="text-xs text-muted [overflow-wrap:anywhere]">{d.local}</p>}</td>
-                    <td className="px-5 py-4 text-[#c1c8cf]">{d.setor?.nome ?? 'Todos os setores'}</td>
+                    <td className="px-5 py-4 text-subtle">{d.setor?.nome ?? 'Todos os setores'}</td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap ${d.ativo ? CONEXAO[d.conexao].classe : CONEXAO.NUNCA_CONECTOU.classe}`}>{d.ativo ? CONEXAO[d.conexao].rotulo : 'Desativada'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-muted">{d.ultimaConexaoEm ? <time dateTime={d.ultimaConexaoEm}>{DATA_HORA.format(new Date(d.ultimaConexaoEm))}</time> : '—'}</td>
-                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${d.ativo ? 'border-[#7bcba5]/20 bg-[#7bcba5]/10 text-[#a6dfbf]' : 'border-white/10 bg-white/5 text-muted'}`}>{d.ativo ? 'Ativa' : 'Inativa'}</span></td>
+                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${d.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{d.ativo ? 'Ativa' : 'Inativa'}</span></td>
                     <td className="space-x-2 px-5 py-3 text-right whitespace-nowrap">
                       <button type="button" aria-haspopup="dialog" aria-controls="formulario-dispositivo" aria-label={`Editar ${d.nome}`} onClick={(e) => abrirFormulario(d, e.currentTarget)} className={botaoAcao}><Pencil aria-hidden="true" size={16} />Editar</button>
                       <button type="button" aria-haspopup="dialog" aria-controls="codigo-dispositivo" aria-label={`Gerar novo código para ${d.nome}`} onClick={(e) => pedirNovoCodigo(d, e.currentTarget)} className={botaoAcao}><KeyRound aria-hidden="true" size={16} />Novo código</button>

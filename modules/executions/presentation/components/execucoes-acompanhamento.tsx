@@ -11,7 +11,7 @@ import {
 } from '../acompanhamento';
 import { formatarDuracao } from '../tempo-decorrido';
 
-const botaoSecundario = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
+const botaoSecundario = 'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
 const SITUACOES: { valor: FiltroSituacao; rotulo: string }[] = [
   { valor: 'todas', rotulo: 'Todas' }, { valor: 'EM_EXECUCAO', rotulo: 'Em execução' }, { valor: 'PAUSADA', rotulo: 'Pausadas' },
   { valor: 'ATENCAO', rotulo: 'Com atenção' },
@@ -27,7 +27,7 @@ function Situacao({ execucao, referencia, atencoes }: { execucao: ExecucaoAcompa
   const pausa = pausaAtual(execucao);
   return (
     <div className="space-y-1">
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-semibold ${pausa ? 'bg-[#ffcf99]/15 text-[#ffcf99]' : 'bg-[#7bcba5]/15 text-[#a6dfbf]'}`}>
+      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-sm font-semibold ${pausa ? 'bg-warning-fill/15 text-warning' : 'bg-success-fill/15 text-success'}`}>
         {pausa ? <Pause aria-hidden="true" size={14} strokeWidth={2} /> : <Timer aria-hidden="true" size={14} strokeWidth={2} />}
         {pausa ? 'Pausada' : 'Em execução'}
       </span>
@@ -35,7 +35,7 @@ function Situacao({ execucao, referencia, atencoes }: { execucao: ExecucaoAcompa
       {atencoes.length > 0 && (
         <ul aria-label="Atenção" className="space-y-1">
           {atencoes.map((atencao) => (
-            <li key={atencao.tipo} className="flex items-start gap-1.5 text-xs font-medium leading-5 text-[#ffcf99]">
+            <li key={atencao.tipo} className="flex items-start gap-1.5 text-xs font-medium leading-5 text-warning">
               <AlertTriangle aria-hidden="true" size={14} strokeWidth={2} className="mt-0.5 shrink-0" />{textoAtencao(atencao, referencia)}
             </li>
           ))}
@@ -108,8 +108,8 @@ export function ExecucoesAcompanhamento() {
   const referencia = dados?.meta.consultadoEm ?? '';
 
   return (
-    <section aria-labelledby="acompanhamento-titulo" className="mt-7 min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 p-4 sm:p-5">
+    <section aria-labelledby="acompanhamento-titulo" className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-foreground/10 p-4 sm:p-5">
         <div className="min-w-0">
           <h2 id="acompanhamento-titulo" className="text-lg font-semibold">Execuções em andamento</h2>
           <p className="mt-1.5 text-sm leading-6 text-muted">Execuções em execução ou pausadas agora, da mais antiga para a mais recente. O tempo é da execução e não mede o desempenho de uma pessoa.</p>
@@ -126,7 +126,7 @@ export function ExecucoesAcompanhamento() {
 
       <div className="space-y-4 p-4 sm:p-5">
         {erro && (
-          <p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/30 bg-[#f49a8a]/10 p-3 text-sm leading-6 text-[#ffb4a5]">
+          <p role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/30 bg-danger-fill/10 p-3 text-sm leading-6 text-danger">
             <AlertCircle aria-hidden="true" size={18} strokeWidth={2} className="mt-0.5 shrink-0" />
             {dados ? `Não foi possível atualizar. Mostrando os dados de ${formatarHoraCompleta(dados.meta.consultadoEm)}.` : erro}
           </p>
@@ -137,7 +137,7 @@ export function ExecucoesAcompanhamento() {
             <div role="group" aria-label="Situação" className="flex flex-wrap gap-2">
               {SITUACOES.map((opcao) => (
                 <button key={opcao.valor} type="button" aria-pressed={situacao === opcao.valor} onClick={() => setSituacao(opcao.valor)}
-                  className={`min-h-11 cursor-pointer rounded-lg border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${situacao === opcao.valor ? 'border-accent bg-accent/10 text-foreground' : 'border-[#3b454e] text-muted hover:border-accent'}`}>
+                  className={`min-h-11 cursor-pointer rounded-md border px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${situacao === opcao.valor ? 'border-accent bg-accent/10 text-foreground' : 'border-line text-muted hover:border-accent'}`}>
                   {opcao.rotulo} ({contagem[opcao.valor]})
                 </button>
               ))}
@@ -145,7 +145,7 @@ export function ExecucoesAcompanhamento() {
             <div>
               <label htmlFor="acompanhamento-setor" className="block text-sm text-muted">Setor</label>
               <select id="acompanhamento-setor" value={setorValido ?? ''} onChange={(evento) => setSetor(evento.target.value || null)}
-                className="mt-1 h-11 w-full rounded-lg border border-[#3b454e] bg-background px-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-56">
+                className="mt-1 h-11 w-full rounded-md border border-line bg-background px-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-56">
                 <option value="">Todos os setores</option>
                 {setores.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
               </select>
@@ -161,19 +161,19 @@ export function ExecucoesAcompanhamento() {
         {visiveis.length > 0 && (
           <>
             <div className="hidden lg:block">
-              <table className="w-full text-left text-sm">
+              <table className="tabular-nums w-full text-left text-sm">
                 <caption className="sr-only">Execuções em andamento</caption>
-                <thead className="border-b border-white/10 text-muted"><tr>
+                <thead className="border-b border-foreground/10 text-muted"><tr>
                   {['Situação', 'Operador', 'Ordem', 'Etapa', 'Posto', 'Início'].map((titulo) => <th key={titulo} scope="col" className="px-3 py-2.5 font-medium">{titulo}</th>)}
                   {['Produtivo', 'Em pausa'].map((titulo) => <th key={titulo} scope="col" className="px-3 py-2.5 text-right font-medium">{titulo}</th>)}
                 </tr></thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-foreground/5">
                   {visiveis.map((execucao) => {
                     const tempos = temposAteAgora(execucao, agoraServidor);
                     const inicio = inicioDaExecucao(execucao);
                     const atencoes = atencoesDaExecucao(execucao, agoraServidor);
                     return (
-                      <tr key={execucao.id} className={`align-top ${atencoes.length > 0 ? 'bg-[#ffcf99]/[0.04] shadow-[inset_3px_0_0_#ffcf99]' : ''}`}>
+                      <tr key={execucao.id} className={`align-top ${atencoes.length > 0 ? 'bg-warning-fill/[0.04] shadow-[inset_3px_0_0_var(--warning-fill)]' : ''}`}>
                         <td className="px-3 py-3"><Situacao execucao={execucao} referencia={referencia} atencoes={atencoes} /></td>
                         <td className="px-3 py-3"><p className="font-medium">{execucao.operador.nome}</p><p className="text-xs text-muted">{execucao.operador.matricula}</p></td>
                         <td className="px-3 py-3"><p className="font-medium">{execucao.ordem.numero}</p><p className="text-xs text-muted">{execucao.produto.codigo} – {execucao.produto.nome} · {execucao.ordem.quantidade.toLocaleString('pt-BR')} {execucao.ordem.unidade}</p></td>
@@ -195,7 +195,7 @@ export function ExecucoesAcompanhamento() {
                 const inicio = inicioDaExecucao(execucao);
                 const atencoes = atencoesDaExecucao(execucao, agoraServidor);
                 return (
-                  <li key={execucao.id} className={`min-w-0 space-y-3 rounded-lg border bg-background/40 p-4 ${atencoes.length > 0 ? 'border-[#ffcf99]/50' : 'border-[#2b353e]'}`}>
+                  <li key={execucao.id} className={`min-w-0 space-y-3 rounded-md border bg-background/40 p-4 ${atencoes.length > 0 ? 'border-warning-fill/50' : 'border-line-soft'}`}>
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0"><p className="font-semibold [overflow-wrap:anywhere]">{execucao.operador.nome}</p><p className="text-xs text-muted">{execucao.operador.matricula}</p></div>
                       <Situacao execucao={execucao} referencia={referencia} atencoes={atencoes} />

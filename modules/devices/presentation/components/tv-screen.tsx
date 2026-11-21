@@ -19,9 +19,9 @@ const HORA_COMPLETA = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_
 const DATA = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long' });
 
 const CORES = {
-  EM_EXECUCAO: { faixa: 'bg-[#2f9e6e]', texto: 'text-[#a6dfbf]', rotulo: 'Em execução' },
-  PAUSADA: { faixa: 'bg-[#d79a3e]', texto: 'text-[#ffcf99]', rotulo: 'Pausado' },
-  LIVRE: { faixa: 'bg-[#3b454e]', texto: 'text-muted', rotulo: 'Livre' },
+  EM_EXECUCAO: { faixa: 'bg-[#2f9e6e]', texto: 'text-success', rotulo: 'Em execução' },
+  PAUSADA: { faixa: 'bg-[#d79a3e]', texto: 'text-warning', rotulo: 'Pausado' },
+  LIVRE: { faixa: 'bg-line', texto: 'text-muted', rotulo: 'Livre' },
 } as const;
 
 function principalDoPosto(posto: PostoNoPainel): ExecucaoNoPainel | null {
@@ -35,10 +35,10 @@ function QuadroPosto({ posto, agoraServidor }: { posto: PostoNoPainel; agoraServ
   const tempos = execucao ? temposAteAgora(execucao, agoraServidor) : null;
   const cor = CORES[posto.situacao];
   return (
-    <article className={`flex min-h-0 flex-col overflow-hidden rounded-[0.8vw] border-[0.25vw] bg-[#192128] ${atencoes.length ? 'border-[#ff8d40]' : 'border-[#2b353e]'}`}>
+    <article className={`flex min-h-0 flex-col overflow-hidden rounded-[0.8vw] border-[0.25vw] bg-surface ${atencoes.length ? 'border-accent-hover' : 'border-line-soft'}`}>
       <div className={`flex shrink-0 items-center justify-between gap-[0.6vw] px-[1vw] py-[0.45vw] ${cor.faixa}`}>
-        <span className="truncate text-[1.8vw] leading-tight font-bold text-[#0f1418]">{posto.codigo}</span>
-        <span className="flex shrink-0 items-center gap-[0.4vw] text-[1.1vw] font-semibold text-[#0f1418]">
+        <span className="truncate text-[1.8vw] leading-tight font-bold text-inset">{posto.codigo}</span>
+        <span className="flex shrink-0 items-center gap-[0.4vw] text-[1.1vw] font-semibold text-inset">
           {posto.situacao === 'PAUSADA' ? <Pause aria-hidden="true" className="size-[1.3vw]" /> : posto.situacao === 'EM_EXECUCAO' ? <Timer aria-hidden="true" className="size-[1.3vw]" /> : null}
           {cor.rotulo}
         </span>
@@ -132,8 +132,9 @@ export function TvScreen() {
   const maiorCarga = Math.max(1, ...(dados?.cargaPorPosto ?? []).map((c) => c.segundos));
 
   return (
-    <main className="flex h-dvh w-full cursor-none flex-col overflow-hidden bg-[#0f1418] text-foreground select-none">
-      <header className="flex shrink-0 items-center justify-between gap-[2vw] border-b border-white/10 px-[2vw] py-[1vw]">
+    // A TV fica sempre no tema escuro: leitura a distância e ninguém para trocar o tema no aparelho.
+    <main data-theme="dark" className="flex h-dvh w-full cursor-none flex-col overflow-hidden bg-inset text-foreground select-none">
+      <header className="flex shrink-0 items-center justify-between gap-[2vw] border-b border-foreground/10 px-[2vw] py-[1vw]">
         <div className="flex min-w-0 items-center gap-[1.5vw]">
           {/* A escala não ocupa espaço no layout: a margem fixa compensa o aumento da marca. */}
           <div className="mr-14 shrink-0 origin-left scale-[1.4]"><BrandGunp variante="painel" /></div>
@@ -145,8 +146,8 @@ export function TvScreen() {
         <div className="flex shrink-0 items-center gap-[2vw]">
           {dados && (
             <div className="flex gap-[1.2vw] text-[1.25vw] font-semibold">
-              <span className="text-[#a6dfbf]">{resumo.emExecucao} em execução</span>
-              <span className="text-[#ffcf99]">{resumo.pausados} {resumo.pausados === 1 ? 'pausado' : 'pausados'}</span>
+              <span className="text-success">{resumo.emExecucao} em execução</span>
+              <span className="text-warning">{resumo.pausados} {resumo.pausados === 1 ? 'pausado' : 'pausados'}</span>
               <span className="text-muted">{resumo.livres} {resumo.livres === 1 ? 'livre' : 'livres'}</span>
             </div>
           )}
@@ -182,7 +183,7 @@ export function TvScreen() {
           </section>
 
           <div className="flex min-h-0 flex-col gap-[1.5vw]">
-            <section aria-label="Produção de hoje" className="rounded-[0.8vw] border border-[#2b353e] bg-[#192128] p-[1.2vw]">
+            <section aria-label="Produção de hoje" className="rounded-[0.8vw] border border-line-soft bg-surface p-[1.2vw]">
               <h2 className="text-[1.6vw] font-semibold">Produção de hoje</h2>
               <p className="mt-[0.3vw] text-[1vw] text-muted">Peças boas na última etapa · {dados.producaoHoje.baixas} {dados.producaoHoje.baixas === 1 ? 'baixa' : 'baixas'} no dia</p>
               {dados.producaoHoje.pecasBoas.length === 0 ? (
@@ -192,14 +193,14 @@ export function TvScreen() {
                   {dados.producaoHoje.pecasBoas.slice(0, 4).map((p) => (
                     <li key={`${p.produtoCodigo}-${p.unidade}`} className="flex items-baseline justify-between gap-[1vw]">
                       <span className="truncate text-[1.4vw]">{p.produtoCodigo}</span>
-                      <span className="font-mono text-[2.4vw] font-bold tabular-nums text-[#a6dfbf]">{p.quantidadeBoa.toLocaleString('pt-BR')} <span className="text-[1.2vw] font-semibold">{p.unidade}</span></span>
+                      <span className="font-mono text-[2.4vw] font-bold tabular-nums text-success">{p.quantidadeBoa.toLocaleString('pt-BR')} <span className="text-[1.2vw] font-semibold">{p.unidade}</span></span>
                     </li>
                   ))}
                 </ul>
               )}
             </section>
 
-            <section aria-label="Carga pendente por posto" className="flex min-h-0 flex-1 flex-col rounded-[0.8vw] border border-[#2b353e] bg-[#192128] p-[1.2vw]">
+            <section aria-label="Carga pendente por posto" className="flex min-h-0 flex-1 flex-col rounded-[0.8vw] border border-line-soft bg-surface p-[1.2vw]">
               <h2 className="text-[1.6vw] font-semibold">Carga pendente</h2>
               <p className="mt-[0.3vw] text-[1vw] text-muted">Trabalho ainda sem baixa, por posto (estimativa)</p>
               {dados.cargaPorPosto.length === 0 ? (
@@ -212,7 +213,7 @@ export function TvScreen() {
                         <span className="truncate font-semibold">{c.codigo}</span>
                         <span className="shrink-0 tabular-nums">{formatarDuracao(c.segundos)}</span>
                       </div>
-                      <div className="mt-[0.3vw] h-[0.8vw] rounded-full bg-white/10">
+                      <div className="mt-[0.3vw] h-[0.8vw] rounded-full bg-foreground/10">
                         <div className="h-full rounded-full bg-[#3b82f6]" style={{ width: `${Math.max(2, (c.segundos / maiorCarga) * 100)}%` }} />
                       </div>
                     </li>
@@ -224,7 +225,7 @@ export function TvScreen() {
         </div>
       )}
 
-      <footer className="flex shrink-0 items-center justify-between gap-[2vw] border-t border-white/10 px-[2vw] py-[0.6vw] text-[0.95vw] text-muted">
+      <footer className="flex shrink-0 items-center justify-between gap-[2vw] border-t border-foreground/10 px-[2vw] py-[0.6vw] text-[0.95vw] text-muted">
         <span>O tempo é da execução e não mede o desempenho de uma pessoa.</span>
         <span>{dados ? `Atualizado às ${HORA_COMPLETA.format(Date.parse(dados.meta.consultadoEm))} · atualiza a cada ${dados.meta.intervaloSegundos} s` : ''}</span>
       </footer>

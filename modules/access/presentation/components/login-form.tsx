@@ -45,13 +45,13 @@ export function LoginForm() {
     }
   }
 
-  const campoClassName = 'h-12 w-full rounded-lg border border-[#3b454e] bg-white/[0.025] pl-12 pr-4 text-base text-foreground outline-none transition-colors placeholder:text-[#89949f] hover:border-[#59646e] focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60';
+  const campoClassName = 'h-12 w-full rounded-md border border-line bg-foreground/[0.025] pl-12 pr-4 text-base text-foreground outline-none transition-colors placeholder:text-muted hover:border-muted focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60';
 
   return (
     // method="post": se o envio ocorrer antes da hidratação, a senha não vai para a URL.
     <form method="post" onSubmit={entrar} className="mt-6 space-y-4" aria-busy={enviando}>
       <div>
-        <label htmlFor="matricula" className="mb-1 block text-sm font-medium text-[#ccd2d8]">Matrícula</label>
+        <label htmlFor="matricula" className="mb-1 block text-sm font-medium text-subtle">Matrícula</label>
         <div className="relative">
           <UserRound aria-hidden="true" size={22} strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted" />
           <input
@@ -64,7 +64,7 @@ export function LoginForm() {
         </div>
       </div>
       <div>
-        <label htmlFor="senha" className="mb-1 block text-sm font-medium text-[#ccd2d8]">Senha</label>
+        <label htmlFor="senha" className="mb-1 block text-sm font-medium text-subtle">Senha</label>
         <div className="relative">
           <LockKeyhole aria-hidden="true" size={22} strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted" />
           <input
@@ -83,13 +83,13 @@ export function LoginForm() {
         </div>
       </div>
       {erro && (
-        <p id="login-erro" role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 px-3 py-2 text-sm leading-5 text-[#ffb4a5]">
+        <p id="login-erro" role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 px-3 py-2 text-sm leading-5 text-danger">
           <AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}
         </p>
       )}
       <button
         type="submit" disabled={enviando}
-        className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent text-base font-semibold text-[#171b1f] transition-colors hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70"
+        className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-base font-semibold text-on-accent transition-colors hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70"
       >
         {enviando && <LoaderCircle aria-hidden="true" size={20} strokeWidth={2} className="motion-safe:animate-spin" />}
         {enviando ? 'Entrando…' : 'Entrar'}

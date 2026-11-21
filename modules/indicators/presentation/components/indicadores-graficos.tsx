@@ -11,7 +11,7 @@ const largura = (valor: number, maximo: number) => (valor <= 0 || maximo <= 0 ? 
 
 function Dica({ id, linhas }: { id: string; linhas: { valor: string; rotulo: string; cor?: string }[] }) {
   return (
-    <div id={id} role="tooltip" className="pointer-events-none absolute bottom-full left-0 z-10 mb-2 hidden min-w-48 rounded-lg border border-white/10 bg-[#0f1418] px-3 py-2 text-xs shadow-lg group-hover:block group-focus:block">
+    <div id={id} role="tooltip" className="pointer-events-none absolute bottom-full left-0 z-10 mb-2 hidden min-w-48 rounded-md border border-foreground/10 bg-inset px-3 py-2 text-xs shadow-lg group-hover:block group-focus:block">
       {linhas.map((linha) => (
         <p key={linha.rotulo} className="flex items-center gap-2 py-0.5">
           {linha.cor && <span aria-hidden="true" className="h-0.5 w-3 rounded-full" style={{ backgroundColor: linha.cor }} />}
@@ -55,7 +55,7 @@ export function GraficoTemposPorPosto({ tempos }: { tempos: TemposDoPosto[] }) {
                   <span className="h-full" style={{ width: largura(t.produtivoSegundos, maximo), backgroundColor: COR_PRODUTIVO, borderRadius: t.pausaSegundos > 0 ? 0 : '0 4px 4px 0' }} />
                   {t.pausaSegundos > 0 && <span className="h-full" style={{ width: largura(t.pausaSegundos, maximo), backgroundColor: COR_PAUSA, borderRadius: '0 4px 4px 0' }} />}
                 </div>
-                <span className="w-24 shrink-0 text-right text-xs tabular-nums text-[#c1c8cf]">{formatarDuracao(t.totalSegundos)}</span>
+                <span className="w-24 shrink-0 text-right text-xs tabular-nums text-subtle">{formatarDuracao(t.totalSegundos)}</span>
               </div>
               <Dica id={dica} linhas={[
                 { valor: formatarDuracao(t.produtivoSegundos), rotulo: 'produtivo', cor: COR_PRODUTIVO },
@@ -86,7 +86,7 @@ export function GraficoCargaPorPosto({ carga }: { carga: CargaDoPosto[] }) {
               <div className="flex h-4 min-w-0 flex-1 items-center">
                 {c.cargaPendenteSegundos !== null && <span className="h-full" style={{ width: largura(c.cargaPendenteSegundos, maximo), backgroundColor: COR_PRODUTIVO, borderRadius: '0 4px 4px 0' }} />}
               </div>
-              <span className="w-32 shrink-0 text-right text-xs tabular-nums text-[#c1c8cf]">{valor}</span>
+              <span className="w-32 shrink-0 text-right text-xs tabular-nums text-subtle">{valor}</span>
             </div>
             <Dica id={dica} linhas={c.cargaPendenteSegundos === null
               ? [{ valor: 'Indisponível', rotulo: 'falta tempo padrão em alguma etapa' }]

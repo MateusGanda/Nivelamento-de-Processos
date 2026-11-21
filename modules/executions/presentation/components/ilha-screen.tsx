@@ -1,5 +1,6 @@
 'use client';
 
+import { ThemeToggle } from '@/shared/presentation/theme-toggle';
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, CheckCircle2, LoaderCircle, Lock, LogOut, Pause, Play, RefreshCw, Repeat, ScanLine, Square, Timer } from 'lucide-react';
@@ -19,8 +20,8 @@ type Modo = null | 'iniciar' | 'trocar' | 'pausar' | 'baixa';
 type EstadoBloqueio = null | 'enviando' | 'falhou' | 'concluido';
 type RecuperacaoPendente = { operador: IdentificacaoEsperada; detalhe: string; erroConsulta: string };
 
-const botaoGrande = 'flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 text-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
-const botaoSecundario = 'flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 text-base font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60';
+const botaoGrande = 'flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-md px-5 text-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
+const botaoSecundario = 'flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-4 text-base font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60';
 
 function Relogio({ execucao }: { execucao: ExecucaoAberta }) {
   const [agora, setAgora] = useState(() => Date.now());
@@ -31,8 +32,8 @@ function Relogio({ execucao }: { execucao: ExecucaoAberta }) {
   const { produtivoSegundos, pausaSegundos } = tempoDecorrido(execucao.eventos, execucao.status, agora);
   return (
     <dl className="grid grid-cols-2 gap-3">
-      <div className="min-w-0 rounded-lg bg-white/[0.04] p-4"><dt className="text-sm text-muted">Tempo produtivo</dt><dd className="mt-1 font-mono text-2xl font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-3xl">{formatarDuracao(produtivoSegundos)}</dd></div>
-      <div className="min-w-0 rounded-lg bg-white/[0.04] p-4"><dt className="text-sm text-muted">Em pausa</dt><dd className="mt-1 font-mono text-2xl font-semibold tabular-nums text-[#c1c8cf] [overflow-wrap:anywhere] sm:text-3xl">{formatarDuracao(pausaSegundos)}</dd></div>
+      <div className="min-w-0 rounded-md bg-foreground/[0.04] p-4"><dt className="text-sm text-muted">Tempo produtivo</dt><dd className="mt-1 font-mono text-2xl font-semibold tabular-nums [overflow-wrap:anywhere] sm:text-3xl">{formatarDuracao(produtivoSegundos)}</dd></div>
+      <div className="min-w-0 rounded-md bg-foreground/[0.04] p-4"><dt className="text-sm text-muted">Em pausa</dt><dd className="mt-1 font-mono text-2xl font-semibold tabular-nums text-subtle [overflow-wrap:anywhere] sm:text-3xl">{formatarDuracao(pausaSegundos)}</dd></div>
     </dl>
   );
 }
@@ -240,48 +241,49 @@ export function IlhaScreen() {
 
   return (
     <main className="min-h-dvh bg-background text-foreground">
-      <header className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6">
+      <header className="flex items-center justify-between gap-4 border-b border-line-soft bg-sidebar px-4 py-3 sm:px-6">
         <div className="flex items-center gap-4"><BrandGunp variante="painel" /><span className="hidden text-sm text-muted sm:inline">Ilha de apontamento</span></div>
-        <button type="button" onClick={() => void bloquear()} disabled={bloqueio === 'enviando' || bloqueio === 'concluido'} className={botaoSecundario}><Lock aria-hidden="true" size={18} strokeWidth={2} />{bloqueio === 'enviando' ? 'Bloqueando…' : bloqueio === 'concluido' ? 'Terminal bloqueado' : bloqueio === 'falhou' ? 'Tentar bloquear novamente' : 'Bloquear terminal'}</button>
+        <div className="flex items-center gap-2"><ThemeToggle />
+        <button type="button" onClick={() => void bloquear()} disabled={bloqueio === 'enviando' || bloqueio === 'concluido'} className={botaoSecundario}><Lock aria-hidden="true" size={18} strokeWidth={2} />{bloqueio === 'enviando' ? 'Bloqueando…' : bloqueio === 'concluido' ? 'Terminal bloqueado' : bloqueio === 'falhou' ? 'Tentar bloquear novamente' : 'Bloquear terminal'}</button></div>
       </header>
 
       <div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-6">
         {bloqueio !== null ? (
-          <section aria-labelledby="ilha-bloqueio-titulo" className="space-y-4 rounded-xl border border-[#2b353e] bg-[#192128]/70 p-4 sm:p-6">
+          <section aria-labelledby="ilha-bloqueio-titulo" className="space-y-4 rounded-lg border border-line-soft bg-surface p-4 sm:p-6">
             <h1 id="ilha-bloqueio-titulo" className="text-2xl font-semibold">Bloqueio do terminal</h1>
             {bloqueio === 'falhou' ? (
-              <p role="alert" className="text-base leading-7 text-[#ffb4a5]">Não foi possível confirmar o bloqueio do terminal. Verifique a conexão e tente bloquear novamente.</p>
+              <p role="alert" className="text-base leading-7 text-danger">Não foi possível confirmar o bloqueio do terminal. Verifique a conexão e tente bloquear novamente.</p>
             ) : <p role="status" className="text-base leading-7 text-muted">{bloqueio === 'enviando' ? 'Bloqueando o terminal…' : 'Terminal bloqueado. Carregando a tela de liberação…'}</p>}
             {bloqueio === 'concluido' && <button type="button" onClick={() => router.refresh()} className={botaoSecundario}>Atualizar página</button>}
           </section>
         ) : <>
-        <form onSubmit={identificar} className="rounded-xl border border-[#2b353e] bg-[#192128]/70 p-4 sm:p-5">
+        <form onSubmit={identificar} className="rounded-lg border border-line-soft bg-surface p-4 sm:p-5">
           <label htmlFor="ilha-matricula" className="block text-base font-medium">{operador ? 'Outro operador: leia ou digite a matrícula' : 'Leia o crachá ou digite a matrícula'}</label>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1"><ScanLine aria-hidden="true" size={24} strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-muted" />
               <input id="ilha-matricula" ref={campoRef} autoFocus autoComplete="off" autoCapitalize="characters" spellCheck={false} disabled={!podeIdentificar} value={matricula} onChange={(event) => setMatricula(event.target.value)}
-                className="h-14 w-full rounded-lg border border-[#3b454e] bg-background pr-4 pl-12 font-mono text-xl tracking-wide outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:cursor-wait disabled:opacity-60" />
+                className="h-14 w-full rounded-md border border-line bg-background pr-4 pl-12 font-mono text-xl tracking-wide outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:cursor-wait disabled:opacity-60" />
             </div>
-            <button type="submit" disabled={!matricula.trim() || !podeIdentificar} className={`${botaoGrande} bg-accent text-[#171b1f] hover:bg-[#ff8d40]`}>Identificar</button>
+            <button type="submit" disabled={!matricula.trim() || !podeIdentificar} className={`${botaoGrande} bg-accent text-on-accent hover:bg-accent-hover`}>Identificar</button>
           </div>
           {modo !== null && <p className="mt-3 text-sm leading-6 text-muted">Conclua ou cancele o formulário abaixo antes de ler outro crachá. Use Sair para trocar de operador.</p>}
         </form>
 
-        {erro && <p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/30 bg-[#f49a8a]/10 p-4 text-base leading-7 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{erro}</p>}
-        {mensagem && <p role="status" className="flex items-start gap-2 rounded-lg border border-[#7bcba5]/30 bg-[#7bcba5]/10 p-4 text-base leading-7 text-[#a6dfbf]"><CheckCircle2 aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{mensagem}</p>}
+        {erro && <p role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/30 bg-danger-fill/10 p-4 text-base leading-7 text-danger"><AlertCircle aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{erro}</p>}
+        {mensagem && <p role="status" className="flex items-start gap-2 rounded-md border border-success-fill/30 bg-success-fill/10 p-4 text-base leading-7 text-success"><CheckCircle2 aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />{mensagem}</p>}
         {contagem !== null && operador && (
-          <div className="flex flex-col gap-3 rounded-lg border border-[#2b353e] bg-[#192128]/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-md border border-line-soft bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-base leading-7 text-muted"><span aria-hidden="true">Voltando ao início em {contagem} s</span></p>
             <p role="status" className="sr-only">A tela volta ao início em {CONFIRMACAO_MS / 1000} segundos.</p>
             <button type="button" onClick={sair} disabled={ocupado} className={botaoSecundario}><LogOut aria-hidden="true" size={18} strokeWidth={2} />Sair agora</button>
           </div>
         )}
-        {avisoInatividade && !operador && <p role="status" className="flex items-start gap-2 rounded-lg border border-[#3b454e] bg-[#192128]/70 p-4 text-base leading-7 text-muted"><Timer aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />Identificação encerrada por falta de uso.</p>}
+        {avisoInatividade && !operador && <p role="status" className="flex items-start gap-2 rounded-md border border-line bg-surface p-4 text-base leading-7 text-muted"><Timer aria-hidden="true" size={22} strokeWidth={2} className="mt-1 shrink-0" />Identificação encerrada por falta de uso.</p>}
         {ocupado && !operador && <p role="status" className="flex items-center gap-3 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Consultando…</p>}
         {ocupado && operador && !recuperacao && <p role="status" className="flex items-center gap-3 text-base text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Registrando ação. Aguarde antes de trocar o operador.</p>}
 
         {operador && (
-          <section aria-labelledby="ilha-operador" className="space-y-5 rounded-xl border border-[#2b353e] bg-[#192128]/70 p-4 sm:p-6">
+          <section aria-labelledby="ilha-operador" className="space-y-5 rounded-lg border border-line-soft bg-surface p-4 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 id="ilha-operador" className="text-2xl font-semibold">{operador.nome}</h1>
@@ -291,9 +293,9 @@ export function IlhaScreen() {
             </div>
 
             {recuperacao ? (
-              <div className="space-y-4 rounded-lg border border-[#ffcf99]/30 bg-[#ffcf99]/5 p-4">
-                <p role="alert" className="text-base leading-7 text-[#ffcf99]">{recuperacao.detalhe} Consulte a situação atual do operador antes de continuar.</p>
-                {recuperacao.erroConsulta && <p role="alert" className="text-base leading-7 text-[#ffb4a5]">{recuperacao.erroConsulta}</p>}
+              <div className="space-y-4 rounded-md border border-warning-fill/30 bg-warning-fill/5 p-4">
+                <p role="alert" className="text-base leading-7 text-warning">{recuperacao.detalhe} Consulte a situação atual do operador antes de continuar.</p>
+                {recuperacao.erroConsulta && <p role="alert" className="text-base leading-7 text-danger">{recuperacao.erroConsulta}</p>}
                 <button type="button" onClick={() => void atualizarSituacao()} disabled={ocupado} className={`${botaoSecundario} w-full sm:w-auto`}>
                   {ocupado ? <LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" /> : <RefreshCw aria-hidden="true" size={22} strokeWidth={2} />}
                   {ocupado ? 'Consultando situação…' : 'Atualizar situação do operador'}
@@ -304,7 +306,7 @@ export function IlhaScreen() {
             ) : execucao ? (
               <div className="space-y-5">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-base font-semibold ${execucao.status === 'PAUSADA' ? 'bg-[#ffcf99]/15 text-[#ffcf99]' : 'bg-[#7bcba5]/15 text-[#a6dfbf]'}`}>
+                  <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-base font-semibold ${execucao.status === 'PAUSADA' ? 'bg-warning-fill/15 text-warning' : 'bg-success-fill/15 text-success'}`}>
                     {execucao.status === 'PAUSADA' ? <Pause aria-hidden="true" size={18} strokeWidth={2} /> : <Timer aria-hidden="true" size={18} strokeWidth={2} />}
                     {execucao.status === 'PAUSADA' ? `Pausada${execucao.eventos.at(-1)?.motivo ? ` – ${execucao.eventos.at(-1)?.motivo}` : ''}` : 'Em execução'}
                   </span>
@@ -320,12 +322,12 @@ export function IlhaScreen() {
                 {modo === null && (
                   <div className="grid gap-3 sm:grid-cols-3">
                     {execucao.status === 'PAUSADA' ? (
-                      <button type="button" disabled={ocupado} onClick={() => void executar(() => retomarExecucao(operador.matricula, execucao.id), 'Execução retomada.')} className={`${botaoGrande} bg-[#7bcba5] text-[#13201a] hover:bg-[#93d8b6] sm:col-span-3`}><Play aria-hidden="true" size={22} strokeWidth={2} />Retomar</button>
+                      <button type="button" disabled={ocupado} onClick={() => void executar(() => retomarExecucao(operador.matricula, execucao.id), 'Execução retomada.')} className={`${botaoGrande} bg-success-fill text-on-success hover:bg-success-fill-hover sm:col-span-3`}><Play aria-hidden="true" size={22} strokeWidth={2} />Retomar</button>
                     ) : (
                       <>
-                        <button type="button" disabled={ocupado} onClick={() => { setModo('pausar'); setErro(''); setMensagem(''); }} className={`${botaoGrande} bg-[#ffcf99] text-[#2a1d0c] hover:bg-[#ffdcb3]`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Pausar</button>
-                        <button type="button" disabled={ocupado} onClick={() => { setModo('trocar'); setErro(''); }} className={`${botaoGrande} border border-[#3b454e] hover:border-accent`}><Repeat aria-hidden="true" size={22} strokeWidth={2} />Trocar operação</button>
-                        <button type="button" disabled={ocupado} onClick={() => { setModo('baixa'); setBaixa({ boa: '', retrabalho: '', refugo: '' }); setErro(''); }} className={`${botaoGrande} bg-accent text-[#171b1f] hover:bg-[#ff8d40]`}><Square aria-hidden="true" size={22} strokeWidth={2} />Finalizar e dar baixa</button>
+                        <button type="button" disabled={ocupado} onClick={() => { setModo('pausar'); setErro(''); setMensagem(''); }} className={`${botaoGrande} bg-warning-fill text-on-warning hover:bg-warning-fill-hover`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Pausar</button>
+                        <button type="button" disabled={ocupado} onClick={() => { setModo('trocar'); setErro(''); }} className={`${botaoGrande} border border-line hover:border-accent`}><Repeat aria-hidden="true" size={22} strokeWidth={2} />Trocar operação</button>
+                        <button type="button" disabled={ocupado} onClick={() => { setModo('baixa'); setBaixa({ boa: '', retrabalho: '', refugo: '' }); setErro(''); }} className={`${botaoGrande} bg-accent text-on-accent hover:bg-accent-hover`}><Square aria-hidden="true" size={22} strokeWidth={2} />Finalizar e dar baixa</button>
                       </>
                     )}
                   </div>
@@ -338,7 +340,7 @@ export function IlhaScreen() {
 
                 {modo === 'baixa' && (
                   <form onSubmit={(event) => { event.preventDefault(); if (somaCerta) void executar(() => darBaixa(operador.matricula, execucao.id, { quantidadeBoa: quantidades.boa!, quantidadeRetrabalho: quantidades.retrabalho!, quantidadeRefugo: quantidades.refugo! }), 'Baixa registrada. A etapa foi concluída.'); }}
-                    className="space-y-4 border-t border-white/10 pt-5">
+                    className="space-y-4 border-t border-foreground/10 pt-5">
                     <p className="text-lg font-semibold">Resultado da etapa</p>
                     <p className="text-base text-muted">A baixa é da quantidade inteira da ordem: boa + retrabalho + refugo = {execucao.ordem.quantidade.toLocaleString('pt-BR')} {execucao.ordem.unidade}.</p>
                     <div className="grid gap-3 sm:grid-cols-3">
@@ -346,22 +348,22 @@ export function IlhaScreen() {
                         <div key={campo}>
                           <label htmlFor={`ilha-${campo}`} className="block text-base font-medium">{rotulo}</label>
                           <input id={`ilha-${campo}`} inputMode="decimal" autoComplete="off" value={baixa[campo]} onChange={(event) => setBaixa((atual) => ({ ...atual, [campo]: event.target.value }))}
-                            className="mt-2 h-14 w-full rounded-lg border border-[#3b454e] bg-background px-4 text-right font-mono text-xl outline-none focus:border-accent focus:ring-2 focus:ring-accent/20" />
+                            className="mt-2 h-14 w-full rounded-md border border-line bg-background px-4 text-right font-mono text-xl outline-none focus:border-accent focus:ring-2 focus:ring-accent/20" />
                         </div>
                       ))}
                     </div>
-                    <p aria-live="polite" className={`text-base font-medium ${somaCerta ? 'text-[#a6dfbf]' : 'text-[#ffcf99]'}`}>
+                    <p aria-live="polite" className={`text-base font-medium ${somaCerta ? 'text-success' : 'text-warning'}`}>
                       {!quantidadesValidas ? 'Use números maiores ou iguais a zero, com até duas casas decimais.' : `Soma: ${soma?.toLocaleString('pt-BR')} de ${execucao.ordem.quantidade.toLocaleString('pt-BR')}`}
                     </p>
                     <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                       <button type="button" onClick={() => setModo(null)} disabled={ocupado} className={botaoSecundario}>Cancelar</button>
-                      <button type="submit" disabled={!somaCerta || ocupado} className={`${botaoGrande} bg-accent text-[#171b1f] hover:bg-[#ff8d40] disabled:cursor-not-allowed`}><Square aria-hidden="true" size={22} strokeWidth={2} />Confirmar baixa</button>
+                      <button type="submit" disabled={!somaCerta || ocupado} className={`${botaoGrande} bg-accent text-on-accent hover:bg-accent-hover disabled:cursor-not-allowed`}><Square aria-hidden="true" size={22} strokeWidth={2} />Confirmar baixa</button>
                     </div>
                   </form>
                 )}
 
                 {modo === 'trocar' && (
-                  <div className="border-t border-white/10 pt-5">
+                  <div className="border-t border-foreground/10 pt-5">
                     <p className="mb-4 text-base text-muted">A execução atual é finalizada sem quantidades e a próxima começa em seguida.</p>
                     <IlhaDestino key={`${operador.id}:${execucao.id}:trocar`} rotuloConfirmar="Trocar para esta etapa" ocupado={ocupado} etapaAtual={{ ordemId: execucao.ordem.id, etapaId: execucao.etapa.id }} aoCancelar={() => setModo(null)} aoFalhar={tratarFalha}
                       aoConfirmar={(destino: Destino) => void executar(() => trocarOperacao(operador.matricula, execucao.id, destino), 'Operação trocada. A nova execução já começou.')} />
@@ -374,7 +376,7 @@ export function IlhaScreen() {
             ) : (
               <div className="space-y-4">
                 <p className="text-base text-muted">Nenhuma execução em aberto para este operador.</p>
-                <button type="button" onClick={() => { setModo('iniciar'); setErro(''); setMensagem(''); }} className={`${botaoGrande} w-full bg-accent text-[#171b1f] hover:bg-[#ff8d40] sm:w-auto`}><Play aria-hidden="true" size={22} strokeWidth={2} />Iniciar execução</button>
+                <button type="button" onClick={() => { setModo('iniciar'); setErro(''); setMensagem(''); }} className={`${botaoGrande} w-full bg-accent text-on-accent hover:bg-accent-hover sm:w-auto`}><Play aria-hidden="true" size={22} strokeWidth={2} />Iniciar execução</button>
               </div>
             )}
           </section>

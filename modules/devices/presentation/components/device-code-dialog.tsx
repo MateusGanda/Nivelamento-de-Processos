@@ -55,37 +55,37 @@ export function DeviceCodeDialog({ dialogRef, pedido, aoGerar, aoFechar }: {
     try { await navigator.clipboard.writeText(codigo); setCopiado(true); } catch { setCopiado(false); }
   }
 
-  const botaoSecundario = 'min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
+  const botaoSecundario = 'min-h-11 cursor-pointer rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60';
 
   return (
     <dialog
       id="codigo-dispositivo" ref={dialogRef} aria-labelledby="codigo-dispositivo-titulo"
       onCancel={(event) => { if (emEnvio.current) event.preventDefault(); }}
       onClose={aoFechar}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-[#34404b] bg-[#1b232a] p-0 text-foreground shadow-2xl backdrop:bg-black/65"
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-line-raised bg-raised p-0 text-foreground shadow-lg backdrop:bg-black/50"
     >
-      <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
+      <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-6 py-4">
         <h2 id="codigo-dispositivo-titulo" className="text-xl font-semibold">{pedido?.modo === 'exibir' ? 'Código de acesso da TV' : 'Gerar novo código'}</h2>
-        <button type="button" onClick={() => { if (!emEnvio.current) dialogRef.current?.close(); }} disabled={enviando} aria-label="Fechar" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
+        <button type="button" onClick={() => { if (!emEnvio.current) dialogRef.current?.close(); }} disabled={enviando} aria-label="Fechar" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
       </div>
       {pedido?.modo === 'exibir' ? (
         <div className="space-y-5 p-6">
           <p className="text-sm leading-6 text-muted">Na TV <strong className="text-foreground">{pedido.dispositivo.nome}</strong>, abra o endereço <strong className="text-foreground">/tv</strong> do sistema e digite este código. Ele aparece só agora: anote ou copie antes de fechar.</p>
-          <p className="rounded-lg border border-accent/40 bg-accent/10 py-5 text-center font-mono text-3xl font-bold tracking-[0.2em]" aria-label={`Código ${pedido.codigo}`}>{pedido.codigo}</p>
+          <p className="rounded-md border border-accent/40 bg-accent/10 py-5 text-center font-mono text-3xl font-bold tracking-[0.2em]" aria-label={`Código ${pedido.codigo}`}>{pedido.codigo}</p>
           <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
             <button type="button" onClick={() => dialogRef.current?.close()} className={botaoSecundario}>Fechar</button>
-            <button type="button" onClick={() => void copiar(pedido.codigo)} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+            <button type="button" onClick={() => void copiar(pedido.codigo)} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
               {copiado ? <Check aria-hidden="true" size={18} /> : <Copy aria-hidden="true" size={18} />}{copiado ? 'Copiado' : 'Copiar código'}
             </button>
           </div>
         </div>
       ) : pedido ? (
         <div className="space-y-5 p-6">
-          <p className="flex items-start gap-2 text-sm leading-6 text-[#ffcf99]"><AlertTriangle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />A TV <strong>{pedido.dispositivo.nome}</strong> perde o acesso na próxima atualização e só volta a funcionar com o código novo.</p>
-          {erro && <p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
+          <p className="flex items-start gap-2 text-sm leading-6 text-warning"><AlertTriangle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />A TV <strong>{pedido.dispositivo.nome}</strong> perde o acesso na próxima atualização e só volta a funcionar com o código novo.</p>
+          {erro && <p role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-3 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
           <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
             <button type="button" onClick={() => dialogRef.current?.close()} disabled={enviando} className={botaoSecundario}>Cancelar</button>
-            <button type="button" onClick={() => void confirmar()} disabled={enviando} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70">
+            <button type="button" onClick={() => void confirmar()} disabled={enviando} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70">
               {enviando ? <LoaderCircle aria-hidden="true" size={18} className="motion-safe:animate-spin" /> : <KeyRound aria-hidden="true" size={18} />}Gerar novo código
             </button>
           </div>

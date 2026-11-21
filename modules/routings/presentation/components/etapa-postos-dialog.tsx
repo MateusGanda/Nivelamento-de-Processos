@@ -79,32 +79,32 @@ export function EtapaPostosDialog({ dialogRef, pedido, salvar, aoFechar }: {
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) fechar();
       } }}
       onClose={() => { setErro(''); aoFechar(); }}
-      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-[#34404b] bg-[#1b232a] p-0 text-foreground shadow-2xl backdrop:bg-black/65"
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-line-raised bg-raised p-0 text-foreground shadow-lg backdrop:bg-black/50"
     >
-      <div className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
+      <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-6 py-4">
         <h2 id="postos-etapa-titulo" className="text-xl font-semibold">{etapa ? `Postos da etapa ${etapa.ordem} – ${etapa.operacao.nome}` : 'Postos da etapa'}</h2>
-        <button type="button" onClick={fechar} disabled={enviando} aria-label="Fechar postos da etapa" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
+        <button type="button" onClick={fechar} disabled={enviando} aria-label="Fechar postos da etapa" className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted hover:bg-foreground/5 focus-visible:outline-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"><X aria-hidden="true" size={22} strokeWidth={2} /></button>
       </div>
       <form onSubmit={enviar} aria-busy={enviando} className="space-y-5 p-6">
         <p id="postos-etapa-descricao" className="text-sm leading-6 text-muted">Marque os postos onde esta etapa pode ser feita. A carga pendente da etapa é dividida entre os postos ativos marcados.</p>
         {postos === null && !erroPostos && <p role="status" className="flex items-center gap-2 text-sm text-muted"><LoaderCircle aria-hidden="true" size={18} strokeWidth={2} className="motion-safe:animate-spin" />Carregando postos…</p>}
-        {erroPostos && <p role="alert" className="text-sm text-[#ffb4a5]">{erroPostos}</p>}
+        {erroPostos && <p role="alert" className="text-sm text-danger">{erroPostos}</p>}
         {postos !== null && opcoes.length === 0 && <p className="text-sm text-muted">Nenhum posto ativo cadastrado. Cadastre os postos antes de ligá-los às etapas.</p>}
         {opcoes.length > 0 && (
           <fieldset className="space-y-1">
             <legend className="mb-2 text-sm font-medium">Postos compatíveis</legend>
             {opcoes.map((posto) => (
-              <label key={posto.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/5">
-                <input type="checkbox" checked={selecionados.has(posto.id)} onChange={() => alternar(posto.id)} disabled={enviando} className="size-4 accent-[#ff7a1a]" />
+              <label key={posto.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 hover:bg-foreground/5">
+                <input type="checkbox" checked={selecionados.has(posto.id)} onChange={() => alternar(posto.id)} disabled={enviando} className="size-4 accent-accent" />
                 <span className="text-sm"><span className="font-medium">{posto.codigo}</span> – {posto.nome} <span className="text-muted">({posto.setor.nome}{posto.ativo ? '' : ', inativo'})</span></span>
               </label>
             ))}
           </fieldset>
         )}
-        {erro && <p role="alert" className="flex items-start gap-2 rounded-lg border border-[#f49a8a]/25 bg-[#f49a8a]/5 p-3 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
-        <div className="flex flex-col-reverse justify-end gap-3 border-t border-white/10 pt-5 sm:flex-row">
-          <button type="button" onClick={fechar} disabled={enviando} className="min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60">Cancelar</button>
-          <button type="submit" disabled={enviando || postos === null} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70">
+        {erro && <p role="alert" className="flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-3 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
+        <div className="flex flex-col-reverse justify-end gap-3 border-t border-foreground/10 pt-5 sm:flex-row">
+          <button type="button" onClick={fechar} disabled={enviando} className="min-h-11 cursor-pointer rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60">Cancelar</button>
+          <button type="submit" disabled={enviando || postos === null} className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-70">
             {enviando && <LoaderCircle aria-hidden="true" size={20} strokeWidth={2} className="motion-safe:animate-spin" />}{enviando ? 'Salvando…' : 'Salvar postos'}
           </button>
         </div>

@@ -8,7 +8,7 @@ import { listarProdutos } from '../../../products/presentation/api-client';
 import { ligarProdutoRoteiro, removerProdutoRoteiro, salvarTemposRoteiro, tornarVigenteRoteiro } from '../api-client';
 import { TemposPadraoDialog, type PedidoTemposPadrao } from './tempos-padrao-dialog';
 
-const botaoLinha = 'inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-50';
+const botaoLinha = 'inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-50';
 
 export function RoteiroProdutosSection({ roteiro, etapasPendentes, ocupado, executar, salvarTempos }: {
   roteiro: RoteiroDetalhe;
@@ -46,8 +46,8 @@ export function RoteiroProdutosSection({ roteiro, etapasPendentes, ocupado, exec
   }
 
   return (
-    <section aria-labelledby="produtos-titulo" className="mt-7 min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
-      <div className="border-b border-white/10 p-4 sm:p-5">
+    <section aria-labelledby="produtos-titulo" className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+      <div className="border-b border-foreground/10 p-4 sm:p-5">
         <h2 id="produtos-titulo" className="text-lg font-semibold">Produtos e tempos padrão</h2>
         <p className="mt-1 text-sm leading-6 text-muted">Produtos que seguem esta versão do roteiro. A versão vigente é a usada nas próximas ordens do produto, e cada produto tem uma só. O tempo padrão é por produto e etapa, em segundos por unidade.</p>
       </div>
@@ -56,32 +56,32 @@ export function RoteiroProdutosSection({ roteiro, etapasPendentes, ocupado, exec
         <p className="px-5 py-10 text-center text-sm text-muted"><Package aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />Nenhum produto ligado a esta versão.</p>
       ) : (
         <div className="max-w-full overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="tabular-nums w-full min-w-[860px] text-left text-sm">
             <caption className="sr-only">Produtos ligados a esta versão do roteiro.</caption>
-            <thead className="border-b border-white/10 bg-white/[0.025] text-muted"><tr>
+            <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
               <th scope="col" className="px-5 py-3 font-medium">Produto</th>
               <th scope="col" className="px-5 py-3 font-medium">Vigência</th>
               <th scope="col" className="px-5 py-3 font-medium">Ordens</th>
               <th scope="col" className="px-5 py-3 font-medium">Tempos padrão</th>
               <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
             </tr></thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-foreground/5">
               {roteiro.produtos.map((produto) => {
                 const completos = produto.tempos.length;
                 return (
-                  <tr key={produto.id} className="hover:bg-white/[0.025]">
-                    <td className="max-w-80 px-5 py-4"><span className="font-medium">{produto.codigo}</span> <span className="text-[#c1c8cf]">– {produto.nome}</span></td>
+                  <tr key={produto.id} className="hover:bg-foreground/[0.025]">
+                    <td className="max-w-80 px-5 py-4"><span className="font-medium">{produto.codigo}</span> <span className="text-subtle">– {produto.nome}</span></td>
                     <td className="px-5 py-4">
                       {produto.vigente
-                        ? <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent"><Star aria-hidden="true" size={14} strokeWidth={2} />Vigente</span>
+                        ? <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent-ink"><Star aria-hidden="true" size={14} strokeWidth={2} />Vigente</span>
                         : <button type="button" aria-label={`Tornar esta versão vigente para ${produto.codigo}`} aria-disabled={ocupado || !roteiro.ativo}
                             title={!roteiro.ativo ? 'Ative o roteiro antes de torná-lo vigente.' : undefined}
                             onClick={() => { if (!ocupado && roteiro.ativo) void executar(() => tornarVigenteRoteiro(roteiro.id, produto.id), `Esta versão agora é a vigente para ${produto.codigo}.`, 'Não foi possível definir a vigência. Tente novamente.'); }}
                             className={botaoLinha}><Star aria-hidden="true" size={16} strokeWidth={2} />Tornar vigente</button>}
                     </td>
-                    <td className="px-5 py-4 text-[#c1c8cf]">{produto.quantidadeOrdens}</td>
+                    <td className="px-5 py-4 text-subtle">{produto.quantidadeOrdens}</td>
                     <td className="px-5 py-4">
-                      <span className={completos === totalEtapas && totalEtapas > 0 ? 'text-[#c1c8cf]' : 'text-[#ffcf99]'}>{completos} de {totalEtapas} etapas</span>
+                      <span className={completos === totalEtapas && totalEtapas > 0 ? 'text-subtle' : 'text-warning'}>{completos} de {totalEtapas} etapas</span>
                       {produto.travado && <span className="ml-2 inline-flex items-center gap-1 text-xs text-muted"><Lock aria-hidden="true" size={12} strokeWidth={2} />travados</span>}
                     </td>
                     <td className="px-5 py-3">
@@ -104,16 +104,16 @@ export function RoteiroProdutosSection({ roteiro, etapasPendentes, ocupado, exec
         </div>
       )}
 
-      <div className="flex flex-col gap-3 border-t border-white/10 p-4 sm:flex-row sm:items-end sm:p-5">
+      <div className="flex flex-col gap-3 border-t border-foreground/10 p-4 sm:flex-row sm:items-end sm:p-5">
         <div className="min-w-0 flex-1 sm:max-w-md">
           <label htmlFor="roteiro-produto" className="mb-2 block text-sm font-medium">Ligar produto a esta versão</label>
-          <select id="roteiro-produto" value={produtoNovo} onChange={(event) => setProdutoNovo(event.target.value)} disabled={!produtos || disponiveis.length === 0 || ocupado} className="h-11 w-full rounded-lg border border-[#3b454e] bg-background px-3 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60">
+          <select id="roteiro-produto" value={produtoNovo} onChange={(event) => setProdutoNovo(event.target.value)} disabled={!produtos || disponiveis.length === 0 || ocupado} className="h-11 w-full rounded-md border border-line bg-background px-3 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60">
             <option value="">{produtos === null && !erroProdutos ? 'Carregando produtos…' : disponiveis.length === 0 ? 'Nenhum produto disponível' : 'Selecione o produto'}</option>
             {disponiveis.map((produto) => <option key={produto.id} value={produto.id}>{produto.codigo} – {produto.nome}</option>)}
           </select>
-          {erroProdutos && <p role="alert" className="mt-2 text-xs text-[#ffb4a5]">{erroProdutos}</p>}
+          {erroProdutos && <p role="alert" className="mt-2 text-xs text-danger">{erroProdutos}</p>}
         </div>
-        <button type="button" onClick={() => void ligar()} disabled={!produtoNovo || ocupado} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"><Plus aria-hidden="true" size={18} strokeWidth={2} />Ligar produto</button>
+        <button type="button" onClick={() => void ligar()} disabled={!produtoNovo || ocupado} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"><Plus aria-hidden="true" size={18} strokeWidth={2} />Ligar produto</button>
       </div>
 
       <TemposPadraoDialog

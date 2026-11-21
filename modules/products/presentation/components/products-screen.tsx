@@ -119,26 +119,26 @@ export function ProductsScreen() {
         <button
           type="button" aria-haspopup="dialog" aria-controls="formulario-produto"
           onClick={(event) => abrirFormulario(null, event.currentTarget)}
-          className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-[#171b1f] hover:bg-[#ff8d40] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
         ><Plus aria-hidden="true" size={20} strokeWidth={2} />Adicionar produto</button>
       </header>
 
-      {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-lg border border-[#7bcba5]/25 bg-[#7bcba5]/5 p-4 text-sm leading-6 text-[#a6dfbf]"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
+      {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-md border border-success-fill/25 bg-success-fill/5 p-4 text-sm leading-6 text-success"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
 
-      <section aria-label="Listagem de produtos" aria-busy={carregando} className="mt-7 min-w-0 rounded-xl border border-[#2b353e] bg-[#192128]/65">
-        <div className="flex flex-col gap-4 border-b border-white/10 p-4 sm:p-5 lg:flex-row lg:items-end">
+      <section aria-label="Listagem de produtos" aria-busy={carregando} className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+        <div className="flex flex-col gap-4 border-b border-foreground/10 p-4 sm:p-5 lg:flex-row lg:items-end">
           <div className="min-w-0 flex-1">
             <label htmlFor="produtos-busca" className="mb-2 block text-sm font-medium">Buscar produtos</label>
             <div className="relative"><Search aria-hidden="true" size={20} strokeWidth={2} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-              <input id="produtos-busca" type="search" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Código ou nome" className="h-11 w-full rounded-lg border border-[#3b454e] bg-background pr-3 pl-10 text-base outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20" />
+              <input id="produtos-busca" type="search" value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Código ou nome" className="h-11 w-full rounded-md border border-line bg-background pr-3 pl-10 text-base outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20" />
             </div>
           </div>
           <div className="lg:w-44"><label htmlFor="produtos-status" className="mb-2 block text-sm font-medium">Status</label>
-            <select id="produtos-status" value={status} onChange={(event) => setStatus(event.target.value as FiltroStatusProduto)} className="h-11 w-full rounded-lg border border-[#3b454e] bg-background px-3 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20">
+            <select id="produtos-status" value={status} onChange={(event) => setStatus(event.target.value as FiltroStatusProduto)} className="h-11 w-full rounded-md border border-line bg-background px-3 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/20">
               <option value="todos">Todos</option><option value="ativos">Ativos</option><option value="inativos">Inativos</option>
             </select>
           </div>
-          <button type="button" onClick={() => { setBusca(''); setStatus('todos'); }} className="min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Limpar filtros</button>
+          <button type="button" onClick={() => { setBusca(''); setStatus('todos'); }} className="min-h-11 cursor-pointer rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Limpar filtros</button>
         </div>
 
         {/* Na recarga após gravar, a tabela continua na tela para o foco voltar ao botão Editar. */}
@@ -146,15 +146,15 @@ export function ProductsScreen() {
           <p role="status" className="flex min-h-48 items-center justify-center gap-3 p-6 text-sm text-muted"><LoaderCircle aria-hidden="true" size={22} strokeWidth={2} className="motion-safe:animate-spin" />Carregando produtos…</p>
         ) : erro ? (
           <div className="flex min-h-48 flex-col items-center justify-center gap-4 p-6 text-center">
-            <p role="alert" className="flex items-start gap-2 text-sm leading-6 text-[#ffb4a5]"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>
-            <button type="button" onClick={tentarNovamente} className="min-h-11 cursor-pointer rounded-lg border border-[#3b454e] px-4 py-2 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Tentar novamente</button>
+            <p role="alert" className="flex items-start gap-2 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>
+            <button type="button" onClick={tentarNovamente} className="min-h-11 cursor-pointer rounded-md border border-line px-4 py-2 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Tentar novamente</button>
           </div>
         ) : (
           <>
-            <div className="max-w-full overflow-x-auto rounded-b-xl">
-              <table className="w-full min-w-[920px] text-left text-sm">
+            <div className="max-w-full overflow-x-auto rounded-b-lg">
+              <table className="tabular-nums w-full min-w-[920px] text-left text-sm">
                 <caption className="sr-only">Produtos cadastrados. Use os cabeçalhos para ordenar as colunas.</caption>
-                <thead className="border-b border-white/10 bg-white/[0.025] text-muted"><tr>
+                <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
                   {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-5 py-3 font-medium">
                     <button type="button" onClick={() => ordenar(campo)} className="flex min-h-8 cursor-pointer items-center gap-2 rounded text-left hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent" aria-label={`Ordenar por ${titulo}${ordem.coluna === campo && ordem.direcao === 'asc' ? ' em ordem decrescente' : ' em ordem crescente'}`}>
                       {titulo}{ordem.coluna !== campo ? <ArrowUpDown aria-hidden="true" size={16} strokeWidth={2} /> : ordem.direcao === 'asc' ? <ArrowUp aria-hidden="true" size={16} strokeWidth={2} /> : <ArrowDown aria-hidden="true" size={16} strokeWidth={2} />}
@@ -162,22 +162,22 @@ export function ProductsScreen() {
                   </th>)}
                   <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
                 </tr></thead>
-                <tbody className="divide-y divide-white/5">
-                  {visiveis.map((produto) => <tr key={produto.id} className="hover:bg-white/[0.025]">
+                <tbody className="divide-y divide-foreground/5">
+                  {visiveis.map((produto) => <tr key={produto.id} className="hover:bg-foreground/[0.025]">
                     <td className="max-w-48 px-5 py-4 font-medium break-words [overflow-wrap:anywhere]">{produto.codigo}</td>
-                    <td className="max-w-96 px-5 py-4 break-words text-[#c1c8cf] [overflow-wrap:anywhere]">{produto.nome}</td>
-                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${produto.ativo ? 'border-[#7bcba5]/20 bg-[#7bcba5]/10 text-[#a6dfbf]' : 'border-white/10 bg-white/5 text-muted'}`}>{produto.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                    <td className="max-w-96 px-5 py-4 break-words text-subtle [overflow-wrap:anywhere]">{produto.nome}</td>
+                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${produto.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{produto.ativo ? 'Ativo' : 'Inativo'}</span></td>
                     <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={produto.createdAt}>{formatarDataCadastro(produto.createdAt)}</time></td>
                     <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={produto.updatedAt}>{formatarDataCadastro(produto.updatedAt)}</time></td>
                     <td className="px-5 py-3 text-right">
                       <button type="button" aria-haspopup="dialog" aria-controls="formulario-produto" aria-label={`Editar ${produto.codigo}`}
                         onClick={(event) => abrirFormulario(produto, event.currentTarget)}
-                        className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                       ><Pencil aria-hidden="true" size={16} strokeWidth={2} />Editar</button>
                       {/* aria-disabled em vez de disabled: o botão mantém o foco durante o envio. */}
                       <button type="button" aria-label={`${produto.ativo ? 'Inativar' : 'Ativar'} ${produto.codigo}`} aria-disabled={alterandoStatus !== null}
                         onClick={() => void alternarStatus(produto)}
-                        className="ml-2 inline-flex min-h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#3b454e] px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60"
+                        className="ml-2 inline-flex min-h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60"
                       >{alterandoStatus === produto.id ? <LoaderCircle aria-hidden="true" size={16} strokeWidth={2} className="motion-safe:animate-spin" /> : produto.ativo ? <PowerOff aria-hidden="true" size={16} strokeWidth={2} /> : <Power aria-hidden="true" size={16} strokeWidth={2} />}{produto.ativo ? 'Inativar' : 'Ativar'}</button>
                     </td>
                   </tr>)}
@@ -185,7 +185,7 @@ export function ProductsScreen() {
                 </tbody>
               </table>
             </div>
-            <p aria-live="polite" className="border-t border-white/10 px-5 py-3 text-xs text-muted">{visiveis.length} de {produtos.length} produtos</p>
+            <p aria-live="polite" className="border-t border-foreground/10 px-5 py-3 text-xs text-muted">{visiveis.length} de {produtos.length} produtos</p>
           </>
         )}
       </section>
