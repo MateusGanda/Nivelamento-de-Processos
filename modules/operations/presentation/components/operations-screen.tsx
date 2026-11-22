@@ -1,6 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PaginacaoTabela } from '@/shared/presentation/paginacao-tabela';
+import { MenuAcoesRegistro } from '@/shared/presentation/menu-acoes-registro';
+import { TabelaComRolagem } from '@/shared/presentation/tabela-com-rolagem';
+import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, LoaderCircle, Workflow, Pencil, Plus, Power, PowerOff, Search } from 'lucide-react';
 import type { Operacao } from '../../domain/operacao';
@@ -107,13 +111,14 @@ export function OperationsScreen() {
   }
 
   const visiveis = useMemo(() => filtrarOrdenarOperacoes(operacoes, busca, ordem, status), [operacoes, busca, ordem, status]);
+  const paginacao = usePaginacaoTabela(visiveis, JSON.stringify([busca, ordem, status]));
 
   function ordenar(coluna: ColunaOperacao) {
     setOrdem((atual) => ({ coluna, direcao: atual.coluna === coluna && atual.direcao === 'asc' ? 'desc' : 'asc' }));
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px]">
+    <div className="pagina-com-tabela mx-auto w-full min-w-0 max-w-[1440px]">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div><h1 className="text-2xl font-semibold tracking-tight">Operações</h1><p className="mt-2 text-sm leading-6 text-muted">Cadastre, consulte, altere e inative as operações do processo produtivo.</p></div>
         <button
@@ -125,7 +130,7 @@ export function OperationsScreen() {
 
       {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-md border border-success-fill/25 bg-success-fill/5 p-4 text-sm leading-6 text-success"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
 
-      <section aria-label="Listagem de operações" aria-busy={carregando} className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+      <section aria-label="Listagem de operações" aria-busy={carregando} className="listagem-com-rolagem mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
         <div className="flex flex-col gap-4 border-b border-foreground/10 p-4 sm:p-5 lg:flex-row lg:items-end">
           <div className="min-w-0 flex-1">
             <label htmlFor="operacoes-busca" className="mb-2 block text-sm font-medium">Buscar operações</label>
@@ -151,41 +156,36 @@ export function OperationsScreen() {
           </div>
         ) : (
           <>
-            <div className="max-w-full overflow-x-auto rounded-b-lg">
-              <table className="tabular-nums w-full min-w-[920px] text-left text-sm">
+            <TabelaComRolagem legenda="Operações" chaveRolagem={paginacao.chaveRolagem}>
+              <table className="tabela-com-acoes tabular-nums w-full text-left text-sm">
                 <caption className="sr-only">Operações cadastradas. Use os cabeçalhos para ordenar as colunas.</caption>
                 <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
-                  {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-5 py-3 font-medium">
+                  <th scope="col" className="coluna-action font-medium">Action</th>
+                  {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-3 py-3 font-medium">
                     <button type="button" onClick={() => ordenar(campo)} className="flex min-h-8 cursor-pointer items-center gap-2 rounded text-left hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent" aria-label={`Ordenar por ${titulo}${ordem.coluna === campo && ordem.direcao === 'asc' ? ' em ordem decrescente' : ' em ordem crescente'}`}>
                       {titulo}{ordem.coluna !== campo ? <ArrowUpDown aria-hidden="true" size={16} strokeWidth={2} /> : ordem.direcao === 'asc' ? <ArrowUp aria-hidden="true" size={16} strokeWidth={2} /> : <ArrowDown aria-hidden="true" size={16} strokeWidth={2} />}
                     </button>
                   </th>)}
-                  <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
                 </tr></thead>
                 <tbody className="divide-y divide-foreground/5">
-                  {visiveis.map((operacao) => <tr key={operacao.id} className="hover:bg-foreground/[0.025]">
-                    <td className="max-w-48 px-5 py-4 font-medium break-words [overflow-wrap:anywhere]">{operacao.nome}</td>
-                    <td className="max-w-96 px-5 py-4 break-words text-subtle [overflow-wrap:anywhere]">{operacao.descricao ?? 'Sem descrição'}</td>
-                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${operacao.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{operacao.ativo ? 'Ativo' : 'Inativo'}</span></td>
-                    <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={operacao.createdAt}>{formatarDataCadastro(operacao.createdAt)}</time></td>
-                    <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={operacao.updatedAt}>{formatarDataCadastro(operacao.updatedAt)}</time></td>
-                    <td className="px-5 py-3 text-right">
-                      <button type="button" aria-haspopup="dialog" aria-controls="formulario-operacao" aria-label={`Editar ${operacao.nome}`}
-                        onClick={(event) => abrirFormulario(operacao, event.currentTarget)}
-                        className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                      ><Pencil aria-hidden="true" size={16} strokeWidth={2} />Editar</button>
-                      {/* aria-disabled em vez de disabled: o botão mantém o foco durante o envio. */}
-                      <button type="button" aria-label={`${operacao.ativo ? 'Inativar' : 'Ativar'} ${operacao.nome}`} aria-disabled={alterandoStatus !== null}
-                        onClick={() => void alternarStatus(operacao)}
-                        className="ml-2 inline-flex min-h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60"
-                      >{alterandoStatus === operacao.id ? <LoaderCircle aria-hidden="true" size={16} strokeWidth={2} className="motion-safe:animate-spin" /> : operacao.ativo ? <PowerOff aria-hidden="true" size={16} strokeWidth={2} /> : <Power aria-hidden="true" size={16} strokeWidth={2} />}{operacao.ativo ? 'Inativar' : 'Ativar'}</button>
+                  {paginacao.itens.map((operacao) => <tr key={operacao.id} className="hover:bg-foreground/[0.025]">
+                    <td className="coluna-action">
+                      <MenuAcoesRegistro key={paginacao.chaveRolagem} registro={operacao.nome} acoes={[
+                        { rotulo: 'Editar', icone: Pencil, executar: (botao) => abrirFormulario(operacao, botao) },
+                        { rotulo: operacao.ativo ? 'Inativar' : 'Ativar', icone: operacao.ativo ? PowerOff : Power, indisponivel: alterandoStatus !== null, motivo: 'Aguarde a alteração em andamento.', executar: () => { void alternarStatus(operacao); } },
+                      ]} />
                     </td>
+                    <td className="max-w-48 px-3 py-3 font-medium break-words [overflow-wrap:anywhere]">{operacao.nome}</td>
+                    <td className="max-w-96 px-3 py-3 break-words text-subtle [overflow-wrap:anywhere]">{operacao.descricao ?? 'Sem descrição'}</td>
+                    <td className="px-3 py-3"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${operacao.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{operacao.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted"><time dateTime={operacao.createdAt}>{formatarDataCadastro(operacao.createdAt)}</time></td>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted"><time dateTime={operacao.updatedAt}>{formatarDataCadastro(operacao.updatedAt)}</time></td>
                   </tr>)}
                   {visiveis.length === 0 && <tr><td colSpan={6} className="px-5 py-12 text-center text-muted"><Workflow aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />{operacoes.length === 0 ? 'Nenhuma operação cadastrada.' : 'Nenhuma operação encontrada para os filtros selecionados.'}</td></tr>}
                 </tbody>
               </table>
-            </div>
-            <p aria-live="polite" className="border-t border-foreground/10 px-5 py-3 text-xs text-muted">{visiveis.length} de {operacoes.length} operações</p>
+            </TabelaComRolagem>
+            <PaginacaoTabela legenda="Operações" paginacao={paginacao} totalGeral={operacoes.length} />
           </>
         )}
       </section>

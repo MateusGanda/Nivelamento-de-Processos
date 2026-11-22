@@ -1,6 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { PaginacaoTabela } from '@/shared/presentation/paginacao-tabela';
+import { MenuAcoesRegistro } from '@/shared/presentation/menu-acoes-registro';
+import { TabelaComRolagem } from '@/shared/presentation/tabela-com-rolagem';
+import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import { Clock, Lock, Package, Plus, Star, Trash2 } from 'lucide-react';
 import type { RoteiroDetalhe, TempoInformado } from '../../domain/roteiro';
 import type { Produto } from '../../../products/domain/produto';
@@ -8,7 +12,6 @@ import { listarProdutos } from '../../../products/presentation/api-client';
 import { ligarProdutoRoteiro, removerProdutoRoteiro, salvarTemposRoteiro, tornarVigenteRoteiro } from '../api-client';
 import { TemposPadraoDialog, type PedidoTemposPadrao } from './tempos-padrao-dialog';
 
-const botaoLinha = 'inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-50';
 
 export function RoteiroProdutosSection({ roteiro, etapasPendentes, ocupado, executar, salvarTempos }: {
   roteiro: RoteiroDetalhe;
@@ -35,6 +38,7 @@ export function RoteiroProdutosSection({ roteiro, etapasPendentes, ocupado, exec
   }, []);
 
   const ligados = new Set(roteiro.produtos.map((produto) => produto.id));
+  const paginacao = usePaginacaoTabela(roteiro.produtos, roteiro.id);
   // Produto inativo não aparece para ligações novas.
   const disponiveis = (produtos ?? []).filter((produto) => produto.ativo && !ligados.has(produto.id));
   const totalEtapas = roteiro.etapas.length;
@@ -55,54 +59,47 @@ export function RoteiroProdutosSection({ roteiro, etapasPendentes, ocupado, exec
       {roteiro.produtos.length === 0 ? (
         <p className="px-5 py-10 text-center text-sm text-muted"><Package aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />Nenhum produto ligado a esta versão.</p>
       ) : (
-        <div className="max-w-full overflow-x-auto">
-          <table className="tabular-nums w-full min-w-[860px] text-left text-sm">
+        <TabelaComRolagem legenda="Produtos vinculados ao roteiro" chaveRolagem={paginacao.chaveRolagem}>
+          <table className="tabela-com-acoes tabular-nums w-full text-left text-sm">
             <caption className="sr-only">Produtos ligados a esta versão do roteiro.</caption>
             <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
-              <th scope="col" className="px-5 py-3 font-medium">Produto</th>
-              <th scope="col" className="px-5 py-3 font-medium">Vigência</th>
-              <th scope="col" className="px-5 py-3 font-medium">Ordens</th>
-              <th scope="col" className="px-5 py-3 font-medium">Tempos padrão</th>
-              <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
+              <th scope="col" className="coluna-action font-medium">Action</th>
+              <th scope="col" className="px-3 py-3 font-medium">Produto</th>
+              <th scope="col" className="px-3 py-3 font-medium">Vigência</th>
+              <th scope="col" className="px-3 py-3 font-medium">Ordens</th>
+              <th scope="col" className="px-3 py-3 font-medium">Tempos padrão</th>
             </tr></thead>
             <tbody className="divide-y divide-foreground/5">
-              {roteiro.produtos.map((produto) => {
+              {paginacao.itens.map((produto) => {
                 const completos = produto.tempos.length;
                 return (
                   <tr key={produto.id} className="hover:bg-foreground/[0.025]">
-                    <td className="max-w-80 px-5 py-4"><span className="font-medium">{produto.codigo}</span> <span className="text-subtle">– {produto.nome}</span></td>
-                    <td className="px-5 py-4">
+                    <td className="coluna-action">
+                      <MenuAcoesRegistro key={paginacao.chaveRolagem} registro={produto.codigo} acoes={[
+                        { rotulo: 'Tempos padrão', icone: Clock, indisponivel: etapasPendentes, motivo: 'Salve ou descarte as alterações das etapas.', executar: (botao) => { origemFoco.current = botao; setPedidoTempos((atual) => ({ produto, seq: (atual?.seq ?? 0) + 1 })); } },
+                        ...(!produto.vigente ? [{ rotulo: 'Tornar vigente', icone: Star, indisponivel: ocupado || !roteiro.ativo, motivo: !roteiro.ativo ? 'Ative o roteiro para torná-lo vigente.' : 'Aguarde a alteração em andamento.', executar: () => { void executar(() => tornarVigenteRoteiro(roteiro.id, produto.id), `Esta versão agora é a vigente para ${produto.codigo}.`, 'Não foi possível definir a vigência. Tente novamente.'); } }] : []),
+                        { rotulo: 'Remover vínculo', icone: Trash2, indisponivel: ocupado || produto.quantidadeOrdens > 0, motivo: produto.quantidadeOrdens > 0 ? 'O produto tem ordens com esta versão.' : 'Aguarde a alteração em andamento.', executar: () => { void executar(() => removerProdutoRoteiro(roteiro.id, produto.id), `${produto.codigo} foi retirado deste roteiro.`, 'Não foi possível remover o produto. Tente novamente.'); } },
+                      ]} />
+                    </td>
+                    <td className="max-w-80 px-3 py-3"><span className="font-medium">{produto.codigo}</span> <span className="text-subtle">– {produto.nome}</span></td>
+                    <td className="px-3 py-3">
                       {produto.vigente
                         ? <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent-ink"><Star aria-hidden="true" size={14} strokeWidth={2} />Vigente</span>
-                        : <button type="button" aria-label={`Tornar esta versão vigente para ${produto.codigo}`} aria-disabled={ocupado || !roteiro.ativo}
-                            title={!roteiro.ativo ? 'Ative o roteiro antes de torná-lo vigente.' : undefined}
-                            onClick={() => { if (!ocupado && roteiro.ativo) void executar(() => tornarVigenteRoteiro(roteiro.id, produto.id), `Esta versão agora é a vigente para ${produto.codigo}.`, 'Não foi possível definir a vigência. Tente novamente.'); }}
-                            className={botaoLinha}><Star aria-hidden="true" size={16} strokeWidth={2} />Tornar vigente</button>}
+                        : <span className="text-muted">Não vigente</span>}
                     </td>
-                    <td className="px-5 py-4 text-subtle">{produto.quantidadeOrdens}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-3 text-subtle">{produto.quantidadeOrdens}</td>
+                    <td className="px-3 py-3">
                       <span className={completos === totalEtapas && totalEtapas > 0 ? 'text-subtle' : 'text-warning'}>{completos} de {totalEtapas} etapas</span>
                       {produto.travado && <span className="ml-2 inline-flex items-center gap-1 text-xs text-muted"><Lock aria-hidden="true" size={12} strokeWidth={2} />travados</span>}
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex justify-end gap-2">
-                        <button type="button" aria-haspopup="dialog" aria-controls="tempos-padrao" aria-label={`Tempos padrão de ${produto.codigo}`}
-                          aria-disabled={etapasPendentes} title={etapasPendentes ? 'Salve ou descarte as alterações das etapas antes de mudar os tempos.' : undefined}
-                          onClick={(event) => { if (etapasPendentes) return; origemFoco.current = event.currentTarget; setPedidoTempos((atual) => ({ produto, seq: (atual?.seq ?? 0) + 1 })); }}
-                          className={botaoLinha}><Clock aria-hidden="true" size={16} strokeWidth={2} />Tempos</button>
-                        <button type="button" aria-label={`Remover ${produto.codigo} deste roteiro`} aria-disabled={ocupado || produto.quantidadeOrdens > 0}
-                          title={produto.quantidadeOrdens > 0 ? 'O produto tem ordens com esta versão; a ligação não pode ser removida.' : undefined}
-                          onClick={() => { if (!ocupado && produto.quantidadeOrdens === 0) void executar(() => removerProdutoRoteiro(roteiro.id, produto.id), `${produto.codigo} foi retirado deste roteiro.`, 'Não foi possível remover o produto. Tente novamente.'); }}
-                          className={botaoLinha}><Trash2 aria-hidden="true" size={16} strokeWidth={2} />Remover</button>
-                      </div>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </div>
+        </TabelaComRolagem>
       )}
+      {roteiro.produtos.length > 0 && <PaginacaoTabela legenda="Produtos vinculados ao roteiro" paginacao={paginacao} />}
 
       <div className="flex flex-col gap-3 border-t border-foreground/10 p-4 sm:flex-row sm:items-end sm:p-5">
         <div className="min-w-0 flex-1 sm:max-w-md">

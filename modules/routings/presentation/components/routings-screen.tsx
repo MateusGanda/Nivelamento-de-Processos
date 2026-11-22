@@ -1,7 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
+import { PaginacaoTabela } from '@/shared/presentation/paginacao-tabela';
+import { MenuAcoesRegistro } from '@/shared/presentation/menu-acoes-registro';
+import { TabelaComRolagem } from '@/shared/presentation/tabela-com-rolagem';
+import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, LoaderCircle, Plus, Route, Search } from 'lucide-react';
 import type { RoteiroResumo } from '../../domain/roteiro';
@@ -50,13 +53,14 @@ export function RoutingsScreen() {
   }, [carregar]);
 
   const visiveis = useMemo(() => filtrarOrdenarRoteiros(roteiros, busca, status, ordem), [roteiros, busca, status, ordem]);
+  const paginacao = usePaginacaoTabela(visiveis, JSON.stringify([busca, status, ordem]));
 
   function ordenar(coluna: ColunaRoteiro) {
     setOrdem((atual) => ({ coluna, direcao: atual.coluna === coluna && atual.direcao === 'asc' ? 'desc' : 'asc' }));
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px]">
+    <div className="pagina-com-tabela mx-auto w-full min-w-0 max-w-[1440px]">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div><h1 className="text-2xl font-semibold tracking-tight">Roteiros</h1><p className="mt-2 text-sm leading-6 text-muted">Monte as etapas de cada roteiro, os postos onde elas podem ser feitas e as versões.</p></div>
         <button
@@ -66,7 +70,7 @@ export function RoutingsScreen() {
         ><Plus aria-hidden="true" size={20} strokeWidth={2} />Adicionar roteiro</button>
       </header>
 
-      <section aria-label="Listagem de roteiros" aria-busy={carregando} className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+      <section aria-label="Listagem de roteiros" aria-busy={carregando} className="listagem-com-rolagem mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
         <div className="flex flex-col gap-4 border-b border-foreground/10 p-4 sm:p-5 lg:flex-row lg:items-end">
           <div className="min-w-0 flex-1">
             <label htmlFor="roteiros-busca" className="mb-2 block text-sm font-medium">Buscar roteiros</label>
@@ -91,34 +95,36 @@ export function RoutingsScreen() {
           </div>
         ) : (
           <>
-            <div className="max-w-full overflow-x-auto rounded-b-lg">
-              <table className="tabular-nums w-full min-w-[860px] text-left text-sm">
+            <TabelaComRolagem legenda="Versões de roteiro" chaveRolagem={paginacao.chaveRolagem}>
+              <table className="tabela-com-acoes tabular-nums w-full text-left text-sm">
                 <caption className="sr-only">Roteiros cadastrados, uma linha por versão. Use os cabeçalhos para ordenar as colunas.</caption>
                 <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
-                  {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-5 py-3 font-medium">
+                  <th scope="col" className="coluna-action font-medium">Action</th>
+                  {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-3 py-3 font-medium">
                     <button type="button" onClick={() => ordenar(campo)} className="flex min-h-8 cursor-pointer items-center gap-2 rounded text-left hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent" aria-label={`Ordenar por ${titulo}${ordem.coluna === campo && ordem.direcao === 'asc' ? ' em ordem decrescente' : ' em ordem crescente'}`}>
                       {titulo}{ordem.coluna !== campo ? <ArrowUpDown aria-hidden="true" size={16} strokeWidth={2} /> : ordem.direcao === 'asc' ? <ArrowUp aria-hidden="true" size={16} strokeWidth={2} /> : <ArrowDown aria-hidden="true" size={16} strokeWidth={2} />}
                     </button>
                   </th>)}
-                  <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
                 </tr></thead>
                 <tbody className="divide-y divide-foreground/5">
-                  {visiveis.map((roteiro) => <tr key={roteiro.id} className="hover:bg-foreground/[0.025]">
-                    <td className="max-w-80 px-5 py-4 font-medium break-words [overflow-wrap:anywhere]">{roteiro.nome}</td>
-                    <td className="px-5 py-4 text-subtle">{roteiro.versao}</td>
-                    <td className="px-5 py-4 text-subtle">{roteiro.quantidadeEtapas}</td>
-                    <td className="px-5 py-4 text-subtle">{roteiro.quantidadeOrdens}</td>
-                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${roteiro.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{roteiro.ativo ? 'Ativo' : 'Inativo'}</span></td>
-                    <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={roteiro.updatedAt}>{formatarData(roteiro.updatedAt)}</time></td>
-                    <td className="px-5 py-3 text-right">
-                      <Link href={`/painel/roteiros/${roteiro.id}`} aria-label={`Abrir ${roteiro.nome}, versão ${roteiro.versao}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Abrir<ChevronRight aria-hidden="true" size={16} strokeWidth={2} /></Link>
+                  {paginacao.itens.map((roteiro) => <tr key={roteiro.id} className="hover:bg-foreground/[0.025]">
+                    <td className="coluna-action">
+                      <MenuAcoesRegistro key={paginacao.chaveRolagem} registro={roteiro.nome} acoes={[
+                        { rotulo: 'Abrir roteiro', icone: ChevronRight, href: `/painel/roteiros/${roteiro.id}` },
+                      ]} />
                     </td>
+                    <td className="max-w-80 px-3 py-3 font-medium break-words [overflow-wrap:anywhere]">{roteiro.nome}</td>
+                    <td className="px-3 py-3 text-subtle">{roteiro.versao}</td>
+                    <td className="px-3 py-3 text-subtle">{roteiro.quantidadeEtapas}</td>
+                    <td className="px-3 py-3 text-subtle">{roteiro.quantidadeOrdens}</td>
+                    <td className="px-3 py-3"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${roteiro.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{roteiro.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted"><time dateTime={roteiro.updatedAt}>{formatarData(roteiro.updatedAt)}</time></td>
                   </tr>)}
                   {visiveis.length === 0 && <tr><td colSpan={7} className="px-5 py-12 text-center text-muted"><Route aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />{roteiros.length === 0 ? 'Nenhum roteiro cadastrado.' : 'Nenhum roteiro encontrado para os filtros selecionados.'}</td></tr>}
                 </tbody>
               </table>
-            </div>
-            <p aria-live="polite" className="border-t border-foreground/10 px-5 py-3 text-xs text-muted">{visiveis.length} de {roteiros.length} versões de roteiro</p>
+            </TabelaComRolagem>
+            <PaginacaoTabela legenda="Versões de roteiro" paginacao={paginacao} totalGeral={roteiros.length} />
           </>
         )}
       </section>

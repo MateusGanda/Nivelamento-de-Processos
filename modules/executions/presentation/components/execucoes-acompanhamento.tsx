@@ -1,6 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PaginacaoTabela } from '@/shared/presentation/paginacao-tabela';
+import { TabelaComRolagem } from '@/shared/presentation/tabela-com-rolagem';
+import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, AlertTriangle, LoaderCircle, Pause, RefreshCw, Timer } from 'lucide-react';
 import type { ExecucaoAcompanhada } from '../../domain/execucao';
@@ -101,6 +104,7 @@ export function ExecucoesAcompanhamento() {
   const setorValido = setor !== null && setores.includes(setor) ? setor : null;
   const agoraServidor = dados ? agoraDoServidor(dados.meta.consultadoEm, recebidoEm, agora) : 0;
   const visiveis = useMemo(() => filtrarExecucoes(execucoes, { setor: setorValido, situacao }, agoraServidor), [execucoes, setorValido, situacao, agoraServidor]);
+  const paginacao = usePaginacaoTabela(visiveis, JSON.stringify([setorValido, situacao]));
   const contagem = {
     todas: execucoes.length, EM_EXECUCAO: execucoes.filter((e) => e.status === 'EM_EXECUCAO').length,
     PAUSADA: execucoes.filter((e) => e.status === 'PAUSADA').length, ATENCAO: execucoes.filter((e) => atencoesDaExecucao(e, agoraServidor).length > 0).length,
@@ -160,7 +164,7 @@ export function ExecucoesAcompanhamento() {
 
         {visiveis.length > 0 && (
           <>
-            <div className="hidden lg:block">
+            <TabelaComRolagem legenda="Execuções em andamento" className="hidden lg:block" chaveRolagem={paginacao.chaveRolagem}>
               <table className="tabular-nums w-full text-left text-sm">
                 <caption className="sr-only">Execuções em andamento</caption>
                 <thead className="border-b border-foreground/10 text-muted"><tr>
@@ -168,7 +172,7 @@ export function ExecucoesAcompanhamento() {
                   {['Produtivo', 'Em pausa'].map((titulo) => <th key={titulo} scope="col" className="px-3 py-2.5 text-right font-medium">{titulo}</th>)}
                 </tr></thead>
                 <tbody className="divide-y divide-foreground/5">
-                  {visiveis.map((execucao) => {
+                  {paginacao.itens.map((execucao) => {
                     const tempos = temposAteAgora(execucao, agoraServidor);
                     const inicio = inicioDaExecucao(execucao);
                     const atencoes = atencoesDaExecucao(execucao, agoraServidor);
@@ -187,10 +191,10 @@ export function ExecucoesAcompanhamento() {
                   })}
                 </tbody>
               </table>
-            </div>
+            </TabelaComRolagem>
 
             <ul className="space-y-3 lg:hidden" aria-label="Execuções em andamento">
-              {visiveis.map((execucao) => {
+              {paginacao.itens.map((execucao) => {
                 const tempos = temposAteAgora(execucao, agoraServidor);
                 const inicio = inicioDaExecucao(execucao);
                 const atencoes = atencoesDaExecucao(execucao, agoraServidor);
@@ -212,6 +216,7 @@ export function ExecucoesAcompanhamento() {
                 );
               })}
             </ul>
+            <PaginacaoTabela legenda="Execuções em andamento" paginacao={paginacao} />
           </>
         )}
       </div>
