@@ -1,6 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PaginacaoTabela } from '@/shared/presentation/paginacao-tabela';
+import { MenuAcoesRegistro } from '@/shared/presentation/menu-acoes-registro';
+import { TabelaComRolagem } from '@/shared/presentation/tabela-com-rolagem';
+import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CalendarRange, CheckCircle2, LoaderCircle, Pencil, Plus, Search } from 'lucide-react';
 import type { Plano } from '../../domain/plano';
@@ -80,13 +84,14 @@ export function PlansScreen() {
   }
 
   const visiveis = useMemo(() => filtrarOrdenarPlanos(planos, busca, ordem), [planos, busca, ordem]);
+  const paginacao = usePaginacaoTabela(visiveis, JSON.stringify([busca, ordem]));
 
   function ordenar(coluna: ColunaPlano) {
     setOrdem((atual) => ({ coluna, direcao: atual.coluna === coluna && atual.direcao === 'asc' ? 'desc' : 'asc' }));
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px]">
+    <div className="pagina-com-tabela mx-auto w-full min-w-0 max-w-[1440px]">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div><h1 className="text-2xl font-semibold tracking-tight">Planos de Produção</h1><p className="mt-2 text-sm leading-6 text-muted">Cadastre, consulte e altere os planos que agrupam as ordens de produção.</p></div>
         <button
@@ -98,7 +103,7 @@ export function PlansScreen() {
 
       {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-md border border-success-fill/25 bg-success-fill/5 p-4 text-sm leading-6 text-success"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
 
-      <section aria-label="Listagem de planos" aria-busy={carregando} className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+      <section aria-label="Listagem de planos" aria-busy={carregando} className="listagem-com-rolagem mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
         <div className="flex flex-col gap-4 border-b border-foreground/10 p-4 sm:p-5 lg:flex-row lg:items-end">
           <div className="min-w-0 flex-1">
             <label htmlFor="planos-busca" className="mb-2 block text-sm font-medium">Buscar planos</label>
@@ -119,37 +124,36 @@ export function PlansScreen() {
           </div>
         ) : (
           <>
-            <div className="max-w-full overflow-x-auto rounded-b-lg">
-              <table className="tabular-nums w-full min-w-[920px] text-left text-sm">
+            <TabelaComRolagem legenda="Planos de produção" chaveRolagem={paginacao.chaveRolagem}>
+              <table className="tabela-com-acoes tabular-nums w-full text-left text-sm">
                 <caption className="sr-only">Planos de produção cadastrados. Use os cabeçalhos para ordenar as colunas.</caption>
                 <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
-                  {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-5 py-3 font-medium">
+                  <th scope="col" className="coluna-action font-medium">Action</th>
+                  {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-3 py-3 font-medium">
                     <button type="button" onClick={() => ordenar(campo)} className="flex min-h-8 cursor-pointer items-center gap-2 rounded text-left hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent" aria-label={`Ordenar por ${titulo}${ordem.coluna === campo && ordem.direcao === 'asc' ? ' em ordem decrescente' : ' em ordem crescente'}`}>
                       {titulo}{ordem.coluna !== campo ? <ArrowUpDown aria-hidden="true" size={16} strokeWidth={2} /> : ordem.direcao === 'asc' ? <ArrowUp aria-hidden="true" size={16} strokeWidth={2} /> : <ArrowDown aria-hidden="true" size={16} strokeWidth={2} />}
                     </button>
                   </th>)}
-                  <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
                 </tr></thead>
                 <tbody className="divide-y divide-foreground/5">
-                  {visiveis.map((plano) => <tr key={plano.id} className="hover:bg-foreground/[0.025]">
-                    <td className="max-w-48 px-5 py-4 font-medium break-words [overflow-wrap:anywhere]">{plano.codigo}</td>
-                    <td className="max-w-96 px-5 py-4 break-words text-subtle [overflow-wrap:anywhere]">{plano.descricao ?? <span className="text-muted">Sem descrição</span>}</td>
-                    <td className="px-5 py-4 whitespace-nowrap text-subtle">{plano.dataInicio ? <time dateTime={plano.dataInicio}>{formatarData(plano.dataInicio)}</time> : <span className="text-muted">—</span>}</td>
-                    <td className="px-5 py-4 whitespace-nowrap text-subtle">{plano.dataFim ? <time dateTime={plano.dataFim}>{formatarData(plano.dataFim)}</time> : <span className="text-muted">—</span>}</td>
-                    <td className="px-5 py-4 text-subtle">{plano.quantidadeOrdens}</td>
-                    <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={plano.updatedAt}>{formatarDataHora(plano.updatedAt)}</time></td>
-                    <td className="px-5 py-3 text-right">
-                      <button type="button" aria-haspopup="dialog" aria-controls="formulario-plano" aria-label={`Editar ${plano.codigo}`}
-                        onClick={(event) => abrirFormulario(plano, event.currentTarget)}
-                        className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                      ><Pencil aria-hidden="true" size={16} strokeWidth={2} />Editar</button>
+                  {paginacao.itens.map((plano) => <tr key={plano.id} className="hover:bg-foreground/[0.025]">
+                    <td className="coluna-action">
+                      <MenuAcoesRegistro key={paginacao.chaveRolagem} registro={plano.codigo} acoes={[
+                        { rotulo: 'Editar', icone: Pencil, executar: (botao) => abrirFormulario(plano, botao) },
+                      ]} />
                     </td>
+                    <td className="max-w-48 px-3 py-3 font-medium break-words [overflow-wrap:anywhere]">{plano.codigo}</td>
+                    <td className="max-w-96 px-3 py-3 break-words text-subtle [overflow-wrap:anywhere]">{plano.descricao ?? <span className="text-muted">Sem descrição</span>}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-subtle">{plano.dataInicio ? <time dateTime={plano.dataInicio}>{formatarData(plano.dataInicio)}</time> : <span className="text-muted">—</span>}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-subtle">{plano.dataFim ? <time dateTime={plano.dataFim}>{formatarData(plano.dataFim)}</time> : <span className="text-muted">—</span>}</td>
+                    <td className="px-3 py-3 text-subtle">{plano.quantidadeOrdens}</td>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted"><time dateTime={plano.updatedAt}>{formatarDataHora(plano.updatedAt)}</time></td>
                   </tr>)}
                   {visiveis.length === 0 && <tr><td colSpan={7} className="px-5 py-12 text-center text-muted"><CalendarRange aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />{planos.length === 0 ? 'Nenhum plano cadastrado.' : 'Nenhum plano encontrado para a busca.'}</td></tr>}
                 </tbody>
               </table>
-            </div>
-            <p aria-live="polite" className="border-t border-foreground/10 px-5 py-3 text-xs text-muted">{visiveis.length} de {planos.length} planos</p>
+            </TabelaComRolagem>
+            <PaginacaoTabela legenda="Planos de produção" paginacao={paginacao} totalGeral={planos.length} />
           </>
         )}
       </section>

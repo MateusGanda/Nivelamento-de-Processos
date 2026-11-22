@@ -1,6 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { PaginacaoTabela } from '@/shared/presentation/paginacao-tabela';
+import { MenuAcoesRegistro } from '@/shared/presentation/menu-acoes-registro';
+import { TabelaComRolagem } from '@/shared/presentation/tabela-com-rolagem';
+import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, CheckCircle2, ExternalLink, KeyRound, LoaderCircle, Pencil, Plus, Power, PowerOff, Tv } from 'lucide-react';
 import type { Dispositivo, DispositivoListado, SituacaoConexao } from '../../domain/dispositivo';
@@ -16,11 +20,11 @@ const CONEXAO: Record<SituacaoConexao, { rotulo: string; classe: string }> = {
   NUNCA_CONECTOU: { rotulo: 'Nunca conectou', classe: 'border-foreground/10 bg-foreground/5 text-muted' },
 };
 const DATA_HORA = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'America/Sao_Paulo' });
-const botaoAcao = 'inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60';
 
 export function DevicesScreen() {
   const router = useRouter();
   const [dispositivos, setDispositivos] = useState<DispositivoListado[]>([]);
+  const paginacao = usePaginacaoTabela(dispositivos);
   const [setores, setSetores] = useState<{ id: string; nome: string; ativo: boolean }[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -94,7 +98,7 @@ export function DevicesScreen() {
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px]">
+    <div className="pagina-com-tabela mx-auto w-full min-w-0 max-w-[1440px]">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div className="max-w-3xl">
           <h1 className="text-2xl font-semibold tracking-tight">TVs</h1>
@@ -116,40 +120,41 @@ export function DevicesScreen() {
       {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-md border border-success-fill/25 bg-success-fill/5 p-4 text-sm leading-6 text-success"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
       {erro && <p role="alert" className="mt-6 flex items-start gap-2 rounded-md border border-danger-fill/25 bg-danger-fill/5 p-4 text-sm leading-6 text-danger"><AlertCircle aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{erro}</p>}
 
-      <section aria-label="TVs cadastradas" aria-busy={carregando} className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+      <section aria-label="TVs cadastradas" aria-busy={carregando} className="listagem-com-rolagem mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
         <p className="border-b border-foreground/10 px-5 py-3 text-xs text-muted">Online: a TV conectou nos últimos {LIMITE_ONLINE_MS / 1000} segundos. A lista atualiza sozinha a cada {INTERVALO_ATUALIZACAO_MS / 1000} s.</p>
         {carregando && dispositivos.length === 0 ? (
           <p role="status" className="flex min-h-40 items-center justify-center gap-3 p-6 text-sm text-muted"><LoaderCircle aria-hidden="true" size={22} className="motion-safe:animate-spin" />Carregando TVs…</p>
         ) : (
-          <div className="max-w-full overflow-x-auto rounded-b-lg">
-            <table className="tabular-nums w-full min-w-[900px] text-left text-sm">
+          <TabelaComRolagem legenda="TVs cadastradas" chaveRolagem={paginacao.chaveRolagem}>
+            <table className="tabela-com-acoes tabular-nums w-full text-left text-sm">
               <caption className="sr-only">TVs cadastradas, com a situação da conexão</caption>
               <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
-                {['TV', 'Setor exibido', 'Conexão', 'Última conexão', 'Status'].map((t) => <th key={t} scope="col" className="px-5 py-3 font-medium">{t}</th>)}
-                <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
+                <th scope="col" className="coluna-action font-medium">Action</th>
+                {['TV', 'Setor exibido', 'Conexão', 'Última conexão', 'Status'].map((t) => <th key={t} scope="col" className="px-3 py-3 font-medium">{t}</th>)}
               </tr></thead>
               <tbody className="divide-y divide-foreground/5">
-                {dispositivos.map((d) => (
+                {paginacao.itens.map((d) => (
                   <tr key={d.id} className="hover:bg-foreground/[0.025]">
-                    <td className="px-5 py-4"><p className="font-medium [overflow-wrap:anywhere]">{d.nome}</p>{d.local && <p className="text-xs text-muted [overflow-wrap:anywhere]">{d.local}</p>}</td>
-                    <td className="px-5 py-4 text-subtle">{d.setor?.nome ?? 'Todos os setores'}</td>
-                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap ${d.ativo ? CONEXAO[d.conexao].classe : CONEXAO.NUNCA_CONECTOU.classe}`}>{d.ativo ? CONEXAO[d.conexao].rotulo : 'Desativada'}</span></td>
-                    <td className="px-5 py-4 whitespace-nowrap text-muted">{d.ultimaConexaoEm ? <time dateTime={d.ultimaConexaoEm}>{DATA_HORA.format(new Date(d.ultimaConexaoEm))}</time> : '—'}</td>
-                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${d.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{d.ativo ? 'Ativa' : 'Inativa'}</span></td>
-                    <td className="space-x-2 px-5 py-3 text-right whitespace-nowrap">
-                      <button type="button" aria-haspopup="dialog" aria-controls="formulario-dispositivo" aria-label={`Editar ${d.nome}`} onClick={(e) => abrirFormulario(d, e.currentTarget)} className={botaoAcao}><Pencil aria-hidden="true" size={16} />Editar</button>
-                      <button type="button" aria-haspopup="dialog" aria-controls="codigo-dispositivo" aria-label={`Gerar novo código para ${d.nome}`} onClick={(e) => pedirNovoCodigo(d, e.currentTarget)} className={botaoAcao}><KeyRound aria-hidden="true" size={16} />Novo código</button>
-                      <button type="button" aria-label={`${d.ativo ? 'Desativar' : 'Ativar'} ${d.nome}`} aria-disabled={alterando !== null} onClick={() => void alternarStatus(d)} className={`${botaoAcao} w-32 justify-center`}>
-                        {alterando === d.id ? <LoaderCircle aria-hidden="true" size={16} className="motion-safe:animate-spin" /> : d.ativo ? <PowerOff aria-hidden="true" size={16} /> : <Power aria-hidden="true" size={16} />}{d.ativo ? 'Desativar' : 'Ativar'}
-                      </button>
+                    <td className="coluna-action">
+                      <MenuAcoesRegistro key={paginacao.chaveRolagem} registro={d.nome} acoes={[
+                        { rotulo: 'Editar', icone: Pencil, executar: (botao) => abrirFormulario(d, botao) },
+                        { rotulo: 'Novo código', icone: KeyRound, executar: (botao) => pedirNovoCodigo(d, botao) },
+                        { rotulo: d.ativo ? 'Desativar' : 'Ativar', icone: d.ativo ? PowerOff : Power, indisponivel: alterando !== null, motivo: 'Aguarde a alteração em andamento.', executar: () => { void alternarStatus(d); } },
+                      ]} />
                     </td>
+                    <td className="px-3 py-3"><p className="font-medium [overflow-wrap:anywhere]">{d.nome}</p>{d.local && <p className="text-xs text-muted [overflow-wrap:anywhere]">{d.local}</p>}</td>
+                    <td className="px-3 py-3 text-subtle">{d.setor?.nome ?? 'Todos os setores'}</td>
+                    <td className="px-3 py-3"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap ${d.ativo ? CONEXAO[d.conexao].classe : CONEXAO.NUNCA_CONECTOU.classe}`}>{d.ativo ? CONEXAO[d.conexao].rotulo : 'Desativada'}</span></td>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted">{d.ultimaConexaoEm ? <time dateTime={d.ultimaConexaoEm}>{DATA_HORA.format(new Date(d.ultimaConexaoEm))}</time> : '—'}</td>
+                    <td className="px-3 py-3"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${d.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{d.ativo ? 'Ativa' : 'Inativa'}</span></td>
                   </tr>
                 ))}
                 {dispositivos.length === 0 && <tr><td colSpan={6} className="px-5 py-12 text-center text-muted"><Tv aria-hidden="true" size={28} className="mx-auto mb-3" />Nenhuma TV cadastrada. Use Adicionar TV para gerar o código de acesso.</td></tr>}
               </tbody>
             </table>
-          </div>
+          </TabelaComRolagem>
         )}
+        {dispositivos.length > 0 && <PaginacaoTabela legenda="TVs cadastradas" paginacao={paginacao} />}
       </section>
 
       <DeviceFormDialog dialogRef={formRef} pedido={pedidoForm} setores={setores}

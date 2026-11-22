@@ -1,6 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PaginacaoTabela } from '@/shared/presentation/paginacao-tabela';
+import { MenuAcoesRegistro } from '@/shared/presentation/menu-acoes-registro';
+import { TabelaComRolagem } from '@/shared/presentation/tabela-com-rolagem';
+import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Factory, LoaderCircle, Pencil, Plus, Power, PowerOff, Search } from 'lucide-react';
 import type { Setor } from '../../domain/setor';
@@ -106,13 +110,14 @@ export function SectorsScreen() {
   }
 
   const visiveis = useMemo(() => filtrarOrdenarSetores(setores, busca, ordem, status), [setores, busca, ordem, status]);
+  const paginacao = usePaginacaoTabela(visiveis, JSON.stringify([busca, ordem, status]));
 
   function ordenar(coluna: ColunaSetor) {
     setOrdem((atual) => ({ coluna, direcao: atual.coluna === coluna && atual.direcao === 'asc' ? 'desc' : 'asc' }));
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px]">
+    <div className="pagina-com-tabela mx-auto w-full min-w-0 max-w-[1440px]">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div><h1 className="text-2xl font-semibold tracking-tight">Setores</h1><p className="mt-2 text-sm leading-6 text-muted">Cadastre, consulte, altere e inative os setores da produção.</p></div>
         <button type="button" aria-haspopup="dialog" aria-controls="cadastro-setor"
@@ -123,7 +128,7 @@ export function SectorsScreen() {
 
       {mensagem && <p role="status" className="mt-6 flex items-start gap-2 rounded-md border border-success-fill/25 bg-success-fill/5 p-4 text-sm leading-6 text-success"><CheckCircle2 aria-hidden="true" size={20} strokeWidth={2} className="mt-0.5 shrink-0" />{mensagem}</p>}
 
-      <section aria-label="Listagem de setores" aria-busy={carregando} className="mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
+      <section aria-label="Listagem de setores" aria-busy={carregando} className="listagem-com-rolagem mt-7 min-w-0 rounded-lg border border-line-soft bg-surface">
         <div className="flex flex-col gap-4 border-b border-foreground/10 p-4 sm:p-5 sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
             <label htmlFor="setores-busca" className="mb-2 block text-sm font-medium">Buscar setores</label>
@@ -149,41 +154,36 @@ export function SectorsScreen() {
           </div>
         ) : (
           <>
-            <div className="max-w-full overflow-x-auto rounded-b-lg">
-              <table className="tabular-nums w-full min-w-[980px] text-left text-sm">
+            <TabelaComRolagem legenda="Setores" chaveRolagem={paginacao.chaveRolagem}>
+              <table className="tabela-com-acoes tabular-nums w-full text-left text-sm">
                 <caption className="sr-only">Setores cadastrados. Use os cabeçalhos para ordenar as colunas.</caption>
                 <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
-                  {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-5 py-3 font-medium">
+                  <th scope="col" className="coluna-action font-medium">Action</th>
+                  {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-3 py-3 font-medium">
                     <button type="button" onClick={() => ordenar(campo)} className="flex min-h-8 cursor-pointer items-center gap-2 rounded text-left hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent" aria-label={`Ordenar por ${titulo}${ordem.coluna === campo && ordem.direcao === 'asc' ? ' em ordem decrescente' : ' em ordem crescente'}`}>
                       {titulo}{ordem.coluna !== campo ? <ArrowUpDown aria-hidden="true" size={16} strokeWidth={2} /> : ordem.direcao === 'asc' ? <ArrowUp aria-hidden="true" size={16} strokeWidth={2} /> : <ArrowDown aria-hidden="true" size={16} strokeWidth={2} />}
                     </button>
                   </th>)}
-                  <th scope="col" className="px-5 py-3 text-right font-medium"><span className="sr-only">Ações</span></th>
                 </tr></thead>
                 <tbody className="divide-y divide-foreground/5">
-                  {visiveis.map((setor) => <tr key={setor.id} className="hover:bg-foreground/[0.025]">
-                    <td className="px-5 py-4 font-medium">{setor.codigo}</td>
-                    <td className="max-w-80 px-5 py-4 font-medium break-words [overflow-wrap:anywhere]">{setor.nome}</td>
-                    <td className="max-w-lg px-5 py-4 whitespace-pre-wrap break-words text-subtle [overflow-wrap:anywhere]">{setor.descricao ?? <span className="text-muted">Sem descrição</span>}</td>
-                    <td className="px-5 py-4"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${setor.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{setor.ativo ? 'Ativo' : 'Inativo'}</span></td>
-                    <td className="px-5 py-4 whitespace-nowrap text-muted"><time dateTime={setor.createdAt}>{formatarDataCadastro(setor.createdAt)}</time></td>
-                    <td className="px-5 py-3 text-right">
-                      <button type="button" aria-haspopup="dialog" aria-controls="cadastro-setor" aria-label={`Editar ${setor.nome}`}
-                        onClick={(event) => abrirFormulario(setor, event.currentTarget)}
-                        className="mr-2 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                      ><Pencil aria-hidden="true" size={16} strokeWidth={2} />Editar</button>
-                      {/* aria-disabled em vez de disabled: o botão mantém o foco durante o envio. */}
-                      <button type="button" aria-label={`${setor.ativo ? 'Inativar' : 'Ativar'} ${setor.nome}`} aria-disabled={alterandoStatus !== null}
-                        onClick={() => void alternarStatus(setor)}
-                        className="inline-flex min-h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-wait aria-disabled:opacity-60"
-                      >{alterandoStatus === setor.id ? <LoaderCircle aria-hidden="true" size={16} strokeWidth={2} className="motion-safe:animate-spin" /> : setor.ativo ? <PowerOff aria-hidden="true" size={16} strokeWidth={2} /> : <Power aria-hidden="true" size={16} strokeWidth={2} />}{setor.ativo ? 'Inativar' : 'Ativar'}</button>
+                  {paginacao.itens.map((setor) => <tr key={setor.id} className="hover:bg-foreground/[0.025]">
+                    <td className="coluna-action">
+                      <MenuAcoesRegistro key={paginacao.chaveRolagem} registro={setor.nome} acoes={[
+                        { rotulo: 'Editar', icone: Pencil, executar: (botao) => abrirFormulario(setor, botao) },
+                        { rotulo: setor.ativo ? 'Inativar' : 'Ativar', icone: setor.ativo ? PowerOff : Power, indisponivel: alterandoStatus !== null, motivo: 'Aguarde a alteração em andamento.', executar: () => { void alternarStatus(setor); } },
+                      ]} />
                     </td>
+                    <td className="px-3 py-3 font-medium">{setor.codigo}</td>
+                    <td className="max-w-80 px-3 py-3 font-medium break-words [overflow-wrap:anywhere]">{setor.nome}</td>
+                    <td className="max-w-lg px-3 py-3 whitespace-pre-wrap break-words text-subtle [overflow-wrap:anywhere]">{setor.descricao ?? <span className="text-muted">Sem descrição</span>}</td>
+                    <td className="px-3 py-3"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${setor.ativo ? 'border-success-fill/20 bg-success-fill/10 text-success' : 'border-foreground/10 bg-foreground/5 text-muted'}`}>{setor.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted"><time dateTime={setor.createdAt}>{formatarDataCadastro(setor.createdAt)}</time></td>
                   </tr>)}
                   {visiveis.length === 0 && <tr><td colSpan={6} className="px-5 py-12 text-center text-muted"><Factory aria-hidden="true" size={28} strokeWidth={2} className="mx-auto mb-3" />{setores.length === 0 ? 'Nenhum setor cadastrado.' : 'Nenhum setor encontrado para os filtros selecionados.'}</td></tr>}
                 </tbody>
               </table>
-            </div>
-            <p aria-live="polite" className="border-t border-foreground/10 px-5 py-3 text-xs text-muted">{visiveis.length} de {setores.length} setores</p>
+            </TabelaComRolagem>
+            <PaginacaoTabela legenda="Setores" paginacao={paginacao} totalGeral={setores.length} />
           </>
         )}
       </section>

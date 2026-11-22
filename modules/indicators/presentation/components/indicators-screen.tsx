@@ -1,8 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, AlertTriangle, Download, LoaderCircle, Printer, RefreshCw } from 'lucide-react';
+import { PaginacaoTabela } from '@/shared/presentation/paginacao-tabela';
+import { TabelaComRolagem } from '@/shared/presentation/tabela-com-rolagem';
+import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import { consultarIndicadores, ErroApiIndicadores, type RespostaIndicadores } from '../api-client';
 import { conferirDatas, dataLocal, periodoDoAtalho, periodoEntreDatas, type Atalho, type Periodo } from '../periodo';
 import { formatarDuracao, formatarInstante, formatarPercentual, formatarQuantidade, formatarSegundosPorUnidade, INDISPONIVEL } from '../formatacao';
@@ -46,16 +50,30 @@ function Vazio({ children }: { children: ReactNode }) {
   return <p className="py-6 text-center text-sm text-muted">{children}</p>;
 }
 
-function Tabela({ legenda, cabecalho, children, minimo = 720 }: { legenda: string; cabecalho: { titulo: string; direita?: boolean }[]; children: ReactNode; minimo?: number }) {
+function Tabela<T>({ legenda, cabecalho, itens, criterio, imprimindo, children, minimo = 720 }: {
+  legenda: string;
+  cabecalho: { titulo: string; direita?: boolean }[];
+  itens: readonly T[];
+  criterio: string;
+  imprimindo: boolean;
+  children: (item: T) => ReactNode;
+  minimo?: number;
+}) {
+  const paginacao = usePaginacaoTabela(itens, criterio);
+  const linhas = imprimindo ? itens : paginacao.itens;
+
   return (
-    <div className="max-w-full overflow-x-auto">
-      <table className="tabular-nums w-full text-left text-sm" style={{ minWidth: minimo }}>
-        <caption className="sr-only">{legenda}</caption>
-        <thead className="border-b border-foreground/10 text-muted"><tr>
-          {cabecalho.map((coluna) => <th key={coluna.titulo} scope="col" className={`px-4 py-2.5 font-medium ${coluna.direita ? 'text-right' : ''}`}>{coluna.titulo}</th>)}
-        </tr></thead>
-        <tbody className="divide-y divide-foreground/5">{children}</tbody>
-      </table>
+    <div className="min-w-0">
+      <TabelaComRolagem legenda={legenda} chaveRolagem={paginacao.chaveRolagem}>
+        <table className="tabular-nums w-full text-left text-sm" style={{ minWidth: minimo }}>
+          <caption className="sr-only">{legenda}</caption>
+          <thead className="border-b border-foreground/10 text-muted"><tr>
+            {cabecalho.map((coluna) => <th key={coluna.titulo} scope="col" className={`px-4 py-2.5 font-medium ${coluna.direita ? 'text-right' : ''}`}>{coluna.titulo}</th>)}
+          </tr></thead>
+          <tbody className="divide-y divide-foreground/5">{linhas.map(children)}</tbody>
+        </table>
+      </TabelaComRolagem>
+      {itens.length > 0 && <PaginacaoTabela legenda={legenda} paginacao={paginacao} />}
     </div>
   );
 }
@@ -81,6 +99,7 @@ export function IndicatorsScreen() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [versao, setVersao] = useState(0);
+  const [imprimindo, setImprimindo] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -122,12 +141,22 @@ export function IndicatorsScreen() {
   const resumo = useMemo(() => dados && { ...resumirIndicadores(dados), pendencias: descreverPendencias(dados) }, [dados]);
   const qualidade = useMemo(() => (dados ? qualidadePorUnidade(dados) : []), [dados]);
 
-  // Na impressão, as tabelas recolhidas também saem no papel; depois voltam como estavam.
+  // A impressão inclui todas as linhas e abre as tabelas recolhidas enquanto o relatório é impresso.
   useEffect(() => {
     const abertos = new Map<HTMLDetailsElement, boolean>();
     // Guarda só o estado de antes da primeira impressão, mesmo se o evento vier repetido.
-    const antes = () => document.querySelectorAll<HTMLDetailsElement>('.relatorio-indicadores details').forEach((d) => { if (!abertos.has(d)) abertos.set(d, d.open); d.open = true; });
-    const depois = () => { abertos.forEach((aberto, d) => { d.open = aberto; }); abertos.clear(); };
+    const antes = () => {
+      flushSync(() => setImprimindo(true));
+      document.querySelectorAll<HTMLDetailsElement>('.relatorio-indicadores details').forEach((d) => {
+        if (!abertos.has(d)) abertos.set(d, d.open);
+        d.open = true;
+      });
+    };
+    const depois = () => {
+      abertos.forEach((aberto, d) => { d.open = aberto; });
+      abertos.clear();
+      setImprimindo(false);
+    };
     window.addEventListener('beforeprint', antes);
     window.addEventListener('afterprint', depois);
     return () => { window.removeEventListener('beforeprint', antes); window.removeEventListener('afterprint', depois); };
@@ -144,6 +173,7 @@ export function IndicatorsScreen() {
   }
 
   const pausasDetalhadas = useMemo(() => (dados?.tempos ?? []).flatMap((t) => t.pausasPorMotivo.map((m) => ({ posto: t.posto.codigo, ...m }))), [dados]);
+  const opcoesTabela = { criterio: `${periodo.inicio}/${periodo.fim}`, imprimindo };
 
   return (
     <div className="relatorio-indicadores mx-auto w-full min-w-0 max-w-[1440px]">
@@ -224,8 +254,8 @@ export function IndicatorsScreen() {
                 <details>
                   <summary className="cursor-pointer text-sm text-muted hover:text-foreground">Ver em tabela, por dia</summary>
                   <div className="mt-3">
-                    <Tabela legenda="Tempo por dia" minimo={560} cabecalho={[{ titulo: 'Dia' }, { titulo: 'Produtivo', direita: true }, { titulo: 'Pausa', direita: true }, { titulo: 'Baixas', direita: true }, { titulo: 'Tempo padrão das baixas', direita: true }]}>
-                      {dados.porDia.map((d) => (
+                    <Tabela {...opcoesTabela} itens={dados.porDia} legenda="Tempo por dia" minimo={560} cabecalho={[{ titulo: 'Dia' }, { titulo: 'Produtivo', direita: true }, { titulo: 'Pausa', direita: true }, { titulo: 'Baixas', direita: true }, { titulo: 'Tempo padrão das baixas', direita: true }]}>
+                      {(d) => (
                         <tr key={d.data}>
                           <td className={`${celula} font-medium`}>{d.data.slice(8, 10)}/{d.data.slice(5, 7)}/{d.data.slice(0, 4)}</td>
                           <td className={numero}>{formatarDuracao(d.produtivoSegundos)}</td>
@@ -233,7 +263,7 @@ export function IndicatorsScreen() {
                           <td className={numero}>{d.baixas}</td>
                           <td className={numero}>{d.tempoPadraoDasBaixasSegundos === null ? 'Sem tempo padrão' : formatarDuracao(d.tempoPadraoDasBaixasSegundos)}</td>
                         </tr>
-                      ))}
+                      )}
                     </Tabela>
                   </div>
                 </details>
@@ -243,8 +273,8 @@ export function IndicatorsScreen() {
 
           <Secao id="indicadores-ordens" titulo="Posição das ordens" tipo="agora" descricao="Ordens com etapa sem baixa ou com baixa no período. A etapa atual é a primeira sem baixa; a sequência é só nominal.">
             {dados.ordens.length === 0 ? <Vazio>Nenhuma ordem em andamento ou com baixa no período.</Vazio> : (
-              <Tabela legenda="Posição das ordens de produção" cabecalho={[{ titulo: 'Ordem' }, { titulo: 'Produto' }, { titulo: 'Plano' }, { titulo: 'Quantidade', direita: true }, { titulo: 'Etapas com baixa', direita: true }, { titulo: 'Situação' }, { titulo: 'Última baixa' }]}>
-                {dados.ordens.map((ordem) => (
+              <Tabela {...opcoesTabela} itens={dados.ordens} legenda="Posição das ordens de produção" cabecalho={[{ titulo: 'Ordem' }, { titulo: 'Produto' }, { titulo: 'Plano' }, { titulo: 'Quantidade', direita: true }, { titulo: 'Etapas com baixa', direita: true }, { titulo: 'Situação' }, { titulo: 'Última baixa' }]}>
+                {(ordem) => (
                   <tr key={ordem.ordemId}>
                     <td className={`${celula} font-medium`}>{ordem.numero}</td>
                     <td className={celula}>{ordem.produtoCodigo} <span className="text-muted">– {ordem.produtoNome}</span></td>
@@ -254,7 +284,7 @@ export function IndicatorsScreen() {
                     <td className={celula}>{situacaoDaOrdem(ordem)}</td>
                     <td className={`${celula} whitespace-nowrap text-muted`}>{formatarInstante(ordem.ultimaBaixaEm)}</td>
                   </tr>
-                ))}
+                )}
               </Tabela>
             )}
           </Secao>
@@ -269,8 +299,8 @@ export function IndicatorsScreen() {
 
           <Secao id="indicadores-producao" titulo="Produção no período" tipo="periodo" descricao="Baixas por produto e etapa. Cada etapa informa o mesmo lote, então as etapas não são somadas entre si; a produção final é a da última etapa.">
             {dados.producao.length === 0 ? <Vazio>Nenhuma baixa no período.</Vazio> : (
-              <Tabela legenda="Produção do período por produto e etapa" cabecalho={[{ titulo: 'Produto' }, { titulo: 'Etapa' }, { titulo: 'Ordens', direita: true }, { titulo: 'Boa', direita: true }, { titulo: 'Retrabalho', direita: true }, { titulo: 'Refugo', direita: true }]}>
-                {dados.producao.map((item) => (
+              <Tabela {...opcoesTabela} itens={dados.producao} legenda="Produção do período por produto e etapa" cabecalho={[{ titulo: 'Produto' }, { titulo: 'Etapa' }, { titulo: 'Ordens', direita: true }, { titulo: 'Boa', direita: true }, { titulo: 'Retrabalho', direita: true }, { titulo: 'Refugo', direita: true }]}>
+                {(item) => (
                   <tr key={item.produtoCodigo + item.etapaRoteiroId}>
                     <td className={`${celula} font-medium`}>{item.produtoCodigo}</td>
                     <td className={celula}>{item.ordem}. {item.operacaoNome}{item.ultimaEtapa && <span className="ml-2 rounded-full border border-foreground/10 px-2 py-0.5 text-xs text-muted">última etapa</span>}</td>
@@ -279,7 +309,7 @@ export function IndicatorsScreen() {
                     <td className={numero}>{formatarQuantidade(item.quantidadeRetrabalho, item.unidade)}</td>
                     <td className={numero}>{formatarQuantidade(item.quantidadeRefugo, item.unidade)}</td>
                   </tr>
-                ))}
+                )}
               </Tabela>
             )}
           </Secao>
@@ -291,8 +321,8 @@ export function IndicatorsScreen() {
                 <details>
                   <summary className="cursor-pointer text-sm text-muted hover:text-foreground">Ver em tabela, com as pausas por motivo</summary>
                   <div className="mt-3 space-y-4">
-                    <Tabela legenda="Tempos por posto" cabecalho={[{ titulo: 'Posto' }, { titulo: 'Setor' }, { titulo: 'Produtivo', direita: true }, { titulo: 'Pausa', direita: true }, { titulo: 'Total', direita: true }, { titulo: 'Finalizadas', direita: true }, { titulo: 'Em aberto', direita: true }]}>
-                      {dados.tempos.map((t) => (
+                    <Tabela {...opcoesTabela} itens={dados.tempos} legenda="Tempos por posto" cabecalho={[{ titulo: 'Posto' }, { titulo: 'Setor' }, { titulo: 'Produtivo', direita: true }, { titulo: 'Pausa', direita: true }, { titulo: 'Total', direita: true }, { titulo: 'Finalizadas', direita: true }, { titulo: 'Em aberto', direita: true }]}>
+                      {(t) => (
                         <tr key={t.posto.id}>
                           <td className={`${celula} font-medium`}>{t.posto.codigo} <span className="text-muted">– {t.posto.nome}</span></td>
                           <td className={`${celula} text-muted`}>{t.posto.setorNome}</td>
@@ -302,18 +332,18 @@ export function IndicatorsScreen() {
                           <td className={numero}>{t.execucoesFinalizadas}</td>
                           <td className={numero}>{t.execucoesAbertas}</td>
                         </tr>
-                      ))}
+                      )}
                     </Tabela>
                     {pausasDetalhadas.length > 0 && (
-                      <Tabela legenda="Pausas por motivo em cada posto" minimo={480} cabecalho={[{ titulo: 'Posto' }, { titulo: 'Motivo' }, { titulo: 'Tempo', direita: true }, { titulo: 'Ocorrências', direita: true }]}>
-                        {pausasDetalhadas.map((pausa) => (
+                      <Tabela {...opcoesTabela} itens={pausasDetalhadas} legenda="Pausas por motivo em cada posto" minimo={480} cabecalho={[{ titulo: 'Posto' }, { titulo: 'Motivo' }, { titulo: 'Tempo', direita: true }, { titulo: 'Ocorrências', direita: true }]}>
+                        {(pausa) => (
                           <tr key={pausa.posto + (pausa.motivoNome ?? '')}>
                             <td className={`${celula} font-medium`}>{pausa.posto}</td>
                             <td className={celula}>{pausa.motivoNome ?? 'Sem motivo'}</td>
                             <td className={numero}>{formatarDuracao(pausa.segundos)}</td>
                             <td className={numero}>{pausa.ocorrencias}</td>
                           </tr>
-                        ))}
+                        )}
                       </Tabela>
                     )}
                   </div>
@@ -324,8 +354,8 @@ export function IndicatorsScreen() {
 
           <Secao id="indicadores-tempo-medio" titulo="Tempo por unidade e tempo padrão" tipo="periodo" descricao="Tempo produtivo das execuções com baixa no período dividido pelas peças boas, comparado com o tempo padrão. Inclui o tempo gasto em retrabalho e refugo.">
             {dados.tempoMedio.length === 0 ? <Vazio>Nenhuma baixa com tempo medido no período.</Vazio> : (
-              <Tabela legenda="Tempo por unidade comparado ao tempo padrão" cabecalho={[{ titulo: 'Produto' }, { titulo: 'Etapa' }, { titulo: 'Execuções', direita: true }, { titulo: 'Tempo por unidade', direita: true }, { titulo: 'Tempo padrão', direita: true }, { titulo: '% do padrão', direita: true }, { titulo: 'Leitura' }]}>
-                {dados.tempoMedio.map((item) => (
+              <Tabela {...opcoesTabela} itens={dados.tempoMedio} legenda="Tempo por unidade comparado ao tempo padrão" cabecalho={[{ titulo: 'Produto' }, { titulo: 'Etapa' }, { titulo: 'Execuções', direita: true }, { titulo: 'Tempo por unidade', direita: true }, { titulo: 'Tempo padrão', direita: true }, { titulo: '% do padrão', direita: true }, { titulo: 'Leitura' }]}>
+                {(item) => (
                   <tr key={item.produtoCodigo + item.etapaRoteiroId}>
                     <td className={`${celula} font-medium`}>{item.produtoCodigo}</td>
                     <td className={celula}>{item.operacaoNome}</td>
@@ -335,7 +365,7 @@ export function IndicatorsScreen() {
                     <td className={numero}>{formatarPercentual(item.percentualDoPadrao)}</td>
                     <td className={`${celula} text-muted`}>{leituraDoPadrao(item)}</td>
                   </tr>
-                ))}
+                )}
               </Tabela>
             )}
           </Secao>
@@ -347,17 +377,17 @@ export function IndicatorsScreen() {
                 <details>
                   <summary className="cursor-pointer text-sm text-muted hover:text-foreground">Ver em tabela, por etapa</summary>
                   <div className="mt-3 space-y-4">
-                    <Tabela legenda="Carga pendente por posto" minimo={480} cabecalho={[{ titulo: 'Posto' }, { titulo: 'Carga pendente', direita: true }, { titulo: '% da carga', direita: true }]}>
-                      {dados.cargaPorPosto.map((c) => (
+                    <Tabela {...opcoesTabela} itens={dados.cargaPorPosto} legenda="Carga pendente por posto" minimo={480} cabecalho={[{ titulo: 'Posto' }, { titulo: 'Carga pendente', direita: true }, { titulo: '% da carga', direita: true }]}>
+                      {(c) => (
                         <tr key={c.posto.id}>
                           <td className={`${celula} font-medium`}>{c.posto.codigo} <span className="text-muted">– {c.posto.nome}</span></td>
                           <td className={numero}>{c.cargaPendenteSegundos === null ? 'Sem tempo padrão' : formatarDuracao(c.cargaPendenteSegundos)}</td>
                           <td className={numero}>{formatarPercentual(c.percentualDaCarga)}</td>
                         </tr>
-                      ))}
+                      )}
                     </Tabela>
-                    <Tabela legenda="Carga pendente por etapa" cabecalho={[{ titulo: 'Produto' }, { titulo: 'Etapa' }, { titulo: 'Ordens', direita: true }, { titulo: 'Quantidade', direita: true }, { titulo: 'Tempo padrão', direita: true }, { titulo: 'Carga', direita: true }, { titulo: 'Postos' }]}>
-                      {dados.cargaPendente.map((c) => (
+                    <Tabela {...opcoesTabela} itens={dados.cargaPendente} legenda="Carga pendente por etapa" cabecalho={[{ titulo: 'Produto' }, { titulo: 'Etapa' }, { titulo: 'Ordens', direita: true }, { titulo: 'Quantidade', direita: true }, { titulo: 'Tempo padrão', direita: true }, { titulo: 'Carga', direita: true }, { titulo: 'Postos' }]}>
+                      {(c) => (
                         <tr key={c.produtoCodigo + c.etapaRoteiroId}>
                           <td className={`${celula} font-medium`}>{c.produtoCodigo}</td>
                           <td className={celula}>{c.ordem}. {c.operacaoNome}</td>
@@ -367,7 +397,7 @@ export function IndicatorsScreen() {
                           <td className={numero}>{c.cargaPendenteSegundos === null ? INDISPONIVEL : formatarDuracao(c.cargaPendenteSegundos)}</td>
                           <td className={`${celula} text-muted`}>{c.postosCompativeis.length ? c.postosCompativeis.map((p) => p.codigo).join(', ') : 'Nenhum posto ativo'}</td>
                         </tr>
-                      ))}
+                      )}
                     </Tabela>
                   </div>
                 </details>

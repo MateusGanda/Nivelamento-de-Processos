@@ -108,6 +108,74 @@ body {
   color: var(--foreground);
 }
 
+@media screen {
+  .tabela-com-rolagem {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-height: min(50dvh, 24rem);
+    overflow: auto;
+    overscroll-behavior-y: contain;
+    scroll-padding-block-start: 3rem;
+  }
+
+  .tabela-com-rolagem > table > thead > tr > th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: var(--surface);
+    box-shadow: 0 1px 0 var(--line-soft);
+  }
+
+  .tabela-com-acoes .coluna-action {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    width: 4.5rem;
+    min-width: 4.5rem;
+    padding: 0.5rem;
+    text-align: center;
+    background-color: var(--surface);
+    box-shadow: 1px 0 0 var(--line-soft);
+  }
+
+  .tabela-com-rolagem > .tabela-com-acoes > thead > tr > .coluna-action {
+    z-index: 3;
+  }
+
+  .tabela-com-acoes td {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .pagina-com-tabela {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 32rem;
+  }
+
+  .pagina-com-tabela > *,
+  .listagem-com-rolagem > * {
+    flex-shrink: 0;
+  }
+
+  .pagina-com-tabela > .listagem-com-rolagem {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .listagem-com-rolagem > .tabela-com-rolagem {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
 /* Impressão sempre com a paleta clara, em qualquer tema escolhido na tela. */
 @media print {
   :root,
@@ -235,5 +303,4 @@ body {
   .relatorio-indicadores summary { display: none; }
   .relatorio-indicadores table { min-width: 0 !important; font-size: 9.5px !important; }
   .relatorio-indicadores th, .relatorio-indicadores td { padding: 4px 6px !important; }
-  .relatorio-indicadores .overflow-x-auto { overflow: visible !important; }
 }
