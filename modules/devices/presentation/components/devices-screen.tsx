@@ -129,7 +129,7 @@ export function DevicesScreen() {
             <table className="tabela-com-acoes tabular-nums w-full text-left text-sm">
               <caption className="sr-only">TVs cadastradas, com a situação da conexão</caption>
               <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
-                <th scope="col" className="coluna-action font-medium">Action</th>
+                <th scope="col" className="coluna-action font-medium">Ações</th>
                 {['TV', 'Setor exibido', 'Conexão', 'Última conexão', 'Status'].map((t) => <th key={t} scope="col" className="px-3 py-3 font-medium">{t}</th>)}
               </tr></thead>
               <tbody className="divide-y divide-foreground/5">

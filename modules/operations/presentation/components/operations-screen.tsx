@@ -160,7 +160,7 @@ export function OperationsScreen() {
               <table className="tabela-com-acoes tabular-nums w-full text-left text-sm">
                 <caption className="sr-only">Operações cadastradas. Use os cabeçalhos para ordenar as colunas.</caption>
                 <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
-                  <th scope="col" className="coluna-action font-medium">Action</th>
+                  <th scope="col" className="coluna-action font-medium">Ações</th>
                   {colunas.map(({ campo, titulo }) => <th key={campo} scope="col" aria-sort={ordem.coluna === campo ? (ordem.direcao === 'asc' ? 'ascending' : 'descending') : 'none'} className="px-3 py-3 font-medium">
                     <button type="button" onClick={() => ordenar(campo)} className="flex min-h-8 cursor-pointer items-center gap-2 rounded text-left hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent" aria-label={`Ordenar por ${titulo}${ordem.coluna === campo && ordem.direcao === 'asc' ? ' em ordem decrescente' : ' em ordem crescente'}`}>
                       {titulo}{ordem.coluna !== campo ? <ArrowUpDown aria-hidden="true" size={16} strokeWidth={2} /> : ordem.direcao === 'asc' ? <ArrowUp aria-hidden="true" size={16} strokeWidth={2} /> : <ArrowDown aria-hidden="true" size={16} strokeWidth={2} />}

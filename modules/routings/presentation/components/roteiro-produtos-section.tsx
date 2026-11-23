@@ -63,7 +63,7 @@ export function RoteiroProdutosSection({ roteiro, etapasPendentes, ocupado, exec
           <table className="tabela-com-acoes tabular-nums w-full text-left text-sm">
             <caption className="sr-only">Produtos ligados a esta versão do roteiro.</caption>
             <thead className="border-b border-foreground/10 bg-foreground/[0.025] text-muted"><tr>
-              <th scope="col" className="coluna-action font-medium">Action</th>
+              <th scope="col" className="coluna-action font-medium">Ações</th>
               <th scope="col" className="px-3 py-3 font-medium">Produto</th>
               <th scope="col" className="px-3 py-3 font-medium">Vigência</th>
               <th scope="col" className="px-3 py-3 font-medium">Ordens</th>
