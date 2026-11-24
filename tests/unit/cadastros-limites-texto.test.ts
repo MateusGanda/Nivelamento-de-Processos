@@ -16,8 +16,7 @@ const texto = (n: number) => 'a'.repeat(n);
 
 // Cada caso monta a entrada com o campo no tamanho informado.
 const casos: Array<[string, number, string, (valor: string) => unknown]> = [
-  ['Produto: código', LIMITES_TEXTO.codigo, 'Código', (v) => validarCadastroProduto({ codigo: v, nome: 'Produto' })],
-  ['Produto: nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarCadastroProduto({ codigo: 'PRD-1', nome: v })],
+  ['Produto: nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarCadastroProduto({ nome: v })],
   ['Produto: alteração do nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarAlteracaoProduto({ nome: v })],
   ['Operação: nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarCadastroOperacao({ nome: v })],
   ['Operação: descrição', LIMITES_TEXTO.descricao, 'Descrição', (v) => validarCadastroOperacao({ nome: 'Corte', descricao: v })],
@@ -25,16 +24,13 @@ const casos: Array<[string, number, string, (valor: string) => unknown]> = [
   ['Setor: nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarCadastroSetor({ nome: v })],
   ['Setor: descrição', LIMITES_TEXTO.descricao, 'Descrição', (v) => validarCadastroSetor({ nome: 'Costura', descricao: v })],
   ['Setor: alteração do nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarAlteracaoSetor({ nome: v })],
-  ['Posto: código', LIMITES_TEXTO.codigo, 'Código', (v) => validarCadastroPosto({ codigo: v, nome: 'Posto', setorId: UUID })],
-  ['Posto: nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarCadastroPosto({ codigo: 'P-1', nome: v, setorId: UUID })],
+  ['Posto: nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarCadastroPosto({ nome: v, setorId: UUID })],
   ['Operador: nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarCadastroOperador({ nome: v, setorPrincipalId: UUID })],
   ['Operador: função', LIMITES_TEXTO.nome, 'Função', (v) => validarCadastroOperador({ nome: 'Ana', setorPrincipalId: UUID, funcao: v })],
   ['Motivo de pausa: nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarCadastroMotivoPausa({ nome: v })],
   ['Motivo de pausa: descrição', LIMITES_TEXTO.descricao, 'Descrição', (v) => validarCadastroMotivoPausa({ nome: 'Falta de material', descricao: v })],
-  ['Plano: código', LIMITES_TEXTO.codigo, 'Código', (v) => validarCadastroPlano({ codigo: v })],
-  ['Plano: descrição', LIMITES_TEXTO.descricao, 'Descrição', (v) => validarCadastroPlano({ codigo: 'PL-1', descricao: v })],
-  ['Ordem: número', LIMITES_TEXTO.codigo, 'Número da ordem', (v) => validarCadastroOrdem({ numero: v, planoId: UUID, produtoId: UUID, roteiroId: UUID, quantidade: 10, unidade: 'pares' })],
-  ['Ordem: unidade', LIMITES_TEXTO.unidade, 'Unidade', (v) => validarCadastroOrdem({ numero: 'OP-1', planoId: UUID, produtoId: UUID, roteiroId: UUID, quantidade: 10, unidade: v })],
+  ['Plano: descrição', LIMITES_TEXTO.descricao, 'Descrição', (v) => validarCadastroPlano({ descricao: v })],
+  ['Ordem: unidade', LIMITES_TEXTO.unidade, 'Unidade', (v) => validarCadastroOrdem({ planoId: UUID, produtoId: UUID, roteiroId: UUID, quantidade: 10, unidade: v })],
   ['Roteiro: nome', LIMITES_TEXTO.nome, 'Nome', (v) => validarNomeRoteiro(v)],
 ];
 

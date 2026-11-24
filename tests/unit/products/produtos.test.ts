@@ -1,8 +1,9 @@
+import { gerarCodigoProduto } from '../../../modules/products/domain/codigo-produto.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ProdutosService } from '../../../modules/products/application/produtos.ts';
 import type { ProdutoRepository } from '../../../modules/products/application/contracts.ts';
-import { ErroDeProduto, type AlteracaoProduto, type CadastroProduto, type Produto } from '../../../modules/products/domain/produto.ts';
+import { ErroCodigoProdutoReservado, ErroDeProduto, type AlteracaoProduto, type CadastroProduto, type NovoProduto, type Produto } from '../../../modules/products/domain/produto.ts';
 import { traduzirErroGravacaoProduto } from '../../../modules/products/infrastructure/persistence-errors.ts';
 import { criarHandlersProdutos } from '../../../modules/products/presentation/http.ts';
 import { filtrarOrdenarProdutos, formatarDataCadastro } from '../../../modules/products/presentation/listing.ts';
@@ -14,8 +15,8 @@ class RepositorioEmMemoria implements ProdutoRepository {
   produtos: Produto[] = [];
   async listar() { return [...this.produtos]; }
   async buscarPorId(id: string) { return this.produtos.find((produto) => produto.id === id) ?? null; }
-  async buscarPorCodigo(codigo: string) { return this.produtos.find((produto) => produto.codigo === codigo) ?? null; }
-  async criar(dados: CadastroProduto) {
+  async codigosReservados() { return this.produtos.map((produto) => produto.codigo); }
+  async criar(dados: NovoProduto) {
     // Simula a constraint atômica: pode falhar mesmo após a consulta prévia.
     if (this.produtos.some((produto) => produto.codigo === dados.codigo)) {
       return traduzirErroGravacaoProduto({ sqlState: '23505', constraint: 'Produto_codigo_key' });
@@ -28,9 +29,6 @@ class RepositorioEmMemoria implements ProdutoRepository {
   async alterar(id: string, dados: AlteracaoProduto) {
     const indice = this.produtos.findIndex((produto) => produto.id === id);
     if (indice < 0) return null;
-    if (dados.codigo !== undefined && this.produtos.some((produto) => produto.id !== id && produto.codigo === dados.codigo)) {
-      return traduzirErroGravacaoProduto({ sqlState: '23505', constraint: 'Produto_codigo_key' });
-    }
     this.produtos[indice] = { ...this.produtos[indice], ...dados, updatedAt: '2026-10-20T12:00:00Z' };
     return this.produtos[indice];
   }
@@ -48,56 +46,47 @@ const erroCom = (codigo: ErroDeProduto['codigo'], mensagem?: RegExp) => (erro: u
 
 test('produto: cria removendo só espaços externos e preservando a caixa', async () => {
   const service = new ProdutosService(new RepositorioEmMemoria());
-  const produto = await service.criar({ codigo: '  prd-001  ', nome: '  Produto  A  ' });
-  assert.deepEqual([produto.codigo, produto.nome], ['prd-001', 'Produto  A']);
+  const produto = await service.criar({ nome: '  Produto  A  ' });
+  assert.deepEqual([produto.codigo, produto.nome], ['PRD-0001', 'Produto  A']);
   assert.deepEqual(Object.keys(produto).sort(), ['ativo', 'codigo', 'createdAt', 'id', 'nome', 'updatedAt']);
   assert.equal(produto.ativo, true);
-  await service.criar({ codigo: 'PRD-001', nome: 'Produto A' });
+  await service.criar({ nome: 'Produto A' });
   assert.equal((await service.listar()).length, 2);
 });
 
-test('produto: código e nome são obrigatórios', async () => {
+test('produto: nome é obrigatório e código manual é recusado', async () => {
   const service = new ProdutosService(new RepositorioEmMemoria());
-  for (const dados of [{ codigo: '', nome: 'Produto' }, { codigo: 'P1', nome: '  ' }, { codigo: 1, nome: 'Produto' }, { codigo: 'P1' }]) {
+  for (const dados of [{ codigo: '', nome: 'Produto' }, { nome: '  ' }, { codigo: 1, nome: 'Produto' }, {}]) {
     await assert.rejects(() => service.criar(dados as CadastroProduto), erroCom('ENTRADA_INVALIDA'));
   }
 });
 
-test('produto: código repetido gera conflito, inclusive em criações simultâneas', async () => {
+test('produto: criações simultâneas recebem códigos distintos após colisão', async () => {
   const service = new ProdutosService(new RepositorioEmMemoria());
-  await service.criar({ codigo: 'PRD-001', nome: 'Produto A' });
-  await assert.rejects(() => service.criar({ codigo: ' PRD-001 ', nome: 'Outro' }), erroCom('CONFLITO'));
-  const paralelo = new ProdutosService(new RepositorioEmMemoria());
-  const resultados = await Promise.allSettled([
-    paralelo.criar({ codigo: 'PRD-002', nome: 'Produto B' }),
-    paralelo.criar({ codigo: 'PRD-002', nome: 'Produto C' }),
-  ]);
-  assert.deepEqual(resultados.map((r) => r.status).sort(), ['fulfilled', 'rejected']);
+  const produtos = await Promise.all([service.criar({ nome: 'Produto A' }), service.criar({ nome: 'Produto B' })]);
+  assert.deepEqual(produtos.map((p) => p.codigo).sort(), ['PRD-0001', 'PRD-0002']);
 });
 
-test('produto: altera só os campos enviados e mantém o próprio código', async () => {
+test('produto: edição mantém o código permanente e os timestamps de criação', async () => {
   const service = new ProdutosService(new RepositorioEmMemoria());
-  const criado = await service.criar({ codigo: 'PRD-001', nome: 'Produto A' });
+  const criado = await service.criar({ nome: 'Produto A' });
   const nome = await service.alterar(criado.id, { nome: ' Produto A revisado ' });
-  assert.deepEqual([nome.codigo, nome.nome], ['PRD-001', 'Produto A revisado']);
-  const mesmoCodigo = await service.alterar(criado.id, { codigo: 'PRD-001', nome: 'Produto A' });
-  assert.equal(mesmoCodigo.codigo, 'PRD-001');
-  const codigo = await service.alterar(criado.id, { codigo: 'PRD-010' });
-  assert.deepEqual([codigo.id, codigo.codigo, codigo.nome, codigo.createdAt], [criado.id, 'PRD-010', 'Produto A', criado.createdAt]);
-  assert.notEqual(codigo.updatedAt, criado.updatedAt);
+  assert.deepEqual([nome.codigo, nome.nome, nome.createdAt], ['PRD-0001', 'Produto A revisado', criado.createdAt]);
+  assert.notEqual(nome.updatedAt, criado.updatedAt);
+  await assert.rejects(() => service.alterar(criado.id, { codigo: criado.codigo } as unknown as AlteracaoProduto), erroCom('ENTRADA_INVALIDA'));
 });
 
-test('produto: alteração recusa código de outro produto, campos vazios e produto inexistente', async () => {
+test('produto: alteração recusa código manual, campos vazios e produto inexistente', async () => {
   const repositorio = new RepositorioEmMemoria();
   const service = new ProdutosService(repositorio);
-  const a = await service.criar({ codigo: 'PRD-001', nome: 'Produto A' });
-  await service.criar({ codigo: 'PRD-002', nome: 'Produto B' });
-  await assert.rejects(() => service.alterar(a.id, { codigo: 'PRD-002' }), erroCom('CONFLITO'));
+  const a = await service.criar({ nome: 'Produto A' });
+  await service.criar({ nome: 'Produto B' });
+  await assert.rejects(() => service.alterar(a.id, { codigo: 'PRD-0002' } as unknown as AlteracaoProduto), erroCom('ENTRADA_INVALIDA'));
   await assert.rejects(() => service.alterar(a.id, {}), erroCom('ENTRADA_INVALIDA'));
   await assert.rejects(() => service.alterar(a.id, { nome: ' ' }), erroCom('ENTRADA_INVALIDA'));
   await assert.rejects(() => service.alterar(ID_INEXISTENTE, { nome: 'X' }), erroCom('NAO_ENCONTRADO'));
   await assert.rejects(() => service.alterar('produto-1', { nome: 'X' }), erroCom('NAO_ENCONTRADO'));
-  assert.deepEqual(repositorio.produtos.map((p) => [p.codigo, p.nome]), [['PRD-001', 'Produto A'], ['PRD-002', 'Produto B']]);
+  assert.deepEqual(repositorio.produtos.map((p) => [p.codigo, p.nome]), [['PRD-0001', 'Produto A'], ['PRD-0002', 'Produto B']]);
 });
 
 test('produto: traduz a violação de código único, inclusive na cadeia cause', () => {
@@ -107,12 +96,12 @@ test('produto: traduz a violação de código único, inclusive na cadeia cause'
   assert.throws(() => traduzirErroGravacaoProduto(outro), (erro: unknown) => erro === outro);
 });
 
-test('produto: handlers listam, criam com 201, alteram com 200 e respondem 404 e 409', async () => {
+test('produto: handlers listam, criam com 201, alteram com 200 e respondem 400 e 404', async () => {
   const handlers = criarHandlersProdutos({ autorizar: async () => ({ id: 'admin' }), produtos: new ProdutosService(new RepositorioEmMemoria()) });
-  const criado = await handlers.POST(pedido('POST', { codigo: 'PRD-001', nome: 'Produto A' }));
+  const criado = await handlers.POST(pedido('POST', { nome: 'Produto A' }));
   assert.equal(criado.status, 201);
   const { id } = await criado.json();
-  assert.equal((await handlers.POST(pedido('POST', { codigo: 'PRD-001', nome: 'Outro' }))).status, 409);
+  assert.equal((await handlers.POST(pedido('POST', { codigo: 'PRD-001', nome: 'Outro' }))).status, 400);
   const alterado = await handlers.PATCH(pedido('PATCH', { nome: 'Produto A2' }), id);
   assert.equal(alterado.status, 200);
   assert.equal((await alterado.json()).nome, 'Produto A2');
@@ -127,7 +116,7 @@ test('produto: JSON inválido, campos extras e tipos incorretos são recusados a
   const repositorio = new RepositorioEmMemoria();
   const service = new ProdutosService(repositorio);
   const handlers = criarHandlersProdutos({ autorizar: async () => ({}), produtos: service });
-  const { id } = await service.criar({ codigo: 'PRD-001', nome: 'Produto A' });
+  const { id } = await service.criar({ nome: 'Produto A' });
   for (const method of ['POST', 'PATCH'] as const) {
     const invalidos = [
       new Request('http://localhost/api/produtos', { method, body: '{' }),
@@ -138,19 +127,19 @@ test('produto: JSON inválido, campos extras e tipos incorretos são recusados a
       assert.equal(resposta.status, 400);
     }
   }
-  assert.deepEqual(repositorio.produtos.map((p) => [p.codigo, p.nome]), [['PRD-001', 'Produto A']]);
+  assert.deepEqual(repositorio.produtos.map((p) => [p.codigo, p.nome]), [['PRD-0001', 'Produto A']]);
 });
 
 test('produto: sem sessão ou sem ADMIN ativo não lê nem grava', async () => {
   for (const [codigo, status] of [['NAO_AUTENTICADO', 401], ['SEM_AUTORIZACAO', 403]] as const) {
     const repositorio = new RepositorioEmMemoria();
     const service = new ProdutosService(repositorio);
-    const { id } = await service.criar({ codigo: 'PRD-001', nome: 'Produto A' });
+    const { id } = await service.criar({ nome: 'Produto A' });
     const handlers = criarHandlersProdutos({ autorizar: async () => { throw new ErroDeAcesso(codigo, 'Acesso negado.'); }, produtos: service });
     assert.equal((await handlers.GET()).status, status);
     assert.equal((await handlers.POST(pedido('POST', { codigo: 'P2', nome: 'Produto' }))).status, status);
     assert.equal((await handlers.PATCH(pedido('PATCH', { nome: 'Outro' }), id)).status, status);
-    assert.deepEqual(repositorio.produtos.map((p) => [p.codigo, p.nome]), [['PRD-001', 'Produto A']]);
+    assert.deepEqual(repositorio.produtos.map((p) => [p.codigo, p.nome]), [['PRD-0001', 'Produto A']]);
   }
 });
 
@@ -182,9 +171,9 @@ test('produto: busca por código ou nome ignora caixa e acentos e ordena sem alt
 test('produto: inativa e reativa sem alterar os outros dados; handler valida o corpo', async () => {
   const repositorio = new RepositorioEmMemoria();
   const service = new ProdutosService(repositorio);
-  const criado = await service.criar({ codigo: 'PRD-001', nome: 'Produto A' });
+  const criado = await service.criar({ nome: 'Produto A' });
   const inativo = await service.definirStatus(criado.id, false);
-  assert.deepEqual([inativo.ativo, inativo.codigo, inativo.nome], [false, 'PRD-001', 'Produto A']);
+  assert.deepEqual([inativo.ativo, inativo.codigo, inativo.nome], [false, 'PRD-0001', 'Produto A']);
   assert.equal((await service.definirStatus(criado.id, true)).ativo, true);
   await assert.rejects(() => service.definirStatus(ID_INEXISTENTE, false), erroCom('NAO_ENCONTRADO'));
   await assert.rejects(() => service.definirStatus('produto-1', false), erroCom('NAO_ENCONTRADO'));
@@ -209,4 +198,47 @@ test('produto: filtro de status e ordenação por status', () => {
   assert.deepEqual(filtrarOrdenarProdutos(produtos, '', ordem, 'inativos').map((p) => p.codigo), ['PRD-002']);
   assert.deepEqual(filtrarOrdenarProdutos(produtos, '', ordem).map((p) => p.codigo), ['PRD-001', 'PRD-002', 'PRD-003']);
   assert.deepEqual(filtrarOrdenarProdutos(produtos, '', { coluna: 'ativo', direcao: 'asc' }).map((p) => p.codigo), ['PRD-001', 'PRD-003', 'PRD-002']);
+});
+
+test('produto: sequência considera legados e inativos e preserva códigos após edição', async () => {
+  assert.equal(gerarCodigoProduto([]), 'PRD-0001');
+  assert.equal(gerarCodigoProduto(['PRD-001', 'PRD-0120', 'SKU-999']), 'PRD-0121');
+  assert.equal(gerarCodigoProduto(['PRD-9999']), 'PRD-10000');
+  assert.equal(gerarCodigoProduto(['PRD-9007199254740993']), 'PRD-9007199254740994');
+  const repositorio = new RepositorioEmMemoria();
+  const legado = await repositorio.criar({ codigo: 'PRD-0120', nome: 'Legado' });
+  await repositorio.definirAtivo(legado.id, false);
+  const service = new ProdutosService(repositorio);
+  assert.equal((await service.criar({ nome: 'Novo' })).codigo, 'PRD-0121');
+  assert.equal((await service.alterar(legado.id, { nome: 'Renomeado' })).codigo, 'PRD-0120');
+});
+
+test('produto: dez colisões retornam 409 e erros diferentes não repetem a gravação', async () => {
+  const repositorio = new RepositorioEmMemoria();
+  let tentativas = 0;
+  repositorio.criar = async () => { tentativas++; throw new ErroCodigoProdutoReservado(); };
+  const service = new ProdutosService(repositorio);
+  const handlers = criarHandlersProdutos({ autorizar: async () => ({}), produtos: service });
+  assert.equal((await handlers.POST(pedido('POST', { nome: 'Novo' }))).status, 409);
+  assert.equal(tentativas, 10);
+  const falha = new Error('Falha de infraestrutura');
+  tentativas = 0;
+  repositorio.criar = async () => { tentativas++; throw falha; };
+  await assert.rejects(() => service.criar({ nome: 'Novo' }), (erro) => erro === falha);
+  assert.equal(tentativas, 1);
+});
+
+test('produto: API recusa código igual ou nulo no cadastro e edição sem alterar o registro', async () => {
+  const repositorio = new RepositorioEmMemoria();
+  const service = new ProdutosService(repositorio);
+  const criado = await service.criar({ nome: 'Produto' });
+  const antes = structuredClone(criado);
+  const handlers = criarHandlersProdutos({ autorizar: async () => ({}), produtos: service });
+  for (const codigo of [criado.codigo, null]) {
+    const corpo = { ...{ nome: 'Produto' }, codigo };
+    assert.equal((await handlers.POST(pedido('POST', corpo))).status, 400);
+    const edicao = { ...{ nome: 'Produto' }, codigo, nome: 'Novo nome' };
+    assert.equal((await handlers.PATCH(pedido('PATCH', edicao), criado.id)).status, 400);
+  }
+  assert.deepEqual(await service.listar(), [antes]);
 });
