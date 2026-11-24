@@ -13,13 +13,12 @@ export type PedidoFormularioPlano = { plano: Plano | null; seq: number };
 export function PlanFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
   dialogRef: RefObject<HTMLDialogElement | null>;
   pedido: PedidoFormularioPlano | null;
-  aoConcluir: (acao: 'cadastrado' | 'alterado') => void;
+  aoConcluir: (acao: 'cadastrado' | 'alterado', codigo: string) => void;
   aoFechar: () => void;
 }) {
   const router = useRouter();
   const emEnvio = useRef(false);
   const [enviando, setEnviando] = useState(false);
-  const [codigo, setCodigo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
@@ -30,13 +29,12 @@ export function PlanFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!pedido || !dialog) return;
-    setCodigo(pedido.plano?.codigo ?? '');
     setDescricao(pedido.plano?.descricao ?? '');
     setDataInicio(pedido.plano?.dataInicio ?? '');
     setDataFim(pedido.plano?.dataFim ?? '');
     setErro('');
     if (!dialog.open) dialog.showModal();
-    dialog.querySelector<HTMLInputElement>('#plano-codigo')?.focus();
+    dialog.querySelector<HTMLTextAreaElement>('#plano-descricao')?.focus();
   }, [pedido, dialogRef]);
 
   function fechar() {
@@ -46,10 +44,6 @@ export function PlanFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
   async function enviar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (emEnvio.current) return;
-    if (!codigo.trim()) {
-      setErro('Informe o código do plano.');
-      return;
-    }
     if (dataInicio && dataFim && dataFim < dataInicio) {
       setErro('A data de fim não pode ser anterior à data de início.');
       return;
@@ -57,12 +51,11 @@ export function PlanFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
     emEnvio.current = true;
     setEnviando(true);
     setErro('');
-    const dados = { codigo, descricao: descricao || null, dataInicio: dataInicio || null, dataFim: dataFim || null };
+    const dados = { descricao: descricao || null, dataInicio: dataInicio || null, dataFim: dataFim || null };
     try {
-      if (plano) await alterarPlano(plano.id, dados);
-      else await cadastrarPlano(dados);
+      const confirmado = plano ? await alterarPlano(plano.id, dados) : await cadastrarPlano(dados);
       dialogRef.current?.close();
-      aoConcluir(plano ? 'alterado' : 'cadastrado');
+      aoConcluir(plano ? 'alterado' : 'cadastrado', confirmado.codigo);
     } catch (falha) {
       if (falha instanceof ErroApiPlanos && (falha.status === 401 || falha.status === 403)) {
         router.replace('/login');
@@ -86,7 +79,7 @@ export function PlanFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
         const rect = event.currentTarget.getBoundingClientRect();
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) fechar();
       } }}
-      onClose={() => { setCodigo(''); setDescricao(''); setDataInicio(''); setDataFim(''); setErro(''); aoFechar(); }}
+      onClose={() => { setDescricao(''); setDataInicio(''); setDataFim(''); setErro(''); aoFechar(); }}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-line-raised bg-raised p-0 text-foreground shadow-lg backdrop:bg-black/50"
     >
       <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-6 py-4">
@@ -97,11 +90,13 @@ export function PlanFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
         <p id="formulario-plano-descricao" className="text-sm leading-6 text-muted">
           {edicao ? 'Altere os dados do plano. As ordens de produção ligadas a ele continuam no plano.' : 'O plano agrupa as ordens de produção de um período. O período é opcional.'}
         </p>
-        <div>
-          <label htmlFor="plano-codigo" className="block text-sm font-medium">Código</label>
-          <input id="plano-codigo" maxLength={LIMITES_TEXTO.codigo} name="codigo" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={codigo} onChange={(event) => setCodigo(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-plano-erro' : 'plano-codigo-ajuda'} />
-          <p id="plano-codigo-ajuda" className="mt-2 text-xs leading-5 text-muted">Único para cada plano, por exemplo PL-2026-11.</p>
-        </div>
+        {plano ? (
+          <div>
+            <label htmlFor="plano-codigo" className="block text-sm font-medium">Código</label>
+            <input id="plano-codigo" type="text" readOnly value={plano.codigo} className={campo} />
+            <p className="mt-2 text-xs leading-5 text-muted">O código é permanente.</p>
+          </div>
+        ) : <p className="text-sm text-muted">O código será gerado automaticamente ao cadastrar.</p>}
         <div>
           <label htmlFor="plano-descricao" className="block text-sm font-medium">Descrição <span className="font-normal text-muted">(opcional)</span></label>
           <textarea id="plano-descricao" maxLength={LIMITES_TEXTO.descricao} name="descricao" rows={3} value={descricao} onChange={(event) => setDescricao(event.target.value)} disabled={enviando} className={`${campo} h-auto py-3`} />

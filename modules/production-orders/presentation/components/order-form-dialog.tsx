@@ -9,7 +9,7 @@ import { formatarQuantidade, lerQuantidadeDigitada } from '../listing';
 import { LIMITES_TEXTO } from '../../../../shared/validation';
 
 // ordem nula abre o cadastro; uma ordem abre a edição. seq permite reabrir a mesma ordem.
-export type PedidoFormularioOrdem = { ordem: Ordem | null; numeroSugerido: string; seq: number };
+export type PedidoFormularioOrdem = { ordem: Ordem | null; seq: number };
 
 // Só versões ativas e com etapas podem receber ordens novas.
 const roteirosDisponiveis = (roteiros: readonly RoteiroDoProduto[]) => roteiros.filter((roteiro) => roteiro.ativo && roteiro.quantidadeEtapas > 0);
@@ -18,13 +18,12 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
   dialogRef: RefObject<HTMLDialogElement | null>;
   pedido: PedidoFormularioOrdem | null;
   opcoes: OpcoesOrdem;
-  aoConcluir: (acao: 'cadastrada' | 'alterada') => void;
+  aoConcluir: (acao: 'cadastrada' | 'alterada', numero: string) => void;
   aoFechar: () => void;
 }) {
   const router = useRouter();
   const emEnvio = useRef(false);
   const [enviando, setEnviando] = useState(false);
-  const [numero, setNumero] = useState('');
   const [planoId, setPlanoId] = useState('');
   const [produtoId, setProdutoId] = useState('');
   const [roteiroId, setRoteiroId] = useState('');
@@ -39,7 +38,6 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!pedido || !dialog) return;
-    setNumero(pedido.ordem?.numero ?? pedido.numeroSugerido);
     setPlanoId(pedido.ordem?.plano.id ?? '');
     setProdutoId(pedido.ordem?.produto.id ?? '');
     setRoteiroId(pedido.ordem?.roteiro.id ?? '');
@@ -47,7 +45,7 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
     setUnidade(pedido.ordem?.unidade ?? 'un');
     setErro('');
     if (!dialog.open) dialog.showModal();
-    dialog.querySelector<HTMLInputElement>('#ordem-numero')?.focus();
+    dialog.querySelector<HTMLSelectElement>('#ordem-plano')?.focus();
   }, [pedido, dialogRef]);
 
   function escolherProduto(id: string) {
@@ -65,8 +63,8 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
     event.preventDefault();
     if (emEnvio.current) return;
     const quantidadeLida = lerQuantidadeDigitada(quantidade);
-    if (!numero.trim() || !planoId || (!edicao && (!produtoId || !roteiroId))) {
-      setErro('Informe o número, o plano, o produto e a versão do roteiro.');
+    if (!planoId || (!edicao && (!produtoId || !roteiroId))) {
+      setErro('Informe o plano, o produto e a versão do roteiro.');
       return;
     }
     if (!producaoTravada && (quantidadeLida === undefined || !unidade.trim())) {
@@ -77,13 +75,11 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
     setEnviando(true);
     setErro('');
     try {
-      if (ordem) {
-        await alterarOrdem(ordem.id, { numero, planoId, ...(producaoTravada ? {} : { quantidade: quantidadeLida, unidade }) });
-      } else {
-        await cadastrarOrdem({ numero, planoId, produtoId, roteiroId, quantidade: quantidadeLida!, unidade });
-      }
+      const confirmado = ordem
+        ? await alterarOrdem(ordem.id, { planoId, ...(producaoTravada ? {} : { quantidade: quantidadeLida, unidade }) })
+        : await cadastrarOrdem({ planoId, produtoId, roteiroId, quantidade: quantidadeLida!, unidade });
       dialogRef.current?.close();
-      aoConcluir(ordem ? 'alterada' : 'cadastrada');
+      aoConcluir(ordem ? 'alterada' : 'cadastrada', confirmado.numero);
     } catch (falha) {
       if (falha instanceof ErroApiOrdens && (falha.status === 401 || falha.status === 403)) {
         router.replace('/login');
@@ -119,11 +115,13 @@ export function OrderFormDialog({ dialogRef, pedido, opcoes, aoConcluir, aoFecha
         <p id="formulario-ordem-descricao" className="text-sm leading-6 text-muted">
           {edicao ? 'O produto e a versão do roteiro ficam fixos na ordem. Para usar outra versão, crie uma ordem nova.' : 'A ordem guarda a versão do roteiro escolhida aqui; mudanças posteriores no roteiro não a alteram.'}
         </p>
-        <div>
-          <label htmlFor="ordem-numero" className="block text-sm font-medium">Número</label>
-          <input id="ordem-numero" maxLength={LIMITES_TEXTO.codigo} name="numero" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={numero} onChange={(event) => setNumero(event.target.value)} disabled={enviando} className={campo} aria-describedby="ordem-numero-ajuda" />
-          <p id="ordem-numero-ajuda" className="mt-2 text-xs leading-5 text-muted">Único para cada ordem; normalmente o número da ficha.</p>
-        </div>
+        {ordem ? (
+          <div>
+            <label htmlFor="ordem-numero" className="block text-sm font-medium">Número</label>
+            <input id="ordem-numero" type="text" readOnly value={ordem.numero} className={campo} />
+            <p className="mt-2 text-xs leading-5 text-muted">O número é permanente.</p>
+          </div>
+        ) : <p className="text-sm text-muted">O número será gerado automaticamente ao cadastrar.</p>}
         <div>
           <label htmlFor="ordem-plano" className="block text-sm font-medium">Plano de produção</label>
           <select id="ordem-plano" name="planoId" required value={planoId} onChange={(event) => setPlanoId(event.target.value)} disabled={enviando || opcoes.planos.length === 0} className={campo}>

@@ -1,7 +1,7 @@
 import type { Numeric } from '@prisma/orm-postgres/target/codec-types';
 import { db } from '../../../src/prisma/db.ts';
 import type { OrdemRepository, ProdutoConsultado, RoteiroConsultado } from '../application/contracts.ts';
-import { ErroDeOrdem, MENSAGEM_ORDEM_COM_EXECUCOES, type AlteracaoOrdem, type CadastroOrdem, type OpcoesOrdem, type Ordem } from '../domain/ordem.ts';
+import { ErroDeOrdem, MENSAGEM_ORDEM_COM_EXECUCOES, type AlteracaoOrdem, type NovaOrdem, type OpcoesOrdem, type Ordem } from '../domain/ordem.ts';
 import { traduzirErroGravacaoOrdem } from './persistence-errors.ts';
 
 // O Prisma devolve e recebe numeric como texto; a conversão fica nesta camada.
@@ -50,8 +50,8 @@ export class PrismaOrdemRepository implements OrdemRepository {
     return ordem ? mapear(ordem) : null;
   }
 
-  async existeNumero(numero: string): Promise<boolean> {
-    return (await db.orm.public.OrdemProducao.where({ numero }).select('id').first()) !== null;
+  async numerosReservados(): Promise<string[]> {
+    return (await db.orm.public.OrdemProducao.select('numero').all()).map((ordem) => ordem.numero);
   }
 
   async listarOpcoes(): Promise<OpcoesOrdem> {
@@ -90,7 +90,7 @@ export class PrismaOrdemRepository implements OrdemRepository {
     return roteiro ? { id: roteiro.id, ativo: roteiro.ativo, quantidadeEtapas: roteiro.etapas, ligadoAoProduto: ligacao !== null } : null;
   }
 
-  async criar(dados: CadastroOrdem): Promise<Ordem> {
+  async criar(dados: NovaOrdem): Promise<Ordem> {
     try {
       const ordem = await db.orm.public.OrdemProducao.create({
         numero: dados.numero, planoProducaoId: dados.planoId, produtoId: dados.produtoId, roteiroId: dados.roteiroId,
@@ -115,7 +115,6 @@ export class PrismaOrdemRepository implements OrdemRepository {
           throw new ErroDeOrdem('CONFLITO', MENSAGEM_ORDEM_COM_EXECUCOES);
         }
         await t.OrdemProducao.where({ id }).update({
-          ...(dados.numero !== undefined ? { numero: dados.numero } : {}),
           ...(dados.planoId !== undefined ? { planoProducaoId: dados.planoId } : {}),
           ...(dados.quantidade !== undefined ? { quantidade: quantidadeParaBanco(dados.quantidade) } : {}),
           ...(dados.unidade !== undefined ? { unidade: dados.unidade } : {}),

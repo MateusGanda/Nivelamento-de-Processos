@@ -4,6 +4,10 @@
 // Grava tudo numa transação: se algo falhar, nada fica gravado. Se algum registro
 // do cenário já existir (mesmo código, nome ou matrícula), não grava nada.
 import 'dotenv/config';
+import { gerarNumeroOrdem } from '../modules/production-orders/domain/numero-ordem.ts';
+import { gerarCodigoPlano } from '../modules/production-plans/domain/codigo-plano.ts';
+import { gerarCodigoProduto } from '../modules/products/domain/codigo-produto.ts';
+import { gerarCodigoPosto } from '../modules/workstations/domain/codigo-posto.ts';
 import { gerarMatriculaOperador } from '../modules/operators/domain/matricula.ts';
 import { gerarCodigoSetor } from '../modules/sectors/domain/codigo-setor.ts';
 import postgres from '@prisma/orm-postgres/runtime';
@@ -132,16 +136,18 @@ try {
   const existentes = (lista: { [k: string]: unknown }[], campo: string, procurados: string[]) =>
     procurados.filter((v) => lista.some((r) => r[campo] === v));
   const [setores, postos, operacoes, operadores, motivos, produtos, planos, ordens, roteiros] = await Promise.all([
-    o.Setor.select('nome', 'codigo').all(), o.Posto.select('codigo').all(), o.Operacao.select('nome').all(),
-    o.Operador.select('matricula', 'nome').all(), o.MotivoPausa.select('nome').all(), o.Produto.select('codigo').all(),
+    o.Setor.select('nome', 'codigo').all(), o.Posto.select('codigo', 'nome').all(), o.Operacao.select('nome').all(),
+    o.Operador.select('matricula', 'nome').all(), o.MotivoPausa.select('nome').all(), o.Produto.select('codigo', 'nome').all(),
     o.PlanoProducao.select('codigo').all(), o.OrdemProducao.select('numero').all(), o.Roteiro.select('nome').all(),
   ]);
   const conflitos = [
     ...existentes(setores, 'nome', SETORES.map((s) => s.nome)).map((v) => `setor ${v}`),
+    ...existentes(postos, 'nome', POSTOS.map((p) => p.nome)).map((v) => `posto ${v}`),
     ...existentes(postos, 'codigo', POSTOS.map((p) => p.codigo)).map((v) => `posto ${v}`),
     ...existentes(operacoes, 'nome', OPERACOES.map((p) => p.nome)).map((v) => `operação ${v}`),
     ...existentes(operadores, 'nome', OPERADORES.map((p) => p.nome)).map((v) => `operador ${v}`),
     ...existentes(motivos, 'nome', MOTIVOS.map((p) => p.nome)).map((v) => `motivo de pausa ${v}`),
+    ...existentes(produtos, 'nome', PRODUTOS.map((p) => p.nome)).map((v) => `produto ${v}`),
     ...existentes(produtos, 'codigo', PRODUTOS.map((p) => p.codigo)).map((v) => `produto ${v}`),
     ...existentes(planos, 'codigo', [PLANO.codigo]).map((v) => `plano ${v}`),
     ...existentes(ordens, 'numero', ORDENS.map((p) => p.numero)).map((v) => `ordem ${v}`),
@@ -161,7 +167,13 @@ try {
         id.set(`codigo-setor:${s.nome}`, codigo);
         id.set(`setor:${s.nome}`, (await t.Setor.create({ ...s, codigo, ativo: true })).id);
       }
-      for (const p of POSTOS) id.set(`posto:${p.codigo}`, (await t.Posto.create({ codigo: p.codigo, nome: p.nome, setorId: id.get(`setor:${p.setor}`)!, ativo: true })).id);
+      // As chaves do cenário são aliases; os registros recebem identificadores automáticos.
+      const codigosPostos = postos.map((p) => p.codigo);
+      for (const p of POSTOS) {
+        const codigo = gerarCodigoPosto(codigosPostos);
+        codigosPostos.push(codigo);
+        id.set(`posto:${p.codigo}`, (await t.Posto.create({ codigo, nome: p.nome, setorId: id.get(`setor:${p.setor}`)!, ativo: true })).id);
+      }
       for (const op of OPERACOES) id.set(`operacao:${op.nome}`, (await t.Operacao.create({ ...op, ativo: true })).id);
       const matriculasReservadas = operadores.map((op) => op.matricula);
       for (const op of OPERADORES) {
@@ -173,10 +185,14 @@ try {
         })).id);
       }
       for (const m of MOTIVOS) id.set(`motivo:${m.nome}`, (await t.MotivoPausa.create({ ...m, ativo: true })).id);
-      const plano = await t.PlanoProducao.create(PLANO);
+      const codigoPlano = gerarCodigoPlano(planos.map((p) => p.codigo));
+      const plano = await t.PlanoProducao.create({ ...PLANO, codigo: codigoPlano });
 
+      const codigosProdutos = produtos.map((p) => p.codigo);
       for (const p of PRODUTOS) {
-        const produto = await t.Produto.create({ codigo: p.codigo, nome: p.nome, ativo: true });
+        const codigo = gerarCodigoProduto(codigosProdutos);
+        codigosProdutos.push(codigo);
+        const produto = await t.Produto.create({ codigo, nome: p.nome, ativo: true });
         const roteiro = await t.Roteiro.create({ nome: p.roteiro, versao: 1, ativo: true });
         await t.ProdutoRoteiro.create({ produtoId: produto.id, roteiroId: roteiro.id, vigente: true });
         id.set(`produto:${p.codigo}`, produto.id);
@@ -189,9 +205,12 @@ try {
         }
       }
 
+      const numerosOrdens = ordens.map((o) => o.numero);
       for (const ordem of ORDENS) {
+        const numero = gerarNumeroOrdem(numerosOrdens);
+        numerosOrdens.push(numero);
         const criada = await t.OrdemProducao.create({
-          numero: ordem.numero, planoProducaoId: plano.id, produtoId: id.get(`produto:${ordem.produto}`)!,
+          numero, planoProducaoId: plano.id, produtoId: id.get(`produto:${ordem.produto}`)!,
           roteiroId: id.get(`roteiro:${ordem.produto}`)!, quantidade: quantidade(ordem.quantidade), unidade: 'un',
         });
         id.set(`ordem:${ordem.numero}`, criada.id);

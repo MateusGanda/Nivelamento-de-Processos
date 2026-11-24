@@ -1,10 +1,10 @@
-import type { AlteracaoProduto, CadastroProduto, Produto } from '../domain/produto.ts';
+import type { AlteracaoProduto, NovoProduto, Produto } from '../domain/produto.ts';
 
 export interface ProdutoRepository {
   listar(): Promise<Produto[]>;
   buscarPorId(id: string): Promise<Produto | null>;
-  buscarPorCodigo(codigo: string): Promise<Produto | null>;
-  criar(dados: CadastroProduto): Promise<Produto>;
+  codigosReservados(): Promise<string[]>;
+  criar(dados: NovoProduto): Promise<Produto>;
   alterar(id: string, dados: AlteracaoProduto): Promise<Produto | null>;
   definirAtivo(id: string, ativo: boolean): Promise<Produto | null>;
 }

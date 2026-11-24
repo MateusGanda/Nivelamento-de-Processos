@@ -13,13 +13,12 @@ export type PedidoFormularioProduto = { produto: Produto | null; seq: number };
 export function ProductFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
   dialogRef: RefObject<HTMLDialogElement | null>;
   pedido: PedidoFormularioProduto | null;
-  aoConcluir: (acao: 'cadastrado' | 'alterado') => void;
+  aoConcluir: (acao: 'cadastrado' | 'alterado', codigo: string) => void;
   aoFechar: () => void;
 }) {
   const router = useRouter();
   const emEnvio = useRef(false);
   const [enviando, setEnviando] = useState(false);
-  const [codigo, setCodigo] = useState('');
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
   const produto = pedido?.produto ?? null;
@@ -28,11 +27,10 @@ export function ProductFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!pedido || !dialog) return;
-    setCodigo(pedido.produto?.codigo ?? '');
     setNome(pedido.produto?.nome ?? '');
     setErro('');
     if (!dialog.open) dialog.showModal();
-    dialog.querySelector<HTMLInputElement>('#produto-codigo')?.focus();
+    dialog.querySelector<HTMLInputElement>('#produto-nome')?.focus();
   }, [pedido, dialogRef]);
 
   function fechar() {
@@ -42,18 +40,19 @@ export function ProductFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
   async function enviar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (emEnvio.current) return;
-    if (!codigo.trim() || !nome.trim()) {
-      setErro('Informe o código e o nome do produto.');
+    if (!nome.trim()) {
+      setErro('Informe o nome do produto.');
       return;
     }
     emEnvio.current = true;
     setEnviando(true);
     setErro('');
     try {
-      if (produto) await alterarProduto(produto.id, { codigo, nome });
-      else await cadastrarProduto({ codigo, nome });
+      const confirmado = produto
+        ? await alterarProduto(produto.id, { nome })
+        : await cadastrarProduto({ nome });
       dialogRef.current?.close();
-      aoConcluir(produto ? 'alterado' : 'cadastrado');
+      aoConcluir(produto ? 'alterado' : 'cadastrado', confirmado.codigo);
     } catch (falha) {
       if (falha instanceof ErroApiProdutos && (falha.status === 401 || falha.status === 403)) {
         router.replace('/login');
@@ -78,7 +77,7 @@ export function ProductFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
         const rect = event.currentTarget.getBoundingClientRect();
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) fechar();
       } }}
-      onClose={() => { setCodigo(''); setNome(''); setErro(''); aoFechar(); }}
+      onClose={() => { setNome(''); setErro(''); aoFechar(); }}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-line-raised bg-raised p-0 text-foreground shadow-lg backdrop:bg-black/50"
     >
       <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-6 py-4">
@@ -87,13 +86,15 @@ export function ProductFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
       </div>
       <form onSubmit={enviar} aria-busy={enviando} className="space-y-5 p-6">
         <p id="formulario-produto-descricao" className="text-sm leading-6 text-muted">
-          {edicao ? 'Altere o código ou o nome. As ordens de produção já criadas continuam ligadas a este produto.' : 'O produto é o item fabricado. O roteiro e os tempos padrão são definidos depois, no cadastro de roteiros.'}
+          {edicao ? 'Altere o nome. O código é permanente. As ordens de produção já criadas continuam ligadas a este produto.' : 'O produto é o item fabricado. O roteiro e os tempos padrão são definidos depois, no cadastro de roteiros.'}
         </p>
-        <div>
-          <label htmlFor="produto-codigo" className="block text-sm font-medium">Código</label>
-          <input id="produto-codigo" maxLength={LIMITES_TEXTO.codigo} name="codigo" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={codigo} onChange={(event) => setCodigo(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-produto-erro' : 'produto-codigo-ajuda'} />
-          <p id="produto-codigo-ajuda" className="mt-2 text-xs leading-5 text-muted">Único para cada produto, por exemplo PRD-001.</p>
-        </div>
+        {produto ? (
+          <div>
+            <label htmlFor="produto-codigo" className="block text-sm font-medium">Código</label>
+            <input id="produto-codigo" type="text" readOnly value={produto.codigo} className={campo} />
+            <p className="mt-2 text-xs leading-5 text-muted">O código é permanente.</p>
+          </div>
+        ) : <p className="text-sm text-muted">O código será gerado automaticamente ao cadastrar.</p>}
         <div>
           <label htmlFor="produto-nome" className="block text-sm font-medium">Nome</label>
           <input id="produto-nome" maxLength={LIMITES_TEXTO.nome} name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-produto-erro' : undefined} />

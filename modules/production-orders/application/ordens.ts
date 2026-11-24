@@ -1,11 +1,11 @@
+import { gerarNumeroOrdem } from '../domain/numero-ordem.ts';
 import {
-  ehIdentificadorValido, ErroDeOrdem, MENSAGEM_ORDEM_COM_EXECUCOES, validarAlteracaoOrdem, validarCadastroOrdem,
+  ehIdentificadorValido, ErroNumeroOrdemReservado, ErroDeOrdem, MENSAGEM_ORDEM_COM_EXECUCOES, validarAlteracaoOrdem, validarCadastroOrdem,
   type AlteracaoOrdem, type CadastroOrdem, type OpcoesOrdem, type Ordem,
 } from '../domain/ordem.ts';
 import type { OrdemRepository } from './contracts.ts';
 
 const naoEncontrada = () => new ErroDeOrdem('NAO_ENCONTRADO', 'Ordem de produção não encontrada.');
-const numeroRepetido = () => new ErroDeOrdem('CONFLITO', 'Número de ordem já cadastrado.');
 
 export class OrdensService {
   private readonly ordens: OrdemRepository;
@@ -33,8 +33,12 @@ export class OrdensService {
     if (!roteiro.ligadoAoProduto) throw new ErroDeOrdem('ENTRADA_INVALIDA', 'Esta versão de roteiro não está ligada ao produto.');
     if (!roteiro.ativo) throw new ErroDeOrdem('ENTRADA_INVALIDA', 'Roteiro inativo não pode receber ordens novas.');
     if (roteiro.quantidadeEtapas === 0) throw new ErroDeOrdem('ENTRADA_INVALIDA', 'O roteiro escolhido ainda não tem etapas.');
-    if (await this.ordens.existeNumero(dados.numero)) throw numeroRepetido();
-    return this.ordens.criar(dados);
+    for (let tentativa = 0; tentativa < 10; tentativa++) {
+      const numero = gerarNumeroOrdem(await this.ordens.numerosReservados());
+      try { return await this.ordens.criar({ ...dados, numero }); }
+      catch (erro) { if (!(erro instanceof ErroNumeroOrdemReservado)) throw erro; }
+    }
+    throw new ErroNumeroOrdemReservado();
   }
 
   async alterar(id: string, input: AlteracaoOrdem): Promise<Ordem> {
@@ -49,7 +53,6 @@ export class OrdensService {
     if (dados.planoId !== undefined && dados.planoId !== atual.plano.id && !await this.ordens.existePlano(dados.planoId)) {
       throw new ErroDeOrdem('ENTRADA_INVALIDA', 'Plano de produção não encontrado.');
     }
-    if (dados.numero !== undefined && dados.numero !== atual.numero && await this.ordens.existeNumero(dados.numero)) throw numeroRepetido();
     const alterada = await this.ordens.alterar(id, dados);
     // A ordem pode ter sido removida entre a consulta e a gravação.
     if (!alterada) throw naoEncontrada();

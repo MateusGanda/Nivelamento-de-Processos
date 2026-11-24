@@ -23,22 +23,22 @@ async function lerCorpo(request: Request, campos: ReadonlySet<string>, mensagemC
   return dados;
 }
 
-const CAMPOS = new Set(['codigo', 'nome', 'setorId']);
+const CAMPOS = new Set(['nome', 'setorId']);
 
 export async function lerCadastroPosto(request: Request): Promise<CadastroPosto> {
-  const dados = await lerCorpo(request, CAMPOS, 'Informe somente código, nome e setor.');
-  if (typeof dados.codigo !== 'string' || typeof dados.nome !== 'string' || typeof dados.setorId !== 'string') {
-    throw new ErroDePosto('ENTRADA_INVALIDA', 'Código, nome e setor devem ser textos obrigatórios.');
+  const dados = await lerCorpo(request, CAMPOS, 'Informe somente nome e setor.');
+  if (typeof dados.nome !== 'string' || typeof dados.setorId !== 'string') {
+    throw new ErroDePosto('ENTRADA_INVALIDA', 'Nome e setor devem ser textos obrigatórios.');
   }
-  return { codigo: dados.codigo, nome: dados.nome, setorId: dados.setorId };
+  return { nome: dados.nome, setorId: dados.setorId };
 }
 
 export async function lerAlteracaoPosto(request: Request): Promise<AlteracaoPosto> {
-  const dados = await lerCorpo(request, CAMPOS, 'Informe somente código, nome e setor.');
+  const dados = await lerCorpo(request, CAMPOS, 'Informe somente nome e setor.');
   const alteracao: AlteracaoPosto = {};
-  for (const campo of ['codigo', 'nome', 'setorId'] as const) {
+  for (const campo of ['nome', 'setorId'] as const) {
     if (dados[campo] === undefined) continue;
-    if (typeof dados[campo] !== 'string') throw new ErroDePosto('ENTRADA_INVALIDA', 'Código, nome e setor devem ser textos.');
+    if (typeof dados[campo] !== 'string') throw new ErroDePosto('ENTRADA_INVALIDA', 'Nome e setor devem ser textos.');
     alteracao[campo] = dados[campo];
   }
   return alteracao;

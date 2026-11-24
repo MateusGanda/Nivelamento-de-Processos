@@ -4,11 +4,13 @@ Revisão em 22/10/2026, por inspeção de páginas, componentes, APIs, serviços
 
 Atualização em 02/11/2026: o estado das telas foi conferido com o código da `develop`. Setores, Operações, Produtos e Operadores passaram a ter edição e ativação/inativação, e Motivos de Pausa, Planos e Ordens de Produção já têm telas. As propostas abaixo não mudaram.
 
+Atualização em 24/11/2026: Postos, Produtos, Planos e Ordens adotam geração automática permanente no servidor, com sequências globais independentes e preservação de legados. Não houve alteração de schema nem execução de seed.
+
 ## Direção acordada
 
 Manter a geração automática, única e permanente dos identificadores funcionais nos próximos cadastros, com preservação dos registros antigos. A regra comum está em [identificadores-cadastros.md](../../specs/contratos/identificadores-cadastros.md); os formatos já aprovados de Operadores e Setores permanecem em [operadores-setores.md](../../specs/contratos/operadores-setores.md).
 
-Os textos dos cadastros têm tamanho máximo, contado depois do trim (decisão de 04/11/2026): nomes e função do operador até 120 caracteres, descrições até 500, códigos de produto, posto e plano e número da ordem até 30, e unidade da ordem até 20. Acima disso a API responde `ENTRADA_INVALIDA` (400), e os formulários já limitam a digitação. Os identificadores gerados automaticamente seguem seus próprios formatos.
+Os textos dos cadastros têm tamanho máximo, contado depois do trim (decisão de 04/11/2026): nomes e função do operador até 120 caracteres, descrições até 500 e unidade da ordem até 20. Códigos de produto, posto e plano e número da ordem passaram a ser gerados no servidor e recusados na entrada pública em 24/11/2026. Acima disso a API responde `ENTRADA_INVALIDA` (400), e os formulários já limitam a digitação. Os identificadores gerados automaticamente seguem seus próprios formatos.
 
 As propostas abaixo orientam a próxima especificação, uma tela por entrega. Não representam campos, endpoints ou regras adicionais já aprovados. Detalhar um cadastro deve ajudar a identificar o registro, entender sua função na produção e consultar seus vínculos. Um formulário curto pode ser adequado quando os detalhes pertencem a outra tela, como ocorre em Roteiros.
 
@@ -16,15 +18,15 @@ As propostas abaixo orientam a próxima especificação, uma tela por entrega. N
 
 | Tela | Dados informados hoje | Fluxos existentes | Identificação atual | Avaliação |
 | --- | --- | --- | --- | --- |
-| Produtos — `/painel/produtos` | Código e nome | Listar, buscar, ordenar, filtrar status, criar, editar código/nome e ativar/inativar | UUID interno; código manual e único | Muito simples: não mostra roteiros, vigência nem situação dos tempos padrão. Prioridade alta. |
-| Postos — `/painel/postos` | Código, nome e setor obrigatório | Listar, buscar, ordenar, filtrar status, criar, editar e ativar/inativar | UUID interno; código manual e único | Básico: já tem setor e status, mas falta contexto das etapas compatíveis e geração automática. Prioridade alta. |
+| Produtos — `/painel/produtos` | Nome | Listar, buscar, ordenar, filtrar status, criar, editar nome e ativar/inativar | UUID interno; código automático permanente | Muito simples: não mostra roteiros, vigência nem situação dos tempos padrão. Prioridade alta. |
+| Postos — `/painel/postos` | Nome e setor obrigatório | Listar, buscar, ordenar, filtrar status, criar, editar e ativar/inativar | UUID interno; código automático permanente | Básico: já tem setor e status, mas falta contexto das etapas compatíveis. Prioridade alta. |
 | Setores — `/painel/setores` | Nome e descrição opcional | Listar, buscar, ordenar, filtrar status, criar, editar nome/descrição e ativar/inativar | UUID interno; código automático permanente | Identificação e manutenção resolvidas; falta a consulta dos postos e operadores vinculados. Prioridade média. |
 | Operações — `/painel/operacoes` | Nome e descrição opcional | Listar, buscar, ordenar, filtrar status, criar, editar e ativar/inativar | UUID interno; nome único; sem código funcional | Formulário simples e coerente com o modelo; falta contexto de utilização nos roteiros. Prioridade média. |
 | Operadores — `/painel/operadores` | Nome, setor principal e função opcional | Listar, buscar, ordenar, filtrar status, criar, editar nome/setor/função e ativar/inativar | UUID interno; matrícula automática permanente | Já detalhado nesta frente. Prioridade menor para novos campos. |
 | Roteiros — `/painel/roteiros` e `/painel/roteiros/[id]` | Nome ao criar; etapas/operações, postos, produtos, vigência e tempos na tela de detalhe | Listagem, busca/filtro/ordenação, criação, novas versões, status e manutenção dos vínculos | UUID por versão; combinação nome/versão única; versão automática | O modal inicial é curto, mas o cadastro completo já é detalhado. Priorizar clareza e consulta, sem duplicar o fluxo. |
 | Motivos de Pausa — `/painel/motivos-de-pausa` | Nome e descrição opcional | Listar, buscar, ordenar, filtrar status, criar, editar e ativar/inativar | UUID interno; nome único; sem código funcional | Entregue no padrão de Operações; a ilha mostra só os motivos ativos. A categoria do motivo continua como proposta em aberto. |
-| Planos de Produção — `/painel/planos-de-producao` | Código, descrição e período opcionais | Listar, buscar, criar e editar | UUID interno; código manual e único | Funcional; a geração automática do código ainda depende de contrato. |
-| Ordens de Produção — `/painel/ordens-de-producao` | Número, plano, produto, versão do roteiro, quantidade e unidade | Listar, buscar, criar e editar; a etapa atual de cada ordem aparece em Indicadores | UUID interno; número único, com sugestão do próximo no formato OP-0001 | Funcional; a versão do roteiro fica gravada na ordem. |
+| Planos de Produção — `/painel/planos-de-producao` | Descrição e período opcionais | Listar, buscar, criar e editar | UUID interno; código automático permanente | Funcional; código automático PLN-0001. |
+| Ordens de Produção — `/painel/ordens-de-producao` | Plano, produto, versão do roteiro, quantidade e unidade | Listar, buscar, criar e editar; a etapa atual de cada ordem aparece em Indicadores | UUID interno; número automático permanente OP-0001 | Funcional; a versão do roteiro fica gravada na ordem. |
 
 Todas essas telas usam a API interna e o controle administrativo existente. A presença do código e de testes no repositório não confirma deployment, aplicação de migrations ou aceite visual.
 
@@ -32,11 +34,11 @@ Todas essas telas usam a API interna e o controle administrativo existente. A pr
 
 ### 1. Postos — primeira revisão recomendada
 
-**O que melhorar:** geração automática permanente do código; setor apresentado por código e nome; consulta das etapas/roteiros em que o posto é compatível; explicação dos efeitos da edição de setor e da inativação. Esses vínculos já existem em `EtapaPosto` e podem enriquecer a consulta sem criar relação fixa com operador.
+**O que melhorar:** setor apresentado por código e nome; consulta das etapas/roteiros em que o posto é compatível; explicação dos efeitos da edição de setor e da inativação. Esses vínculos já existem em `EtapaPosto` e podem enriquecer a consulta sem criar relação fixa com operador.
 
 O formulário atual carrega setores uma vez ao montar o componente. Em falha, orienta fechar e reabrir, mas isso não dispara nova carga. A revisão deve oferecer nova tentativa real e atualização dos setores disponíveis. Hoje o DTO do posto e seu seletor mostram somente o nome do setor, apesar de o código já existir na API de setores.
 
-**A definir no contrato:** base e formato do código, grupo da sequência, participação do setor de origem, fallback e tratamento dos códigos manuais existentes. Avaliar descrição opcional apenas se houver informação de identificação do recurso que o nome não comporte; esse campo não existe hoje. Avaliar como apresentar vínculos e o impacto da troca de setor sem alterar execuções históricas.
+**Identificador entregue:** PST-0001, sequência global independente do setor e nome, permanente e com legados preservados. **A definir no contrato:** Avaliar descrição opcional apenas se houver informação de identificação do recurso que o nome não comporte; esse campo não existe hoje. Avaliar como apresentar vínculos e o impacto da troca de setor sem alterar execuções históricas.
 
 **Limites:** manter Setor → Posto e Etapa ↔ Posto. Não cadastrar operador fixo, capacidade avançada, manutenção de máquinas ou permissões de operação por setor. Novos campos e regras exigem especificação própria.
 
@@ -44,9 +46,9 @@ O formulário atual carrega setores uma vez ao montar o componente. Em falha, or
 
 ### 2. Produtos — segunda revisão recomendada
 
-**O que melhorar:** identificação interna automática e consulta do contexto produtivo: roteiros associados, versão vigente e preenchimento dos tempos padrão por produto/etapa. Os relacionamentos existem; a tela de Produtos hoje mostra somente código, nome e datas. Os vínculos e tempos são mantidos em Roteiros, e a revisão pode oferecer resumo e acesso ao local de manutenção.
+**O que melhorar:** consulta do contexto produtivo: roteiros associados, versão vigente e preenchimento dos tempos padrão por produto/etapa. Os relacionamentos existem; a tela de Produtos hoje mostra somente código, nome e datas. Os vínculos e tempos são mantidos em Roteiros, e a revisão pode oferecer resumo e acesso ao local de manutenção.
 
-**A definir no contrato:** se `Produto.codigo` representa apenas identificação interna ou também uma referência já usada pela empresa; formato automático e estratégia para preservar essa referência. Avaliar descrição opcional e unidade padrão somente com necessidade confirmada: esses campos não existem em Produto, e hoje `unidade` pertence à Ordem. A ativação/inativação já existe (`Produto.ativo`).
+**Identificador entregue:** `Produto.codigo` é interno, automático e permanente (PRD-0001), com legados preservados e sem novo SKU. **A definir no contrato:** Avaliar descrição opcional e unidade padrão somente com necessidade confirmada: esses campos não existem em Produto, e hoje `unidade` pertence à Ordem. A ativação/inativação já existe (`Produto.ativo`).
 
 **Limites:** não mover o tempo padrão para Produto ou Operação como valor universal. Não criar vínculo obrigatório direto entre Produto e Setor; o contexto produtivo passa pelo roteiro, etapas e postos. Não transformar a revisão em estoque, ficha comercial ou catálogo de variações sem requisito.
 
