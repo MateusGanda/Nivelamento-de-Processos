@@ -15,13 +15,12 @@ export type PedidoFormularioPosto = { posto: Posto | null; seq: number };
 export function WorkstationFormDialog({ dialogRef, pedido, aoConcluir, aoFechar }: {
   dialogRef: RefObject<HTMLDialogElement | null>;
   pedido: PedidoFormularioPosto | null;
-  aoConcluir: (acao: 'cadastrado' | 'alterado') => void;
+  aoConcluir: (acao: 'cadastrado' | 'alterado', codigo: string) => void;
   aoFechar: () => void;
 }) {
   const router = useRouter();
   const emEnvio = useRef(false);
   const [enviando, setEnviando] = useState(false);
-  const [codigo, setCodigo] = useState('');
   const [nome, setNome] = useState('');
   const [setorId, setSetorId] = useState('');
   const [erro, setErro] = useState('');
@@ -42,12 +41,11 @@ export function WorkstationFormDialog({ dialogRef, pedido, aoConcluir, aoFechar 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!pedido || !dialog) return;
-    setCodigo(pedido.posto?.codigo ?? '');
     setNome(pedido.posto?.nome ?? '');
     setSetorId(pedido.posto?.setor.id ?? '');
     setErro('');
     if (!dialog.open) dialog.showModal();
-    dialog.querySelector<HTMLInputElement>('#posto-codigo')?.focus();
+    dialog.querySelector<HTMLInputElement>('#posto-nome')?.focus();
   }, [pedido, dialogRef]);
 
   function fechar() {
@@ -57,18 +55,19 @@ export function WorkstationFormDialog({ dialogRef, pedido, aoConcluir, aoFechar 
   async function enviar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (emEnvio.current) return;
-    if (!codigo.trim() || !nome.trim() || !setorId) {
-      setErro('Informe o código, o nome e o setor do posto.');
+    if (!nome.trim() || !setorId) {
+      setErro('Informe o nome e o setor do posto.');
       return;
     }
     emEnvio.current = true;
     setEnviando(true);
     setErro('');
     try {
-      if (posto) await alterarPosto(posto.id, { codigo, nome, setorId });
-      else await cadastrarPosto({ codigo, nome, setorId });
+      const confirmado = posto
+        ? await alterarPosto(posto.id, { nome, setorId })
+        : await cadastrarPosto({ nome, setorId });
       dialogRef.current?.close();
-      aoConcluir(posto ? 'alterado' : 'cadastrado');
+      aoConcluir(posto ? 'alterado' : 'cadastrado', confirmado.codigo);
     } catch (falha) {
       if (falha instanceof ErroApiPostos && (falha.status === 401 || falha.status === 403)) {
         router.replace('/login');
@@ -94,7 +93,7 @@ export function WorkstationFormDialog({ dialogRef, pedido, aoConcluir, aoFechar 
         const rect = event.currentTarget.getBoundingClientRect();
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) fechar();
       } }}
-      onClose={() => { setCodigo(''); setNome(''); setSetorId(''); setErro(''); aoFechar(); }}
+      onClose={() => { setNome(''); setSetorId(''); setErro(''); aoFechar(); }}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-line-raised bg-raised p-0 text-foreground shadow-lg backdrop:bg-black/50"
     >
       <div className="flex items-center justify-between gap-4 border-b border-foreground/10 px-6 py-4">
@@ -103,13 +102,15 @@ export function WorkstationFormDialog({ dialogRef, pedido, aoConcluir, aoFechar 
       </div>
       <form onSubmit={enviar} aria-busy={enviando} className="space-y-5 p-6">
         <p id="formulario-posto-descricao" className="text-sm leading-6 text-muted">
-          {edicao ? 'Altere o código, o nome ou o setor. As execuções já registradas continuam ligadas a este posto.' : 'O posto é o local ou recurso onde as etapas são feitas. O novo posto será criado como ativo.'}
+          {edicao ? 'Altere o nome ou o setor. O código é permanente. As execuções já registradas continuam ligadas a este posto.' : 'O posto é o local ou recurso onde as etapas são feitas. O novo posto será criado como ativo.'}
         </p>
-        <div>
-          <label htmlFor="posto-codigo" className="block text-sm font-medium">Código</label>
-          <input id="posto-codigo" maxLength={LIMITES_TEXTO.codigo} name="codigo" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required value={codigo} onChange={(event) => setCodigo(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-posto-erro' : 'posto-codigo-ajuda'} />
-          <p id="posto-codigo-ajuda" className="mt-2 text-xs leading-5 text-muted">Único para cada posto, por exemplo MON-01.</p>
-        </div>
+        {posto ? (
+          <div>
+            <label htmlFor="posto-codigo" className="block text-sm font-medium">Código</label>
+            <input id="posto-codigo" type="text" readOnly value={posto.codigo} className={campo} />
+            <p className="mt-2 text-xs leading-5 text-muted">O código é permanente.</p>
+          </div>
+        ) : <p className="text-sm text-muted">O código será gerado automaticamente ao cadastrar.</p>}
         <div>
           <label htmlFor="posto-nome" className="block text-sm font-medium">Nome</label>
           <input id="posto-nome" maxLength={LIMITES_TEXTO.nome} name="nome" type="text" autoComplete="off" required value={nome} onChange={(event) => setNome(event.target.value)} disabled={enviando} className={campo} aria-describedby={erro ? 'formulario-posto-erro' : undefined} />

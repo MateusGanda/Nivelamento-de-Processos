@@ -18,8 +18,8 @@ const colunas: ReadonlyArray<{ campo: ColunaProduto; titulo: string }> = [
 ];
 type Acao = 'cadastrado' | 'alterado' | 'ativado' | 'inativado';
 const acoes: readonly Acao[] = ['cadastrado', 'alterado', 'ativado', 'inativado'];
-const mensagemSucesso = (acao: Acao) => `Produto ${acao.replace(/o$/, 'o')} com sucesso.`;
-const mensagemFalhaAtualizacao = (acao: Acao) => `Produto ${acao.replace(/o$/, 'o')}, mas não foi possível atualizar a lista. Use Tentar novamente para recarregar, sem repetir a operação.`;
+const mensagemSucesso = (acao: Acao, codigo = '') => `Produto ${acao.replace(/o$/, 'o')} com sucesso.${codigo ? ` Código: ${codigo}.` : ''}`;
+const mensagemFalhaAtualizacao = (acao: Acao, codigo = '') => `Produto ${acao.replace(/o$/, 'o')}, mas não foi possível atualizar a lista. Use Tentar novamente para recarregar, sem repetir a operação.${codigo ? ` Código: ${codigo}.` : ''}`;
 
 export function ProductsScreen() {
   const router = useRouter();
@@ -36,6 +36,7 @@ export function ProductsScreen() {
   const origemFoco = useRef<HTMLButtonElement | null>(null);
   const pedidoLista = useRef(0);
   const montado = useRef(false);
+  const ultimoCodigo = useRef('');
 
   const carregarLista = useCallback((signal?: AbortSignal): Promise<boolean | null> => {
     const numero = ++pedidoLista.current;
@@ -44,8 +45,8 @@ export function ProductsScreen() {
       setProdutos(dados);
       setErro('');
       setMensagem((atual) => {
-        const acao = acoes.find((item) => atual === mensagemFalhaAtualizacao(item));
-        return acao ? mensagemSucesso(acao) : atual;
+        const acao = acoes.find((item) => atual === mensagemFalhaAtualizacao(item, ultimoCodigo.current));
+        return acao ? mensagemSucesso(acao, ultimoCodigo.current) : atual;
       });
       return true;
     }).catch((falha: unknown) => {
@@ -101,12 +102,13 @@ export function ProductsScreen() {
     }
   }
 
-  function aoConcluir(acao: Acao) {
-    setMensagem(mensagemSucesso(acao));
+  function aoConcluir(acao: Acao, codigo = '') {
+    ultimoCodigo.current = codigo;
+    setMensagem(mensagemSucesso(acao, codigo));
     setCarregando(true);
     setErro('');
     void carregarLista().then((sucesso) => {
-      if (sucesso === false && montado.current) setMensagem(mensagemFalhaAtualizacao(acao));
+      if (sucesso === false && montado.current) setMensagem(mensagemFalhaAtualizacao(acao, codigo));
     });
   }
 

@@ -8,7 +8,7 @@ import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, ClipboardList, LoaderCircle, Pencil, Plus, QrCode, Search } from 'lucide-react';
-import { sugerirNumeroOrdem, type OpcoesOrdem, type Ordem } from '../../domain/ordem';
+import type { OpcoesOrdem, Ordem } from '../../domain/ordem';
 import { listarOrdens, ErroApiOrdens } from '../api-client';
 import { filtrarOrdenarOrdens, formatarDataHora, formatarQuantidade, type ColunaOrdem, type OrdemListagem } from '../listing';
 import { OrderFormDialog, type PedidoFormularioOrdem } from './order-form-dialog';
@@ -21,8 +21,8 @@ const colunas: ReadonlyArray<{ campo: ColunaOrdem; titulo: string }> = [
 ];
 type Acao = 'cadastrada' | 'alterada';
 const acoes: readonly Acao[] = ['cadastrada', 'alterada'];
-const mensagemSucesso = (acao: Acao) => `Ordem ${acao} com sucesso.`;
-const mensagemFalhaAtualizacao = (acao: Acao) => `Ordem ${acao}, mas não foi possível atualizar a lista. Use Tentar novamente para recarregar, sem repetir a operação.`;
+const mensagemSucesso = (acao: Acao, numero = '') => `Ordem ${acao} com sucesso.${numero ? ` Número: ${numero}.` : ''}`;
+const mensagemFalhaAtualizacao = (acao: Acao, numero = '') => `Ordem ${acao}, mas não foi possível atualizar a lista. Use Tentar novamente para recarregar, sem repetir a operação.${numero ? ` Número: ${numero}.` : ''}`;
 
 export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
   const router = useRouter();
@@ -39,6 +39,7 @@ export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
   const origemFoco = useRef<HTMLButtonElement | null>(null);
   const pedidoLista = useRef(0);
   const montado = useRef(false);
+  const ultimoNumero = useRef('');
 
   const carregarLista = useCallback((signal?: AbortSignal): Promise<boolean | null> => {
     const numero = ++pedidoLista.current;
@@ -47,8 +48,8 @@ export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
       setOrdens(dados);
       setErro('');
       setMensagem((atual) => {
-        const acao = acoes.find((item) => atual === mensagemFalhaAtualizacao(item));
-        return acao ? mensagemSucesso(acao) : atual;
+        const acao = acoes.find((item) => atual === mensagemFalhaAtualizacao(item, ultimoNumero.current));
+        return acao ? mensagemSucesso(acao, ultimoNumero.current) : atual;
       });
       return true;
     }).catch((falha: unknown) => {
@@ -76,7 +77,7 @@ export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
   function abrirFormulario(item: Ordem | null, botao: HTMLButtonElement) {
     if (dialogRef.current?.open || fichaOrdemId) return;
     origemFoco.current = botao;
-    setPedido((atual) => ({ ordem: item, numeroSugerido: sugerirNumeroOrdem(ordens.map((o) => o.numero)), seq: (atual?.seq ?? 0) + 1 }));
+    setPedido((atual) => ({ ordem: item, seq: (atual?.seq ?? 0) + 1 }));
   }
 
   function abrirFicha(item: Ordem, botao: HTMLButtonElement) {
@@ -85,12 +86,13 @@ export function OrdersScreen({ opcoes }: { opcoes: OpcoesOrdem }) {
     setFichaOrdemId(item.id);
   }
 
-  function aoConcluir(acao: Acao) {
-    setMensagem(mensagemSucesso(acao));
+  function aoConcluir(acao: Acao, numero = '') {
+    ultimoNumero.current = numero;
+    setMensagem(mensagemSucesso(acao, numero));
     setCarregando(true);
     setErro('');
     void carregarLista().then((sucesso) => {
-      if (sucesso === false && montado.current) setMensagem(mensagemFalhaAtualizacao(acao));
+      if (sucesso === false && montado.current) setMensagem(mensagemFalhaAtualizacao(acao, numero));
     });
     // A ordem nova trava o roteiro; atualiza as opções que vêm do servidor.
     if (acao === 'cadastrada') router.refresh();
