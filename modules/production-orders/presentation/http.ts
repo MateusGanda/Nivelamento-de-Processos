@@ -22,15 +22,15 @@ async function lerCorpo(request: Request, campos: readonly string[], mensagem: s
 }
 
 export async function lerCadastroOrdem(request: Request): Promise<CadastroOrdem> {
-  const dados = await lerCorpo(request, ['numero', 'planoId', 'produtoId', 'roteiroId', 'quantidade', 'unidade'],
-    'Informe somente número, plano, produto, roteiro, quantidade e unidade.');
+  const dados = await lerCorpo(request, ['planoId', 'produtoId', 'roteiroId', 'quantidade', 'unidade'],
+    'Informe somente plano, produto, roteiro, quantidade e unidade.');
   return dados as CadastroOrdem;
 }
 
 // Produto e roteiro não entram: a ordem mantém os escolhidos na criação.
 export async function lerAlteracaoOrdem(request: Request): Promise<AlteracaoOrdem> {
-  const dados = await lerCorpo(request, ['numero', 'planoId', 'quantidade', 'unidade'],
-    'Só número, plano, quantidade e unidade podem ser alterados; produto e roteiro ficam fixos na ordem.');
+  const dados = await lerCorpo(request, ['planoId', 'quantidade', 'unidade'],
+    'Só plano, quantidade e unidade podem ser alterados; produto e roteiro ficam fixos na ordem.');
   return dados as AlteracaoOrdem;
 }
 

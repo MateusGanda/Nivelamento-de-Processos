@@ -11,7 +11,7 @@ export function respostaErroPlanos(erro: unknown): Response {
   return Response.json({ erro: { codigo: 'ERRO_INTERNO', mensagem: 'Não foi possível concluir a solicitação.' } }, { status: 500 });
 }
 
-const CAMPOS = ['codigo', 'descricao', 'dataInicio', 'dataFim'] as const;
+const CAMPOS = ['descricao', 'dataInicio', 'dataFim'] as const;
 
 async function lerCorpo(request: Request): Promise<AlteracaoPlano> {
   let corpo: unknown;
@@ -20,9 +20,8 @@ async function lerCorpo(request: Request): Promise<AlteracaoPlano> {
   if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) throw new ErroDePlano('ENTRADA_INVALIDA', 'Corpo JSON inválido.');
   const dados = corpo as Record<string, unknown>;
   if (Object.keys(dados).some((campo) => !(CAMPOS as readonly string[]).includes(campo))) {
-    throw new ErroDePlano('ENTRADA_INVALIDA', 'Informe somente código, descrição e datas de início e fim.');
+    throw new ErroDePlano('ENTRADA_INVALIDA', 'Informe somente descrição e datas de início e fim.');
   }
-  if (dados.codigo !== undefined && typeof dados.codigo !== 'string') throw new ErroDePlano('ENTRADA_INVALIDA', 'Código deve ser texto.');
   for (const campo of ['descricao', 'dataInicio', 'dataFim'] as const) {
     if (dados[campo] !== undefined && dados[campo] !== null && typeof dados[campo] !== 'string') {
       throw new ErroDePlano('ENTRADA_INVALIDA', 'Descrição e datas devem ser texto ou nulas.');
@@ -33,8 +32,7 @@ async function lerCorpo(request: Request): Promise<AlteracaoPlano> {
 
 export async function lerCadastroPlano(request: Request): Promise<CadastroPlano> {
   const dados = await lerCorpo(request);
-  if (typeof dados.codigo !== 'string') throw new ErroDePlano('ENTRADA_INVALIDA', 'Código deve ser texto obrigatório.');
-  return { codigo: dados.codigo, descricao: dados.descricao, dataInicio: dados.dataInicio, dataFim: dados.dataFim };
+  return { descricao: dados.descricao, dataInicio: dados.dataInicio, dataFim: dados.dataFim };
 }
 
 export const lerAlteracaoPlano = lerCorpo;

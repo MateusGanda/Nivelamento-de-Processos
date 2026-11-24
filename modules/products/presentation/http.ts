@@ -11,7 +11,7 @@ export function respostaErroProdutos(erro: unknown): Response {
   return Response.json({ erro: { codigo: 'ERRO_INTERNO', mensagem: 'Não foi possível concluir a solicitação.' } }, { status: 500 });
 }
 
-const CAMPOS = new Set(['codigo', 'nome']);
+const CAMPOS = new Set(['nome']);
 
 async function lerCorpo(request: Request): Promise<Record<string, unknown>> {
   let corpo: unknown;
@@ -22,25 +22,25 @@ async function lerCorpo(request: Request): Promise<Record<string, unknown>> {
   }
   const dados = corpo as Record<string, unknown>;
   if (Object.keys(dados).some((campo) => !CAMPOS.has(campo))) {
-    throw new ErroDeProduto('ENTRADA_INVALIDA', 'Informe somente código e nome.');
+    throw new ErroDeProduto('ENTRADA_INVALIDA', 'Informe somente o nome.');
   }
   return dados;
 }
 
 export async function lerCadastroProduto(request: Request): Promise<CadastroProduto> {
   const dados = await lerCorpo(request);
-  if (typeof dados.codigo !== 'string' || typeof dados.nome !== 'string') {
-    throw new ErroDeProduto('ENTRADA_INVALIDA', 'Código e nome devem ser textos obrigatórios.');
+  if (typeof dados.nome !== 'string') {
+    throw new ErroDeProduto('ENTRADA_INVALIDA', 'Nome deve ser texto obrigatório.');
   }
-  return { codigo: dados.codigo, nome: dados.nome };
+  return { nome: dados.nome };
 }
 
 export async function lerAlteracaoProduto(request: Request): Promise<AlteracaoProduto> {
   const dados = await lerCorpo(request);
   const alteracao: AlteracaoProduto = {};
-  for (const campo of ['codigo', 'nome'] as const) {
+  for (const campo of ['nome'] as const) {
     if (dados[campo] === undefined) continue;
-    if (typeof dados[campo] !== 'string') throw new ErroDeProduto('ENTRADA_INVALIDA', 'Código e nome devem ser textos.');
+    if (typeof dados[campo] !== 'string') throw new ErroDeProduto('ENTRADA_INVALIDA', 'Nome deve ser texto.');
     alteracao[campo] = dados[campo];
   }
   return alteracao;
