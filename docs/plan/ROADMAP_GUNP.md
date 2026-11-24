@@ -145,7 +145,7 @@ Esta é a **primeira grande frente funcional**, conforme a estratégia da equipe
 
 Revisão documental de 22/10/2026: os itens de Produtos, Postos e Roteiros abaixo foram alinhados aos fluxos presentes no código. Isso não confirma deployment nem substitui aceite visual/funcional. O [mapeamento dos cadastros](../design/CADASTROS_GUNP.md) registra campos atuais, lacunas e propostas.
 
-As próximas entregas seguem o [padrão de identificadores automáticos](../../specs/contratos/identificadores-cadastros.md), preservando códigos antigos e definindo o formato por entidade. Produtos e Postos ainda usam códigos manuais. A fila sugerida de revisão é Postos → Produtos → Setores → Operações → Operadores → Roteiros, sempre uma tela por entrega e sem incluir automaticamente novos campos.
+As próximas entregas seguem o [padrão de identificadores automáticos](../../specs/contratos/identificadores-cadastros.md), preservando códigos antigos e definindo o formato por entidade. Em 24/11/2026, Postos (`PST-0001`), Produtos (`PRD-0001`), Planos (`PLN-0001`) e Ordens (`OP-0001`) passaram a gerar identificadores permanentes no servidor, sem converter legados ou mudar schema. A fila sugerida de revisão é Postos → Produtos → Setores → Operações → Operadores → Roteiros, sempre uma tela por entrega e sem incluir automaticamente novos campos.
 
 ## 7.1 Operações
 
@@ -166,6 +166,7 @@ Página `/painel/produtos`, com GET/POST `/api/produtos`, PATCH `/api/produtos/[
 - [x] Editar
 - [x] Ativar/inativar
 - [x] Validar código único
+- [x] Gerar código automático permanente, preservando legados (24/11/2026)
 - [x] Validar nome
 
 ## 7.3 Setores
@@ -190,6 +191,7 @@ Página `/painel/postos`, com GET/POST `/api/postos`, PATCH `/api/postos/[id]` e
 - [x] Associar a setor
 - [x] Ativar/inativar
 - [x] Validar código único
+- [x] Gerar código automático permanente, preservando legados (24/11/2026)
 
 ## 7.5 Operadores
 
@@ -284,7 +286,7 @@ Contrato e evidências: [QR Code das ordens](../../specs/contratos/identificacao
 - [x] Selecionar roteiro
 - [x] Informar quantidade/unidade
 - [x] Associar ao plano
-- [x] Gerar/informar número único
+- [x] Gerar número único permanente no servidor (OP-0001)
 - [x] Listar
 - [x] Visualizar
 

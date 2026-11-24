@@ -1,12 +1,12 @@
 # Padrão de identificadores dos cadastros
 
-Versão 1.0 — 22/10/2026. Diretriz aprovada: manter nos próximos cadastros a geração automática e permanente adotada em Operadores e Setores.
+Versão 1.1 — 24/11/2026. Diretriz aprovada: manter nos próximos cadastros a geração automática e permanente adotada em Operadores e Setores.
 
 ## Alcance e estado
 
 Este contrato define o comportamento comum dos identificadores funcionais internos. Cada entidade mantém seu UUID como chave interna e seus relacionamentos por ID. O termo matrícula é usado para pessoas; outros cadastros usam código ou número conforme o domínio.
 
-A geração já está implementada em Setores e Operadores, conforme [operadores-setores.md](operadores-setores.md). Produtos e Postos ainda recebem códigos manuais e editáveis. A adequação deles será feita em entregas próprias, uma tela por vez. Este documento não altera as APIs existentes nem confirma aplicação de migrations no banco da equipe.
+A geração está implementada em Setores e Operadores, conforme [operadores-setores.md](operadores-setores.md), e em Postos, Produtos, Planos e Ordens, conforme o contrato abaixo. A mudança não altera schema nem exige migration; preserva os valores já persistidos. Não confirma deployment ou execução de seed no banco da equipe.
 
 O padrão comum é a geração no servidor, a unicidade e a permanência. O formato `INICIAIS[SEQUÊNCIA]-CODIGO_DO_SETOR` pertence ao Operador; não deve ser copiado para todas as entidades. As máscaras, bases e relações usadas por cada novo gerador precisam constar no contrato específico antes da implementação.
 
@@ -26,19 +26,53 @@ Se futuramente houver exclusão física, o contrato deve prever como manter a re
 
 ## Aplicação por entidade
 
-| Cadastro | Estado verificado em 22/10/2026 (atualizado em 02/11/2026) | Próximo contrato |
+| Cadastro | Estado atualizado em 24/11/2026 | Próximo contrato |
 | --- | --- | --- |
 | Operador | Matrícula automática permanente; setor principal e função; legados preservados | Manter o formato e as regras aprovadas em Operadores e Setores. |
 | Setor | Código automático permanente, com base do nome e sequência | Manter o código permanente na edição de nome/descrição, já entregue. |
-| Posto | Código manual obrigatório, inclusive editável; setor obrigatório | Adaptar para código automático permanente. Definir base, uso do setor de origem, sequência, fallback e compatibilidade dos códigos antigos. |
-| Produto | Código manual obrigatório e editável | Adaptar a identificação interna ao padrão automático. Confirmar se o código atual também representa referência da empresa/SKU e como preservá-la, sem confundi-la com o identificador interno. |
+| Posto | Código automático permanente `PST-0001`; nome e setor obrigatórios | Sequência global da entidade, independente do setor e nome. Legados preservados. |
+| Produto | Código interno automático permanente `PRD-0001`; nome obrigatório | Sem campo adicional de SKU; legados preservados. |
 | Operação | Nome único e descrição; sem código funcional | Avaliar a necessidade de código no contrato da revisão. Se adotado, será automático e permanente; não adicionar campo apenas para repetir a matrícula do operador. |
 | Roteiro | Nome + versão; versão 1 inicial e próximas versões geradas no servidor | Preservar o versionamento existente. Versão é revisão do processo, não matrícula; um eventual código de família exige contrato próprio. |
-| Plano de Produção / Ordem de Produção | Telas entregues; código do plano digitado; número da ordem digitado, com sugestão do próximo no formato OP-0001 | Planejar geração automática com formato, escopo de sequência e preservação dos códigos e números já usados. |
+| Plano de Produção / Ordem de Produção | Código automático permanente `PLN-0001` e número automático permanente `OP-0001` | Sequência global independente por entidade; sem sugestão do número no navegador. Legados preservados. |
 | Motivo de Pausa | Tela entregue; identificado só pelo nome, sem código | Avaliar se um código funcional é necessário; não exigir código manual. |
 | Usuário administrativo | API e bootstrap recebem matrícula manual usada no login; sem tela de cadastro | Planejar separadamente a identificação automática para futuros usuários. Sem vínculo de setor no modelo; não aplicar o gerador de Operador nem alterar logins existentes sem contrato de compatibilidade. |
 
-Nenhum formato novo para Posto, Produto, Plano, Ordem ou Usuário está fechado neste documento. A diretriz de automação está definida; esses contratos precisam resolver o significado e o formato do identificador antes de mudar código.
+## Contrato de Postos, Produtos, Planos e Ordens
+
+Decisão de 24/11/2026: identificadores internos automáticos e permanentes, sem opção manual. As quatro sequências são independentes e globais por entidade, sem nome, setor, produto, plano, data ou ano como grupo. O UUID continua sendo a chave de relacionamento e do QR da ordem.
+
+| Entidade | Campo retornado | Prefixo | Constraint existente |
+| --- | --- | --- | --- |
+| Posto | `codigo` | `PST-` | `Posto_codigo_key` |
+| Produto | `codigo` | `PRD-` | `Produto_codigo_key` |
+| Plano | `codigo` | `PLN-` | `PlanoProducao_codigo_key` |
+| Ordem | `numero` | `OP-` | `OrdemProducao_numero_key` |
+
+O gerador considera todos os registros, inclusive inativos. Somente o prefixo exato em maiúsculas seguido de dígitos participa do cálculo. `PRD-001` reserva o sufixo 1; valores como `PRD-X` e outros formatos permanecem intactos, sem participar do máximo. O próximo valor usa o maior sufixo + 1, mínimo de quatro dígitos e aritmética inteira sem perda de precisão (`BigInt`): `9999` é seguido por `10000`. Não preencher lacunas nem truncar valores. Não há exclusão física no cadastro que permita reaproveitar identificadores.
+
+Cada gravação é protegida pela constraint existente. A aplicação tenta até dez gravações, relendo os reservados e recalculando após cada colisão específica de identificador. Só essa violação vira o erro de reserva que permite retry; erros de outros campos, vínculos e infraestrutura não repetem a criação. Após dez colisões, a API retorna 409 recuperável.
+
+### Entradas e respostas HTTP
+
+Autorização administrativa, URLs, status de criação (201), alteração (200) e formato de resposta são preservados. POST e PATCH rejeitam `codigo` ou `numero` com 400, inclusive se o valor for igual ao atual, nulo ou acompanhado de campos válidos. GET e respostas de gravação continuam retornando o identificador confirmado e os mesmos IDs e vínculos.
+
+| Rota base | POST: campos aceitos | PATCH `/[id]`: campos aceitos |
+| --- | --- | --- |
+| `/api/postos` | `nome`, `setorId` | `nome`, `setorId` |
+| `/api/produtos` | `nome` | `nome` |
+| `/api/planos-de-producao` | `descricao`, `dataInicio`, `dataFim` (opcionais; `{}` é válido) | `descricao`, `dataInicio`, `dataFim` |
+| `/api/ordens-de-producao` | `planoId`, `produtoId`, `roteiroId`, `quantidade`, `unidade` | `planoId`, `quantidade`, `unidade` |
+
+Edições continuam exigindo ao menos um campo permitido. Os tipos de criação pública não recebem identificador; os tipos de persistência incluem o valor gerado pelo serviço. Permanecem as regras de setor/produto/roteiro ativos, período válido do plano, versão do roteiro congelada na ordem e bloqueio de quantidade/unidade depois de execuções.
+
+### Interface e compatibilidade
+
+No cadastro, o formulário explica a geração automática e não apresenta entrada para o identificador. Na edição, exibe o valor atual somente para leitura. O primeiro campo editável recebe foco. O sucesso usa o identificador retornado pela API; se a gravação foi confirmada e a recarga falhar, a mensagem mantém o código/número e orienta recarregar sem repetir a operação. Listagem, busca, ordenação e ficha com QR continuam usando os valores persistidos, inclusive legados.
+
+Nenhum registro existente é recodificado: IDs, códigos/números, timestamps e relacionamentos permanecem. Edições normais atualizam apenas seus campos e `updatedAt`. Os scripts de população usam os geradores para novos identificadores; aliases dos cenários continuam resolvendo os vínculos por ID. Sua execução e alterações no banco exigem autorização separada. Dados legados fixos de testes permanecem para validar compatibilidade. Importações futuras devem omitir o identificador público e seguir a geração do serviço.
+
+O formato de Usuário administrativo continua fora desta entrega, preservando os logins existentes.
 
 ## Compatibilidade e aceite por cadastro
 

@@ -57,7 +57,12 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - A edição comum não altera `ativo`; a mudança de status tem uma ação própria.
 
 ### Cadastro de produto
-- Código obrigatório e único; nome obrigatório.
+- Código interno automático, único e permanente (`PRD-0001`); nome obrigatório. Valores legados são preservados, sem novo campo de SKU.
+
+### Identificadores de Posto, Produto, Plano e Ordem
+- Geração no servidor na criação: `PST-0001`, `PRD-0001`, `PLN-0001` e `OP-0001`. Sequência global independente por entidade, sem reinício anual e sem alteração após edição ou transferência.
+- Maior sufixo numérico reservado + 1, incluindo legados e inativos; mínimo de quatro dígitos, sem limite de quatro dígitos. Registros existentes e seus vínculos não são convertidos.
+- POST/PATCH recusam `codigo`/`numero`, inclusive o mesmo valor atual. Unicidade por constraint e até dez tentativas somente em colisão concorrente de identificador. Contrato: [identificadores dos cadastros](../../specs/contratos/identificadores-cadastros.md).
 
 ### Cadastro de operação
 - Nome obrigatório e único; descrição opcional. Remover somente espaços nas extremidades, preservando caixa, acentos e espaços internos, sem novos limites de tamanho.
@@ -73,7 +78,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - A edição altera nome e descrição; o código não muda. Ativação/inativação conforme "Ativo e inativo". Não há exclusão.
 
 ### Cadastro de posto
-- Código obrigatório e único; nome e setor obrigatórios. Ativação/inativação conforme "Ativo e inativo".
+- Código automático, único e permanente (`PST-0001`), independente do setor; nome e setor obrigatórios. Ativação/inativação conforme "Ativo e inativo".
 
 ### Cadastro de motivo de pausa
 - Nome obrigatório e único; descrição opcional. Não há exclusão; o motivo é inativado.
@@ -98,14 +103,14 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Tempo padrão maior que zero, em segundos por unidade produzida, com até duas casas decimais. Etapa sem tempo informado fica sem tempo padrão.
 
 ### Plano de produção
-- Código obrigatório e único; descrição opcional; período opcional.
+- Código automático, único e permanente (`PLN-0001`); descrição opcional; período opcional.
 - As datas são gravadas como texto `AAAA-MM-DD`, precisam existir no calendário, e o fim não pode ser anterior ao início, inclusive quando só uma das datas é alterada (decisão de 22/10/2026).
 
 ### Ordem e quantidade
 - Uma Ordem representa uma quantidade de um único produto.
-- Na criação: número único, plano existente, produto ativo, versão do roteiro ligada ao produto, ativa e com etapas, e quantidade maior que zero com até duas casas decimais.
-- Produto e versão do roteiro não mudam depois da criação. Número e plano podem ser editados; quantidade e unidade, somente enquanto a ordem não tem execuções.
-- A identificação por QR usa `GUNP-OP-<UUID>` em maiúsculas e permanece após renumeração. A ficha apresenta os dados atuais e as etapas da versão vinculada; não declara disponibilidade ou conclusão. Contrato: [QR Code das ordens](../../specs/contratos/identificacao-ordens-qrcode.md).
+- Na criação: número automático, único e permanente (`OP-0001`), plano existente, produto ativo, versão do roteiro ligada ao produto, ativa e com etapas, e quantidade maior que zero com até duas casas decimais.
+- Número, produto e versão do roteiro não mudam depois da criação. O plano pode ser editado; quantidade e unidade, somente enquanto a ordem não tem execuções.
+- A identificação por QR usa `GUNP-OP-<UUID>` em maiúsculas e permanece nas edições permitidas, independentemente do formato do número legado. A ficha apresenta os dados atuais e as etapas da versão vinculada; não declara disponibilidade ou conclusão. Contrato: [QR Code das ordens](../../specs/contratos/identificacao-ordens-qrcode.md).
 - Não existe baixa parcial.
 - A baixa considera 100% da quantidade da Ordem na etapa.
 - Resultado da baixa: boa, retrabalho e refugo.

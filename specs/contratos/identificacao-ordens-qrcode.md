@@ -6,7 +6,7 @@ Versão 1.1 — 03/11/2026. Plano aprovado em duas entregas: ficha individual e 
 
 - O conteúdo do QR é `GUNP-OP-<UUID>`, em maiúsculas, usando o ID existente da ordem. Exemplo: `GUNP-OP-AABBCCDD-1234-4ABC-8DEF-123456789ABC`.
 - O prefixo identifica o tipo de documento. Número, produto, quantidade, roteiro, credenciais e chaves não são codificados no QR.
-- O número legível continua na ficha. Renumerar a ordem, mudar plano ou atualizar campos permitidos não altera o QR; não há novo identificador no banco.
+- O número legível continua na ficha. Desde 24/11/2026 ele é automático e permanente, inclusive para ordens legadas; PATCH rejeita `numero` conforme o [contrato dos identificadores](identificadores-cadastros.md). Mudar plano ou atualizar campos permitidos não altera o QR; não há novo identificador no banco.
 - A ficha apresenta os dados consultados e as etapas previstas da versão vinculada à ordem. Não comprova disponibilidade para início, execução ou conclusão. Não há arquivo histórico de emissão, imagem persistida ou reserva da ordem.
 - QR é identificação. A emissão continua restrita ao ADMIN ativo; a ilha continua autorizada pelo cookie do terminal. Não há endpoint público novo nem novo mecanismo de autenticação.
 - Fica preservado o contrato de identificação do operador pela matrícula exata, em [Identificação de operadores](identificacao-operadores-qrcode.md).
@@ -76,7 +76,7 @@ Os testes existentes dos crachás verificam a preservação da matrícula e da g
 2. Conferir Escape, retorno do foco, fechamento durante consulta lenta, erro e repetição. Conferir 375px, 768px e desktop, nomes extensos e grande quantidade de etapas.
 3. Baixar o PNG e ler com o Vinik 2DYN no Bloco de Notas. Esperado: `GUNP-OP-` seguido do UUID, em maiúsculas, com Enter final conforme configuração já testada do equipamento. A decodificação independente continua necessária.
 4. Abrir impressão, conferir somente a ficha, A4, QR inteiro de 40 mm e paginação sem conteúdo cortado. Salvar em PDF ou imprimir com dados de desenvolvimento autorizados e testar a leitura em papel.
-5. Reabrir após renumeração autorizada: número impresso atualizado e código lido idêntico. Não alterar dados da equipe somente para preparar esse teste.
+5. Reabrir após edição de campos permitidos: número permanente e QR idênticos, com os demais dados impressos atualizados. Testar números legados em fixtures, sem renumerar dados da equipe.
 6. Fechar a ficha e conferir impressão de crachá e de indicadores de forma independente.
 
 Executar suíte, lint, typecheck e build por entrega. Caso dependências mudem em trabalho posterior, validar lockfile com npm 10 antes de enviar ao CI. Não executar migrations nem seed para esta funcionalidade.
