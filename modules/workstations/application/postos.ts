@@ -1,5 +1,6 @@
+import { gerarCodigoPosto } from '../domain/codigo-posto.ts';
 import {
-  ehIdentificadorValido, ErroDePosto, validarAlteracaoPosto, validarCadastroPosto,
+  ehIdentificadorValido, ErroCodigoPostoReservado, ErroDePosto, validarAlteracaoPosto, validarCadastroPosto,
   type AlteracaoPosto, type CadastroPosto, type Posto,
 } from '../domain/posto.ts';
 import type { PostoRepository } from './contracts.ts';
@@ -22,10 +23,12 @@ export class PostosService {
     const setor = await this.postos.buscarSetor(dados.setorId);
     if (!setor) throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor não encontrado.');
     if (!setor.ativo) throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor inativo não pode receber postos novos.');
-    if (await this.postos.buscarPorCodigo(dados.codigo)) {
-      throw new ErroDePosto('CONFLITO', 'Código de posto já cadastrado.');
+    for (let tentativa = 0; tentativa < 10; tentativa++) {
+      const codigo = gerarCodigoPosto(await this.postos.codigosReservados());
+      try { return await this.postos.criar({ ...dados, codigo }); }
+      catch (erro) { if (!(erro instanceof ErroCodigoPostoReservado)) throw erro; }
     }
-    return this.postos.criar(dados);
+    throw new ErroCodigoPostoReservado();
   }
 
   async alterar(id: string, input: AlteracaoPosto): Promise<Posto> {
@@ -38,10 +41,6 @@ export class PostosService {
       const setor = await this.postos.buscarSetor(dados.setorId);
       if (!setor) throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor não encontrado.');
       if (!setor.ativo) throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor inativo não pode receber postos.');
-    }
-    if (dados.codigo !== undefined) {
-      const outro = await this.postos.buscarPorCodigo(dados.codigo);
-      if (outro && outro.id !== id) throw new ErroDePosto('CONFLITO', 'Código de posto já cadastrado.');
     }
     const alterado = await this.postos.alterar(id, dados);
     // O posto pode ter sido removido entre a consulta e a gravação.
