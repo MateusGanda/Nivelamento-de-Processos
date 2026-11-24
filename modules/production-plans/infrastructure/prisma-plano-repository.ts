@@ -1,6 +1,6 @@
 import { db } from '../../../src/prisma/db.ts';
 import type { PlanoRepository } from '../application/contracts.ts';
-import type { AlteracaoPlano, DadosPlano, Plano } from '../domain/plano.ts';
+import type { AlteracaoPlano, NovoPlano, Plano } from '../domain/plano.ts';
 import { traduzirErroGravacaoPlano } from './persistence-errors.ts';
 
 type Linha = Omit<Plano, 'quantidadeOrdens'>;
@@ -25,12 +25,11 @@ export class PrismaPlanoRepository implements PlanoRepository {
     return plano ? mapear(plano, plano.ordensProducao) : null;
   }
 
-  async buscarPorCodigo(codigo: string): Promise<Plano | null> {
-    const plano = await comOrdens().where({ codigo }).first();
-    return plano ? mapear(plano, plano.ordensProducao) : null;
+  async codigosReservados(): Promise<string[]> {
+    return (await db.orm.public.PlanoProducao.select('codigo').all()).map((plano) => plano.codigo);
   }
 
-  async criar(dados: DadosPlano): Promise<Plano> {
+  async criar(dados: NovoPlano): Promise<Plano> {
     try {
       return mapear(await db.orm.public.PlanoProducao.create(dados), 0);
     } catch (erro) {

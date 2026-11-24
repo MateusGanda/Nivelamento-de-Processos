@@ -1,4 +1,4 @@
-import { ErroDePlano } from '../domain/plano.ts';
+import { ErroCodigoPlanoReservado } from '../domain/plano.ts';
 
 // Traduz a violação do código único que a consulta prévia não evita em pedidos simultâneos.
 export function traduzirErroGravacaoPlano(erro: unknown): never {
@@ -8,7 +8,7 @@ export function traduzirErroGravacaoPlano(erro: unknown): never {
     visitados.add(atual);
     const dados = atual as { sqlState?: unknown; code?: unknown; constraint?: unknown; cause?: unknown };
     if ((dados.sqlState ?? dados.code) === '23505' && dados.constraint === 'PlanoProducao_codigo_key') {
-      throw new ErroDePlano('CONFLITO', 'Código de plano já cadastrado.');
+      throw new ErroCodigoPlanoReservado();
     }
     atual = dados.cause;
   }

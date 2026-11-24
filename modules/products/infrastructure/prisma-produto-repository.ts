@@ -1,6 +1,6 @@
 import { db } from '../../../src/prisma/db.ts';
 import type { ProdutoRepository } from '../application/contracts.ts';
-import type { AlteracaoProduto, CadastroProduto, Produto } from '../domain/produto.ts';
+import type { AlteracaoProduto, NovoProduto, Produto } from '../domain/produto.ts';
 import { traduzirErroGravacaoProduto } from './persistence-errors.ts';
 
 function mapear(produto: Produto): Produto {
@@ -18,12 +18,11 @@ export class PrismaProdutoRepository implements ProdutoRepository {
     return produto ? mapear(produto) : null;
   }
 
-  async buscarPorCodigo(codigo: string): Promise<Produto | null> {
-    const produto = await db.orm.public.Produto.where({ codigo }).first();
-    return produto ? mapear(produto) : null;
+  async codigosReservados(): Promise<string[]> {
+    return (await db.orm.public.Produto.select('codigo').all()).map((registro) => registro.codigo);
   }
 
-  async criar(dados: CadastroProduto): Promise<Produto> {
+  async criar(dados: NovoProduto): Promise<Produto> {
     try {
       return mapear(await db.orm.public.Produto.create({ codigo: dados.codigo, nome: dados.nome, ativo: true }));
     } catch (erro) {

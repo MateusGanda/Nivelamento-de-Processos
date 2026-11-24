@@ -1,4 +1,4 @@
-import { ErroDePosto } from '../domain/posto.ts';
+import { ErroCodigoPostoReservado, ErroDePosto } from '../domain/posto.ts';
 
 // Traduz as violações do banco que a consulta prévia não evita em pedidos simultâneos.
 export function traduzirErroGravacaoPosto(erro: unknown): never {
@@ -9,7 +9,7 @@ export function traduzirErroGravacaoPosto(erro: unknown): never {
     const dados = atual as { sqlState?: unknown; code?: unknown; constraint?: unknown; cause?: unknown };
     const estado = dados.sqlState ?? dados.code;
     if (estado === '23505' && dados.constraint === 'Posto_codigo_key') {
-      throw new ErroDePosto('CONFLITO', 'Código de posto já cadastrado.');
+      throw new ErroCodigoPostoReservado();
     }
     if (estado === '23503' && dados.constraint === 'Posto_setorId_fkey') {
       throw new ErroDePosto('ENTRADA_INVALIDA', 'Setor não encontrado.');

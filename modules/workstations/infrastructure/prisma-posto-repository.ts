@@ -1,6 +1,6 @@
 import { db } from '../../../src/prisma/db.ts';
 import type { PostoRepository } from '../application/contracts.ts';
-import type { AlteracaoPosto, CadastroPosto, Posto } from '../domain/posto.ts';
+import type { AlteracaoPosto, NovoPosto, Posto } from '../domain/posto.ts';
 import { traduzirErroGravacaoPosto } from './persistence-errors.ts';
 
 type Linha = { id: string; codigo: string; nome: string; ativo: boolean; createdAt: string; updatedAt: string };
@@ -28,16 +28,15 @@ export class PrismaPostoRepository implements PostoRepository {
     return posto ? mapear(posto, posto.setor) : null;
   }
 
-  async buscarPorCodigo(codigo: string): Promise<Posto | null> {
-    const posto = await db.orm.public.Posto.where({ codigo }).include('setor', (setor) => setor.select('id', 'nome')).first();
-    return posto ? mapear(posto, posto.setor) : null;
+  async codigosReservados(): Promise<string[]> {
+    return (await db.orm.public.Posto.select('codigo').all()).map((registro) => registro.codigo);
   }
 
   async buscarSetor(id: string): Promise<{ id: string; nome: string; ativo: boolean } | null> {
     return db.orm.public.Setor.where({ id }).select('id', 'nome', 'ativo').first();
   }
 
-  async criar(dados: CadastroPosto): Promise<Posto> {
+  async criar(dados: NovoPosto): Promise<Posto> {
     try {
       const posto = await db.orm.public.Posto.create({ codigo: dados.codigo, nome: dados.nome, setorId: dados.setorId, ativo: true });
       const setor = await this.buscarSetor(dados.setorId);
