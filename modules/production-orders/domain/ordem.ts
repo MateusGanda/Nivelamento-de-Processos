@@ -14,8 +14,9 @@ export type Ordem = {
   updatedAt: string;
 };
 
-export type CadastroOrdem = { numero: string; planoId: string; produtoId: string; roteiroId: string; quantidade: number; unidade: string };
-export type AlteracaoOrdem = Partial<Pick<CadastroOrdem, 'numero' | 'planoId' | 'quantidade' | 'unidade'>>;
+export type CadastroOrdem = { planoId: string; produtoId: string; roteiroId: string; quantidade: number; unidade: string };
+export type NovaOrdem = CadastroOrdem & { numero: string };
+export type AlteracaoOrdem = Partial<Pick<CadastroOrdem, 'planoId' | 'quantidade' | 'unidade'>>;
 
 // Opções do formulário: produtos ativos com as versões de roteiro ligadas a eles.
 export type RoteiroDoProduto = { id: string; nome: string; versao: number; vigente: boolean; ativo: boolean; quantidadeEtapas: number };
@@ -45,12 +46,6 @@ export function ehIdentificadorValido(id: unknown): id is string {
 // O banco guarda numeric(12,2): até 9.999.999.999,99, com duas casas.
 const QUANTIDADE_MAXIMA = 9_999_999_999.99;
 
-function validarNumero(valor: unknown): string {
-  if (typeof valor !== 'string' || !valor.trim()) throw new ErroDeOrdem('ENTRADA_INVALIDA', 'Número da ordem é obrigatório.');
-  if (excedeLimite(valor.trim(), LIMITES_TEXTO.codigo)) throw new ErroDeOrdem('ENTRADA_INVALIDA', `Número da ordem deve ter no máximo ${LIMITES_TEXTO.codigo} caracteres.`);
-  return valor.trim();
-}
-
 function validarQuantidade(valor: unknown): number {
   if (typeof valor !== 'number' || !Number.isFinite(valor) || valor <= 0 || valor > QUANTIDADE_MAXIMA) {
     throw new ErroDeOrdem('ENTRADA_INVALIDA', 'A quantidade deve ser maior que zero.');
@@ -71,8 +66,8 @@ function validarId(valor: unknown, mensagem: string): string {
 }
 
 export function validarCadastroOrdem(input: CadastroOrdem): CadastroOrdem {
+  if ('numero' in input) throw new ErroDeOrdem('ENTRADA_INVALIDA', 'O número é gerado automaticamente e permanente.');
   return {
-    numero: validarNumero(input.numero),
     planoId: validarId(input.planoId, 'Selecione um plano de produção válido.'),
     produtoId: validarId(input.produtoId, 'Selecione um produto válido.'),
     roteiroId: validarId(input.roteiroId, 'Selecione uma versão de roteiro válida.'),
@@ -84,7 +79,7 @@ export function validarCadastroOrdem(input: CadastroOrdem): CadastroOrdem {
 // Só os campos enviados são alterados; produto e roteiro ficam fora porque a ordem congela a versão.
 export function validarAlteracaoOrdem(input: AlteracaoOrdem): AlteracaoOrdem {
   const dados: AlteracaoOrdem = {};
-  if (input.numero !== undefined) dados.numero = validarNumero(input.numero);
+  if ('numero' in input) throw new ErroDeOrdem('ENTRADA_INVALIDA', 'O número é gerado automaticamente e permanente.');
   if (input.planoId !== undefined) dados.planoId = validarId(input.planoId, 'Selecione um plano de produção válido.');
   if (input.quantidade !== undefined) dados.quantidade = validarQuantidade(input.quantidade);
   if (input.unidade !== undefined) dados.unidade = validarUnidade(input.unidade);
@@ -92,11 +87,6 @@ export function validarAlteracaoOrdem(input: AlteracaoOrdem): AlteracaoOrdem {
   return dados;
 }
 
-// Sugere o próximo número no formato OP-0001, a partir do maior já usado nesse formato.
-export function sugerirNumeroOrdem(numeros: readonly string[]): string {
-  const maior = numeros.reduce((atual, numero) => {
-    const encontrado = /^OP-(\d+)$/.exec(numero);
-    return encontrado ? Math.max(atual, Number(encontrado[1])) : atual;
-  }, 0);
-  return `OP-${String(maior + 1).padStart(4, '0')}`;
+export class ErroNumeroOrdemReservado extends ErroDeOrdem {
+  constructor() { super('CONFLITO', 'Não foi possível reservar um número para a ordem. Tente novamente.'); }
 }

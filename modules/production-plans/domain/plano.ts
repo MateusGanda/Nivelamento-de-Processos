@@ -12,8 +12,9 @@ export type Plano = {
   updatedAt: string;
 };
 
-export type DadosPlano = { codigo: string; descricao: string | null; dataInicio: string | null; dataFim: string | null };
-export type CadastroPlano = { codigo: string; descricao?: string | null; dataInicio?: string | null; dataFim?: string | null };
+export type DadosPlano = { descricao: string | null; dataInicio: string | null; dataFim: string | null };
+export type CadastroPlano = { descricao?: string | null; dataInicio?: string | null; dataFim?: string | null };
+export type NovoPlano = DadosPlano & { codigo: string };
 export type AlteracaoPlano = Partial<DadosPlano>;
 
 export type CodigoErroPlano = 'ENTRADA_INVALIDA' | 'NAO_ENCONTRADO' | 'CONFLITO';
@@ -28,10 +29,8 @@ export class ErroDePlano extends Error {
   }
 }
 
-function validarCodigo(valor: unknown): string {
-  if (typeof valor !== 'string' || !valor.trim()) throw new ErroDePlano('ENTRADA_INVALIDA', 'Código é obrigatório.');
-  if (excedeLimite(valor.trim(), LIMITES_TEXTO.codigo)) throw new ErroDePlano('ENTRADA_INVALIDA', `Código deve ter no máximo ${LIMITES_TEXTO.codigo} caracteres.`);
-  return valor.trim();
+export class ErroCodigoPlanoReservado extends ErroDePlano {
+  constructor() { super('CONFLITO', 'Não foi possível reservar o código. Tente novamente.'); }
 }
 
 function validarDescricao(valor: unknown): string | null {
@@ -63,8 +62,8 @@ export function validarPeriodo(dataInicio: string | null, dataFim: string | null
 }
 
 export function validarCadastroPlano(input: CadastroPlano): DadosPlano {
+  if ('codigo' in input) throw new ErroDePlano('ENTRADA_INVALIDA', 'O código é gerado automaticamente e permanente.');
   const dados = {
-    codigo: validarCodigo(input.codigo),
     descricao: validarDescricao(input.descricao),
     dataInicio: validarData(input.dataInicio, 'Data de início'),
     dataFim: validarData(input.dataFim, 'Data de fim'),
@@ -75,8 +74,8 @@ export function validarCadastroPlano(input: CadastroPlano): DadosPlano {
 
 // Só os campos enviados são alterados; o período é conferido no serviço junto com os valores atuais.
 export function validarAlteracaoPlano(input: AlteracaoPlano): AlteracaoPlano {
+  if ('codigo' in input) throw new ErroDePlano('ENTRADA_INVALIDA', 'O código é gerado automaticamente e permanente.');
   const dados: AlteracaoPlano = {};
-  if (input.codigo !== undefined) dados.codigo = validarCodigo(input.codigo);
   if (input.descricao !== undefined) dados.descricao = validarDescricao(input.descricao);
   if (input.dataInicio !== undefined) dados.dataInicio = validarData(input.dataInicio, 'Data de início');
   if (input.dataFim !== undefined) dados.dataFim = validarData(input.dataFim, 'Data de fim');
