@@ -11,6 +11,8 @@
 import 'dotenv/config';
 import postgres from '@prisma/orm-postgres/runtime';
 import type { Numeric } from '@prisma/orm-postgres/target/codec-types';
+import { gerarCodigoPlano } from '../modules/production-plans/domain/codigo-plano.ts';
+import { gerarNumeroOrdem } from '../modules/production-orders/domain/numero-ordem.ts';
 import { gerarMatriculaOperador } from '../modules/operators/domain/matricula.ts';
 import type { Contract } from '../src/prisma/contract.d';
 import contractJson from '../src/prisma/contract.json' with { type: 'json' };
@@ -184,7 +186,7 @@ try {
   const [setores, postos, operacoes, produtos, roteiros, motivos, operadores, planos, ordens] = await Promise.all([
     o.Setor.select('id', 'codigo').all(), o.Posto.select('id', 'codigo', 'nome').all(), o.Operacao.select('id', 'nome').all(),
     o.Produto.select('id', 'codigo', 'nome').all(), o.Roteiro.select('id', 'nome', 'versao', 'ativo').all(), o.MotivoPausa.select('id', 'nome', 'ativo').all(),
-    o.Operador.select('id', 'matricula', 'nome', 'ativo').all(), o.PlanoProducao.select('id', 'codigo').all(), o.OrdemProducao.select('id', 'numero', 'planoProducaoId').all(),
+    o.Operador.select('id', 'matricula', 'nome', 'ativo').all(), o.PlanoProducao.select('id', 'codigo', 'descricao').all(), o.OrdemProducao.select('id', 'numero', 'planoProducaoId').all(),
   ]);
   const porCampo = <T extends Record<string, unknown>>(lista: T[], campo: keyof T) => new Map(lista.map((r) => [r[campo] as string, r]));
   const setor = porCampo(setores, 'codigo'); const posto = porCampo(postos, 'codigo');
@@ -199,10 +201,16 @@ try {
     ...['Calçado fechado', 'Calçado leve', ROTEIRO_DE_TESTE].filter((n) => !roteiro(n)).map((n) => `roteiro ${n}`),
     ...[...MOTIVOS_PESPONTO, ...MOTIVOS_GERAIS].map(([m]) => m).filter((m) => !motivo.get(m)?.ativo).map((m) => `motivo ativo ${m}`),
   ];
+  const codigoPlano = gerarCodigoPlano(planos.map((p) => p.codigo));
+  const numerosReservados = ordens.map((o) => o.numero);
+  const numeroPorAlias = new Map<string, string>();
+  for (const ordem of ORDENS) {
+    const numero = gerarNumeroOrdem(numerosReservados);
+    numerosReservados.push(numero);
+    numeroPorAlias.set(ordem.numero, numero);
+  }
   const conflitos = [
-    ...planos.filter((p) => p.codigo === PLANO.codigo).map((p) => `plano ${p.codigo}`),
-    // As ordens de teste com o mesmo número são apagadas antes de criar as novas.
-    ...ordens.filter((x) => ORDENS.some((y) => y.numero === x.numero) && !ORDENS_DE_TESTE.includes(x.numero)).map((x) => `ordem ${x.numero}`),
+    ...planos.filter((p) => p.codigo === PLANO.codigo || p.descricao === PLANO.descricao).map((p) => `plano ${p.codigo}`),
     ...operadores.filter((x) => OPERADORES.some((y) => y.nome === x.nome)).map((x) => `operador ${x.nome}`),
   ];
   // Testes antigos: ou estão todos, exatamente como esperado, ou já foram apagados.
@@ -255,13 +263,13 @@ try {
     console.log(`  ${PRODUTO_RENOMEADO.codigo}: "${produto.get('PRD-001')!.nome}" → "${PRODUTO_RENOMEADO.nome}", roteiro vigente "${PRODUTO_RENOMEADO.roteiro}"`);
     console.log(`  roteiro "${ROTEIRO_DE_TESTE}" inativado; operador ${OPERADOR_DE_TESTE} inativado`);
     for (const [c, n] of Object.entries(NOMES_DOS_POSTOS)) console.log(`  posto ${c}: "${posto.get(c)!.nome}" → "${n}"`);
-    console.log(`\nNovos: ${OPERADORES.length} operadores, plano ${PLANO.codigo}, ${ORDENS.length} ordens e ${apontamentos.length} execuções finalizadas por baixa, com ${apontamentos.reduce((s, a) => s + a.pausas.length, 0)} pausas.`);
+    console.log(`\nNovos: ${OPERADORES.length} operadores, plano ${codigoPlano}, ${ORDENS.length} ordens e ${apontamentos.length} execuções finalizadas por baixa, com ${apontamentos.reduce((s, a) => s + a.pausas.length, 0)} pausas.`);
     console.log('\nSituação final das ordens:');
     for (const ordem of ORDENS) {
       const etapas = etapasDoProduto.get(ordem.produto)!;
       const feitas = apontamentos.filter((a) => a.ordem === ordem.numero);
       const ultima = feitas.at(-1);
-      console.log(`  ${ordem.numero} ${ordem.produto} ${ordem.quantidade} pares: ${feitas.length} de ${etapas.length} etapas${feitas.length < etapas.length ? ` · aguardando ${etapas[feitas.length].operacao}` : ' · concluída'}${ultima ? ` · última baixa ${hora(ultima.fim)}` : ''}`);
+      console.log(`  ${numeroPorAlias.get(ordem.numero)} ${ordem.produto} ${ordem.quantidade} pares: ${feitas.length} de ${etapas.length} etapas${feitas.length < etapas.length ? ` · aguardando ${etapas[feitas.length].operacao}` : ' · concluída'}${ultima ? ` · última baixa ${hora(ultima.fim)}` : ''}`);
     }
     const porOperacao = new Map<string, { real: number; padrao: number }>();
     for (const a of apontamentos) {
@@ -312,12 +320,12 @@ try {
           reservadas.push(matricula);
           idOperador.set(op.nome, (await t.Operador.create({ nome: op.nome, matricula, funcao: op.funcao, setorPrincipalId: setor.get(op.setor)!.id, ativo: true, createdAt: cadastro, updatedAt: cadastro })).id);
         }
-        const plano = await t.PlanoProducao.create({ ...PLANO, createdAt: cadastro, updatedAt: cadastro });
+        const plano = await t.PlanoProducao.create({ ...PLANO, codigo: codigoPlano, createdAt: cadastro, updatedAt: cadastro });
         const idOrdem = new Map<string, string>();
         for (const ordem of ORDENS) {
           const criada = iso(instante(ordem.liberacao, '06:45'));
           idOrdem.set(ordem.numero, (await t.OrdemProducao.create({
-            numero: ordem.numero, planoProducaoId: plano.id, produtoId: produto.get(ordem.produto)!.id, roteiroId: roteiroDoProduto[ordem.produto].id,
+            numero: numeroPorAlias.get(ordem.numero)!, planoProducaoId: plano.id, produtoId: produto.get(ordem.produto)!.id, roteiroId: roteiroDoProduto[ordem.produto].id,
             quantidade: quantidade(ordem.quantidade), unidade: 'par', createdAt: criada, updatedAt: criada,
           })).id);
         }
