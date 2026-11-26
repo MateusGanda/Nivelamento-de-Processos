@@ -1,26 +1,48 @@
-# GUNP — Gerenciamento de Nivelamento de Processos
+# GUNP — Sistema de Gerenciamento e Controle de Processos
 
-Sistema web para registrar a produção e os tempos de cada etapa de uma linha de produção e apoiar o gestor no nivelamento dos processos. É o Trabalho de Conclusão de Curso de Ciência da Computação da UNIP, desenvolvido por Mateus Minoru Ganda, Arthur Álvaro Silva Garcia e Luis Gustavo Nunes dos Santos.
+Sistema web para registrar a produção e os tempos de cada etapa de uma linha de produção e apoiar o gestor no controle e no nivelamento dos processos. É o Trabalho de Conclusão de Curso de Ciência da Computação da UNIP, *Desenvolvimento de um Sistema Web para Gerenciamento e Controle de Processos em Linhas de Produção*, de Mateus Minoru Ganda, Arthur Álvaro Silva Garcia e Luis Gustavo Nunes dos Santos, com orientação do Prof. Me. Aldriano José da Silva.
 
-O sistema está em desenvolvimento. A versão da branch `develop` fica publicada em <https://nivelamento-de-processos.vercel.app>.
+A versão da branch `develop` fica publicada em <https://nivelamento-de-processos.vercel.app>.
 
-## Situação do código em 02/11/2026
+## Onde está o TCC
+
+| Documento | Arquivo |
+| --- | --- |
+| Texto do TCC (PDF) | [`docs/tcc/TCC_Nivelamento_de_Processos.pdf`](docs/tcc/TCC_Nivelamento_de_Processos.pdf) |
+| Texto do TCC (Word) | [`docs/tcc/TCC_Nivelamento_de_Processos.docx`](docs/tcc/TCC_Nivelamento_de_Processos.docx) |
+| Manual de utilização (PDF e Word) | [`docs/manual`](docs/manual) |
+| Fluxograma geral do sistema | [`docs/domain/fluxograma-geral.png`](docs/domain/fluxograma-geral.png) |
+| Fluxograma da execução na ilha | [`docs/domain/fluxograma-execucao-ilha.png`](docs/domain/fluxograma-execucao-ilha.png) |
+
+Os arquivos do TCC mantêm o nome do título original, *Nivelamento de Processos*, que é também o nome do repositório; por sugestão da banca, o título passou a ser *Gerenciamento e Controle de Processos*.
+
+## Como o sistema funciona
+
+![Fluxograma geral do GUNP: planejamento no painel, execução na ilha e acompanhamento](docs/domain/fluxograma-geral.png)
+
+1. **Planejamento (gestor, no painel):** cadastros de setores, postos, operações, operadores e motivos de pausa; produtos com roteiro versionado; em cada etapa do roteiro, uma operação (o que se faz) e os postos habilitados (onde se faz); tempo padrão por produto e etapa; planos de produção, cuja data de fim é o prazo das ordens; ordens de produção com ficha impressa e QR Code.
+2. **Execução (operador, na ilha):** o crachá identifica o operador e a ficha seleciona a ordem; o operador escolhe a etapa e o posto e registra início, pausas com motivo, retomadas e o fim da execução, que pode ser troca de operação, encerramento parcial (fim de turno, a etapa fica pendente) ou baixa (conclui a etapa).
+3. **Acompanhamento e análise:** execuções abertas no painel, painel de gestão à vista nas TVs e indicadores de tempos, produção, carga por posto, etapas pendentes e ordens atrasadas.
+
+O fluxo detalhado da ilha está no [fluxograma da execução](docs/domain/fluxograma-execucao-ilha.png).
+
+## Situação do código em 26/11/2026
 
 Implementado no repositório:
 
 - login com matrícula e senha, e API de usuários administrativos;
-- painel administrativo com menu lateral;
+- painel administrativo com menu lateral, temas claro e escuro, listas paginadas e ações de cada registro reunidas em um menu;
 - cadastros de Produtos, Operações, Setores, Postos, Operadores e Motivos de Pausa, com criação, listagem, edição e ativação/inativação;
-- Setores com código automático e Operadores com matrícula automática, setor principal e função;
-- Roteiros versionados com etapas, postos compatíveis, produtos, vigência e tempos padrão;
-- Planos e Ordens de Produção, com a versão do roteiro gravada em cada ordem;
-- ilha de apontamento em `/ilha`, liberada por chave do terminal, com identificação do operador pela matrícula, início, pausa com motivo, retomada, troca de operação e baixa com as quantidades boa, de retrabalho e de refugo;
-- tela de Indicadores, com posição das ordens, série por dia, qualidade, tempos por posto, tempo padrão e carga pendente, exportação em planilha e impressão;
+- códigos automáticos e permanentes: produtos (`PRD-0001`), postos, setores, planos (`PLN-0001`), ordens (`OP-0001`) e matrícula dos operadores, preservando os códigos antigos;
+- Roteiros versionados com etapas, postos habilitados, produtos, vigência e tempos padrão;
+- Planos e Ordens de Produção, com a versão do roteiro gravada em cada ordem, ficha impressa com QR Code e crachá do operador;
+- ilha de apontamento em `/ilha`, liberada por chave do terminal (que o administrador troca no painel), com identificação pelo crachá ou pela matrícula, início, pausa com motivo, retomada, troca de operação, encerramento parcial no fim do turno e baixa com as quantidades boa, de retrabalho e de refugo;
+- acompanhamento das execuções abertas, com os avisos "acima do previsto" e "iniciada em outro dia";
+- painel de gestão à vista para TVs, com cadastro dos aparelhos e monitoramento da conexão;
+- tela de Indicadores, com posição das ordens (e ordens atrasadas pelo prazo do plano), etapas pendentes com apontamento parcial, série por dia, qualidade, tempos por posto, tempo padrão e carga pendente, exportação em planilha e impressão;
 - banco de dados com 16 tabelas, criado por migrações.
 
-O item Execução do menu abre a ilha em uma nova aba. Ainda pendentes: o teste da identificação com um leitor de código físico; e a definição do tempo que a ilha espera, sem uso, antes de limpar a identificação do operador.
-
-O [mapeamento dos cadastros](docs/design/CADASTROS_GUNP.md) descreve o que cada tela tem e o que precisa detalhar. Produtos, Postos e Planos ainda pedem o código digitado, e a Ordem sugere o próximo número; a diretriz para as próximas entregas é manter [identificadores automáticos e permanentes](specs/contratos/identificadores-cadastros.md), com contrato específico e preservação dos legados, uma tela por vez. O acompanhamento das fases está em [`docs/plan/ROADMAP_GUNP.md`](docs/plan/ROADMAP_GUNP.md).
+O acompanhamento das fases está em [`docs/plan/ROADMAP_GUNP.md`](docs/plan/ROADMAP_GUNP.md).
 
 ## Tecnologias
 
@@ -139,12 +161,13 @@ As regras de cada camada estão em [`docs/architecture/ARCHITECTURE.md`](docs/ar
 - [`docs/domain/diagrama-er.drawio.png`](docs/domain/diagrama-er.drawio.png): diagrama entidade-relacionamento do banco de dados
 - [`docs/domain/diagrama-de-classes.drawio.png`](docs/domain/diagrama-de-classes.drawio.png): diagrama de classes
 - [`docs/domain/diagrama-de-casos-de-uso.drawio.png`](docs/domain/diagrama-de-casos-de-uso.drawio.png): diagrama de casos de uso
+- [`docs/domain/fluxograma-geral.png`](docs/domain/fluxograma-geral.png) e [`docs/domain/fluxograma-execucao-ilha.png`](docs/domain/fluxograma-execucao-ilha.png): fluxogramas do sistema e da execução na ilha
 - [`docs/technology/TECHNOLOGY.md`](docs/technology/TECHNOLOGY.md): tecnologias e padrões
 - [`docs/design/CADASTROS_GUNP.md`](docs/design/CADASTROS_GUNP.md): telas existentes, lacunas e fila sugerida de detalhamento
 - [`specs/contratos/identificadores-cadastros.md`](specs/contratos/identificadores-cadastros.md): padrão de geração automática dos próximos cadastros
 - [`specs/contratos/operadores-setores.md`](specs/contratos/operadores-setores.md): formatos e regras já implementados de matrícula e código de setor
 - [`specs/contratos/indicadores.md`](specs/contratos/indicadores.md): contrato da consulta de indicadores
-- [`docs/tcc`](docs/tcc): texto do TCC
+- [`docs/tcc`](docs/tcc): texto do TCC, em PDF e Word
 - [`docs/manual`](docs/manual): manual de utilização do sistema, em PDF e Word
 - [`AGENTS.md`](AGENTS.md): regras para o uso de ferramentas de IA no projeto
 

@@ -27,7 +27,7 @@ export function BrandGunp({ compacta = false, variante = 'padrao' }: { compacta?
       <span className={tamanhoNome}>GUNP</span>
       {!compacta && (
         <p className={`${variante === 'login' ? 'mt-2 leading-4' : 'mt-4 leading-5'} max-w-72 text-xs font-medium tracking-[0.13em] text-muted uppercase`}>
-          Gerenciamento de Nivelamento<br />de Processos
+          Gerenciamento e Controle<br />de Processos
         </p>
       )}
     </div>

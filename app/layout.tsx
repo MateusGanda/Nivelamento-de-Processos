@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: { default: "GUNP", template: "%s | GUNP" },
-  description: "Gerenciamento de Nivelamento de Processos: cadastros, execuções e acompanhamento da produção.",
+  description: "Gerenciamento e Controle de Processos: cadastros, execuções e acompanhamento da produção.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
