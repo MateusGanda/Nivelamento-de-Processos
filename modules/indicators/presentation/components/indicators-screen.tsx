@@ -290,9 +290,9 @@ export function IndicatorsScreen() {
             )}
           </Secao>
 
-          <Secao id="indicadores-parciais" titulo="Etapas pendentes com apontamento parcial" tipo="agora" descricao="Etapas que não foram concluídas no turno: o operador encerrou o turno informando o que fez, e a etapa ficou pendente. Mostra quanto já foi apontado, quanto falta e há quanto tempo a etapa está em aberto.">
+          <Secao id="indicadores-parciais" titulo="Etapas pendentes com apontamento parcial" tipo="agora" descricao="Etapas que não foram concluídas no turno: o operador encerrou o turno informando o que fez, e a etapa ficou pendente. Mostra quanto já foi apontado, quanto falta, o motivo do último encerramento e há quanto tempo a etapa está em aberto.">
             {dados.etapasParciais.length === 0 ? <Vazio>Nenhuma etapa pendente com apontamento parcial.</Vazio> : (
-              <Tabela {...opcoesTabela} itens={dados.etapasParciais} legenda="Etapas pendentes com apontamento parcial" cabecalho={[{ titulo: 'Ordem' }, { titulo: 'Etapa' }, { titulo: 'Apontado', direita: true }, { titulo: 'Falta', direita: true }, { titulo: 'Turnos', direita: true }, { titulo: 'Em aberto desde' }, { titulo: 'Situação' }]}>
+              <Tabela {...opcoesTabela} itens={dados.etapasParciais} legenda="Etapas pendentes com apontamento parcial" cabecalho={[{ titulo: 'Ordem' }, { titulo: 'Etapa' }, { titulo: 'Apontado', direita: true }, { titulo: 'Falta', direita: true }, { titulo: 'Turnos', direita: true }, { titulo: 'Último motivo' }, { titulo: 'Em aberto desde' }, { titulo: 'Situação' }]}>
                 {(etapa) => (
                   <tr key={etapa.ordemId + etapa.etapaRoteiroId}>
                     <td className={`${celula} font-medium`}>{etapa.numero}<span className="block text-xs font-normal text-muted">{etapa.produtoCodigo} – {etapa.produtoNome}</span></td>
@@ -302,6 +302,7 @@ export function IndicatorsScreen() {
                       <span className="block text-xs text-muted">{etapa.percentualApontado.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}% · boa {etapa.quantidadeBoa.toLocaleString('pt-BR')}, retrabalho {etapa.quantidadeRetrabalho.toLocaleString('pt-BR')}, refugo {etapa.quantidadeRefugo.toLocaleString('pt-BR')}</span></td>
                     <td className={numero}>{formatarQuantidade(etapa.quantidadeQueFalta, etapa.unidade)}</td>
                     <td className={numero}>{etapa.encerramentosParciais}</td>
+                    <td className={celula}>{etapa.motivoUltimoEncerramento ?? 'Fim do turno'}</td>
                     <td className={`${celula} whitespace-nowrap text-muted`}>{formatarInstante(etapa.inicioEm)}</td>
                     <td className={celula}>{etapa.emExecucao ? 'Em execução' : 'Aguardando o próximo turno'}</td>
                   </tr>

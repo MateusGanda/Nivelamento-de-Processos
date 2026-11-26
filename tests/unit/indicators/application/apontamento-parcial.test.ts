@@ -29,7 +29,7 @@ test('PARC-01: etapa com encerramento parcial fica pendente, com o apontado, o q
     quantidadeBoa: 15, quantidadeRetrabalho: 1, quantidadeRefugo: 1, quantidadeApontada: 17, quantidadeQueFalta: 7,
     percentualApontado: (17 / 24) * 100, encerramentosParciais: 2,
     inicioEm: new Date(instante('05', '08:00')).toISOString(), ultimoEncerramentoEm: new Date(instante('06', '08:30')).toISOString(),
-    emExecucao: false,
+    motivoUltimoEncerramento: null, emExecucao: false,
   }]);
   assert.equal(ordens.find((o) => o.numero === '0002')?.etapaAtual?.quantidadeApontada, 17);
   // Carga pendente do corte: só os 7 que faltam da 0002 mais a 0004 (baixa inconsistente conta inteira).
@@ -72,4 +72,16 @@ test('PARC-04: baixa que, somada aos turnos, passa da quantidade da ordem é inc
   // Turnos que já completam a ordem sem baixa não são aceitos pela ilha; nos indicadores, viram inconsistência.
   assert.equal(identificarBaixa(24, [{ ...turnos[0], quantidadeBoa: 24 }]).situacao, 'INCONSISTENTE');
   assert.deepEqual(identificarBaixa(24, turnos), { situacao: 'SEM_BAIXA', resultado: null, apontado: { quantidadeBoa: 17, quantidadeRetrabalho: 0, quantidadeRefugo: 0 } });
+});
+
+test('PARC-05: o motivo do último encerramento aparece na etapa pendente; sem motivo, é o fim do turno', async () => {
+  const dados = comParciais();
+  // O turno do dia 06 terminou por falta de material: o motivo fica no evento FINALIZACAO.
+  const execucoes = dados.execucoes.map((e) => e.id !== 'p2' ? e : { ...e, eventos: [evento('INICIO', '06', '08:00'), evento('FINALIZACAO', '06', '08:30', 'motivo-falta')] });
+  const { etapasParciais } = await consultar({ ...dados, execucoes });
+  assert.equal(etapasParciais[0].motivoUltimoEncerramento, 'Falta de material');
+  // Os tempos continuam iguais: o motivo da finalização não vira pausa.
+  const { tempos } = await consultar({ ...dados, execucoes });
+  const semMotivo = await consultar(dados);
+  assert.deepEqual(tempos, semMotivo.tempos);
 });

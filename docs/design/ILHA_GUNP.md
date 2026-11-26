@@ -80,7 +80,8 @@ Pedido da banca: quando o operador não termina a etapa no turno, a etapa precis
 - A execução é finalizada com o tipo `ENCERRAMENTO_PARCIAL`; o operador fica livre e a confirmação mostra quanto falta.
 - Na escolha da etapa, a etapa pendente mostra "Pendente: X de Y já apontados". Ao continuar, a tela da execução mostra o que foi apontado nos turnos anteriores e o que falta, e a baixa pede só o restante.
 - No painel, o acompanhamento mostra "X de Y apontados" e calcula o "Acima do previsto" sobre o que falta; a TV mostra X/Y no quadro do posto; os indicadores têm a seção "Etapas pendentes com apontamento parcial" e contam a produção de cada turno no dia em que foi feita.
-- Rota nova: `POST /api/ilha/execucoes/[id]/encerramento` (`{ matricula, quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo }`), com as mesmas respostas da baixa.
+- Rota nova: `POST /api/ilha/execucoes/[id]/encerramento` (`{ matricula, quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo, motivoId? }`), com as mesmas respostas da baixa.
+- Motivo do encerramento (26/11/2026, sugestão do Gustavo): o formulário mostra "Fim do turno", já marcado, e os motivos de pausa ativos. Sem motivo, vale o fim do turno; com motivo, ele é gravado no evento `FINALIZACAO` da execução (`EventoTempo.motivoPausaId`), sem mudança no banco. Os indicadores mostram o motivo do último encerramento de cada etapa pendente.
 
 ## Arquivos principais
 

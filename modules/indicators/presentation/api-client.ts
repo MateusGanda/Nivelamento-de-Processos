@@ -35,6 +35,7 @@ const etapaParcial = (e: Registro) => texto(e.ordemId) && texto(e.numero) && tex
   Number.isInteger(e.ordem) && texto(e.operacaoNome) && numero(e.quantidade) && texto(e.unidade) && numero(e.quantidadeBoa) && numero(e.quantidadeRetrabalho) &&
   numero(e.quantidadeRefugo) && numero(e.quantidadeApontada) && numero(e.quantidadeQueFalta) && numero(e.percentualApontado) &&
   Number.isInteger(e.encerramentosParciais) && (e.inicioEm === null || instante(e.inicioEm)) && (e.ultimoEncerramentoEm === null || instante(e.ultimoEncerramentoEm)) &&
+  (e.motivoUltimoEncerramento === null || texto(e.motivoUltimoEncerramento)) &&
   typeof e.emExecucao === 'boolean';
 const producao = (p: Registro) => texto(p.produtoCodigo) && texto(p.etapaRoteiroId) && Number.isInteger(p.ordem) && texto(p.operacaoNome) &&
   typeof p.ultimaEtapa === 'boolean' && texto(p.unidade) && Number.isInteger(p.ordensBaixadas) && Number.isInteger(p.encerramentosParciais) &&

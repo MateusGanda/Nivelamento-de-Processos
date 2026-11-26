@@ -84,7 +84,9 @@ export const pausarExecucao = (matricula: string, id: string, motivoId: string) 
 export const retomarExecucao = (matricula: string, id: string) => operador(post(rotaExecucao(id, 'retomada'), { matricula }));
 export const trocarOperacao = (matricula: string, id: string, destino: Destino) => operador(post(rotaExecucao(id, 'troca'), { matricula, ...destino }));
 export const darBaixa = (matricula: string, id: string, baixa: Baixa) => operador(post(rotaExecucao(id, 'baixa'), { matricula, ...baixa }));
-export const encerrarTurno = (matricula: string, id: string, quantidades: Baixa) => operador(post(rotaExecucao(id, 'encerramento'), { matricula, ...quantidades }));
+// Sem motivo, vale o fim do turno.
+export const encerrarTurno = (matricula: string, id: string, quantidades: Baixa, motivoId: string | null = null) =>
+  operador(post(rotaExecucao(id, 'encerramento'), motivoId ? { matricula, ...quantidades, motivoId } : { matricula, ...quantidades }));
 
 export async function listarOrdensDisponiveis(signal?: AbortSignal): Promise<OrdemDisponivel[]> {
   const ordens = await lerResposta(await get('/api/ilha/ordens', signal));

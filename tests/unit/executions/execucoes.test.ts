@@ -96,14 +96,14 @@ class RepositorioEmMemoria implements ExecucaoRepository {
     e.eventos.push({ tipo: 'FINALIZACAO', dataHora: agora, motivoId: null });
     return this.abrir(operadorId, destino, agora);
   }
-  async encerrarParcial(id: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string) {
+  async encerrarParcial(id: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string, motivoId: string | null) {
     const atual = this.execucoes.find((item) => item.id === id);
     if (!atual) return false;
     const dados = quantidades(this.apontadoNaEtapa(atual.destino));
     const e = this.mudar(id, 'EM_EXECUCAO', 'FINALIZADA');
     if (!e) return false;
     Object.assign(e, { tipoFinalizacao: 'ENCERRAMENTO_PARCIAL', baixa: dados });
-    e.eventos.push({ tipo: 'FINALIZACAO', dataHora: agora, motivoId: null });
+    e.eventos.push({ tipo: 'FINALIZACAO', dataHora: agora, motivoId });
     return true;
   }
   async baixar(id: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string) {
@@ -403,4 +403,27 @@ test('ilha: encerramento parcial pela API responde 200 e recusa campos extras', 
   const resposta = await handlers.ENCERRAMENTO_POST(pedido('/x', 'POST', { matricula: 'AS-MON1', ...baixaDe(5) }, cookie), id);
   assert.equal(resposta.status, 200);
   assert.equal((await resposta.json()).execucaoAberta, null);
+});
+
+test('encerramento parcial: motivo opcional; sem ele é o fim do turno, com ele precisa ser um motivo ativo', async () => {
+  const { service, repositorio } = novoServico();
+  const primeiro = (await service.iniciar('AS-MON1', destino())).execucaoAberta!.id;
+  await service.encerrarParcial('AS-MON1', primeiro, baixaDe(5));
+  assert.equal(repositorio.execucoes.find((e) => e.id === primeiro)!.eventos.at(-1)!.motivoId, null);
+  const segundo = (await service.iniciar('AS-MON1', destino())).execucaoAberta!.id;
+  await assert.rejects(() => service.encerrarParcial('AS-MON1', segundo, baixaDe(5), MOTIVO_INATIVO), erroCom('ENTRADA_INVALIDA', /inativo/));
+  await assert.rejects(() => service.encerrarParcial('AS-MON1', segundo, baixaDe(5), 'falta'), erroCom('ENTRADA_INVALIDA', /motivo válido/));
+  await service.encerrarParcial('AS-MON1', segundo, baixaDe(5), MOTIVO);
+  const evento = repositorio.execucoes.find((e) => e.id === segundo)!.eventos.at(-1)!;
+  assert.deepEqual([evento.tipo, evento.motivoId], ['FINALIZACAO', MOTIVO]);
+});
+
+test('ilha: encerramento pela API aceita o motivo opcional', async () => {
+  const { service } = novoServico();
+  const id = (await service.iniciar('AS-MON1', destino())).execucaoAberta!.id;
+  const chave = criarChaveIlha(CHAVE);
+  const handlers = criarHandlersIlha({ chave: () => chave, execucoes: service, esperarAposErro: async () => {} });
+  const cookie = `${COOKIE_ILHA}=${chave.credencial()}`;
+  const resposta = await handlers.ENCERRAMENTO_POST(pedido('/x', 'POST', { matricula: 'AS-MON1', ...baixaDe(5), motivoId: MOTIVO }, cookie), id);
+  assert.equal(resposta.status, 200);
 });

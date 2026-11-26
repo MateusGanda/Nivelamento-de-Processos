@@ -15,6 +15,7 @@ import { consultarSituacaoOperador, exigeAtualizacaoSituacao, type Identificacao
 import { avaliarLimpeza, CONFIRMACAO_MS } from '../limpeza-ilha';
 import { IlhaDestino } from './ilha-destino';
 import { IlhaPausa } from './ilha-pausa';
+import { IlhaMotivoEncerramento } from './ilha-motivo-encerramento';
 
 type Modo = null | 'iniciar' | 'trocar' | 'pausar' | 'baixa' | 'encerrar';
 type EstadoBloqueio = null | 'enviando' | 'falhou' | 'concluido';
@@ -53,6 +54,8 @@ export function IlhaScreen() {
   const [erro, setErro] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [baixa, setBaixa] = useState({ boa: '', retrabalho: '', refugo: '' });
+  // Motivo do encerramento do turno; null = fim do turno.
+  const [motivoEncerramento, setMotivoEncerramento] = useState<string | null>(null);
   // Saída automática: instante da última interação, instante do último registro concluído,
   // segundos que faltam na contagem exibida e aviso de limpeza por falta de uso.
   const ultimaInteracao = useRef(0);
@@ -337,7 +340,7 @@ export function IlhaScreen() {
                       <>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('pausar'); setErro(''); setMensagem(''); }} className={`${botaoGrande} bg-warning-fill text-on-warning hover:bg-warning-fill-hover`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Pausar</button>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('trocar'); setErro(''); }} className={`${botaoGrande} border border-line hover:border-accent`}><Repeat aria-hidden="true" size={22} strokeWidth={2} />Trocar operação</button>
-                        <button type="button" disabled={ocupado} onClick={() => { setModo('encerrar'); setBaixa({ boa: '', retrabalho: '', refugo: '' }); setErro(''); }} className={`${botaoGrande} border border-line hover:border-accent`}><CalendarClock aria-hidden="true" size={22} strokeWidth={2} />Encerrar turno</button>
+                        <button type="button" disabled={ocupado} onClick={() => { setModo('encerrar'); setBaixa({ boa: '', retrabalho: '', refugo: '' }); setMotivoEncerramento(null); setErro(''); }} className={`${botaoGrande} border border-line hover:border-accent`}><CalendarClock aria-hidden="true" size={22} strokeWidth={2} />Encerrar turno</button>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('baixa'); setBaixa({ boa: '', retrabalho: '', refugo: '' }); setErro(''); }} className={`${botaoGrande} bg-accent text-on-accent hover:bg-accent-hover`}><Square aria-hidden="true" size={22} strokeWidth={2} />Finalizar e dar baixa</button>
                       </>
                     )}
@@ -354,7 +357,7 @@ export function IlhaScreen() {
                     event.preventDefault();
                     if (!somaCerta) return;
                     const informado = { quantidadeBoa: quantidades.boa!, quantidadeRetrabalho: quantidades.retrabalho!, quantidadeRefugo: quantidades.refugo! };
-                    if (modo === 'encerrar') void executar(() => encerrarTurno(operador.matricula, execucao.id, informado), `Turno encerrado. A etapa continua pendente: faltam ${numero(Math.round((falta - (soma ?? 0)) * 100) / 100)} ${unidade}.`);
+                    if (modo === 'encerrar') void executar(() => encerrarTurno(operador.matricula, execucao.id, informado, motivoEncerramento), `Turno encerrado. A etapa continua pendente: faltam ${numero(Math.round((falta - (soma ?? 0)) * 100) / 100)} ${unidade}.`);
                     else void executar(() => darBaixa(operador.matricula, execucao.id, informado), 'Baixa registrada. A etapa foi concluída.');
                   }}
                     className="space-y-4 border-t border-foreground/10 pt-5">
@@ -375,6 +378,9 @@ export function IlhaScreen() {
                         </div>
                       ))}
                     </div>
+                    {modo === 'encerrar' && (
+                      <IlhaMotivoEncerramento key={execucao.id} motivoId={motivoEncerramento} aoMudar={setMotivoEncerramento} ocupado={ocupado} aoFalhar={tratarFalha} />
+                    )}
                     <p aria-live="polite" className={`text-base font-medium ${somaCerta ? 'text-success' : 'text-warning'}`}>
                       {!quantidadesValidas ? 'Use números maiores ou iguais a zero, com até duas casas decimais.'
                         : modo === 'encerrar'

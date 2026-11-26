@@ -142,6 +142,7 @@ Situação atual. Uma linha por ordem e etapa sem baixa que já teve pelo menos 
 | `percentualApontado` | número | `quantidadeApontada ÷ quantidade × 100`. |
 | `encerramentosParciais` | inteiro | Quantos turnos encerraram a etapa sem concluí-la. |
 | `inicioEm`, `ultimoEncerramentoEm` | instante \| `null` | Início da primeira execução da etapa e último encerramento parcial. |
+| `motivoUltimoEncerramento` | texto \| `null` | Nome do motivo informado no último encerramento parcial (gravado no evento `FINALIZACAO`); `null` quando foi o fim do turno. |
 | `emExecucao` | booleano | Se há execução aberta na etapa agora. |
 
 ### `producao[]` — baixas e encerramentos parciais do período por produto e etapa
