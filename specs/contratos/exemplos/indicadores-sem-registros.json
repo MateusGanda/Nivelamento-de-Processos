@@ -12,6 +12,7 @@
     "pendencias": []
   },
   "ordens": [],
+  "etapasParciais": [],
   "producao": [],
   "producaoFinal": [],
   "tempos": [],
@@ -22,6 +23,7 @@
       "produtivoSegundos": 0,
       "pausaSegundos": 0,
       "baixas": 0,
+      "encerramentosParciais": 0,
       "tempoPadraoDasBaixasSegundos": 0
     }
   ],

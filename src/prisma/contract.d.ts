@@ -34,7 +34,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'c172ef842aedcf5daa623427d147d0d60dd89caa22dcc58ebb68edfe1011ba7a'>;
+  StorageHashBase<'9f42c351fcf04e3cbcfc642f895a987a6ab4df2b77928e784c9f4375b3af94a4'>;
 export type ExecutionHash =
   ExecutionHashBase<'a1ef384d8bd6528ddadbd0e183c91f2a9f990140a3e9e0aac7de1afbb92da119'>;
 export type ProfileHash =
@@ -298,7 +298,7 @@ export type FieldOutputTypes = {
       readonly quantidadeRefugo: Numeric<12, 2> | null;
       readonly quantidadeRetrabalho: Numeric<12, 2> | null;
       readonly status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
+      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | 'ENCERRAMENTO_PARCIAL' | null;
     };
     readonly MotivoPausa: {
       readonly ativo: CodecTypes['pg/bool@1']['output'];
@@ -459,7 +459,7 @@ export type FieldInputTypes = {
       readonly quantidadeRefugo: CodecTypes['pg/numeric@1']['input'] | null;
       readonly quantidadeRetrabalho: CodecTypes['pg/numeric@1']['input'] | null;
       readonly status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
+      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | 'ENCERRAMENTO_PARCIAL' | null;
     };
     readonly MotivoPausa: {
       readonly ativo: CodecTypes['pg/bool@1']['input'];
@@ -620,7 +620,7 @@ export type StorageColumnTypes = {
       readonly quantidadeRefugo: Numeric<12, 2> | null;
       readonly quantidadeRetrabalho: Numeric<12, 2> | null;
       readonly status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
+      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | 'ENCERRAMENTO_PARCIAL' | null;
     };
     readonly MotivoPausa: {
       readonly ativo: CodecTypes['pg/bool@1']['output'];
@@ -781,7 +781,7 @@ export type StorageColumnInputTypes = {
       readonly quantidadeRefugo: CodecTypes['pg/numeric@1']['input'] | null;
       readonly quantidadeRetrabalho: CodecTypes['pg/numeric@1']['input'] | null;
       readonly status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
+      readonly tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | 'ENCERRAMENTO_PARCIAL' | null;
     };
     readonly MotivoPausa: {
       readonly ativo: CodecTypes['pg/bool@1']['input'];
@@ -958,7 +958,7 @@ export namespace Models {
     quantidadeRefugo: Numeric<12, 2> | null;
     quantidadeRetrabalho: Numeric<12, 2> | null;
     status: 'EM_EXECUCAO' | 'PAUSADA' | 'FINALIZADA';
-    tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | null;
+    tipoFinalizacao: 'TROCA_OPERACAO' | 'BAIXA' | 'ENCERRAMENTO_PARCIAL' | null;
     etapaRoteiro: public_EtapaRoteiro;
     eventosTempo: public_EventoTempo[];
     operador: public_Operador;
@@ -2442,7 +2442,7 @@ type ContractBase = Omit<
             };
             readonly TipoFinalizacao: {
               readonly kind: 'valueSet';
-              readonly values: readonly ['TROCA_OPERACAO', 'BAIXA'];
+              readonly values: readonly ['TROCA_OPERACAO', 'BAIXA', 'ENCERRAMENTO_PARCIAL'];
             };
           };
         };
@@ -3956,6 +3956,7 @@ type ContractBase = Omit<
             readonly members: readonly [
               { readonly name: 'TROCA_OPERACAO'; readonly value: 'TROCA_OPERACAO' },
               { readonly name: 'BAIXA'; readonly value: 'BAIXA' },
+              { readonly name: 'ENCERRAMENTO_PARCIAL'; readonly value: 'ENCERRAMENTO_PARCIAL' },
             ];
           };
         };

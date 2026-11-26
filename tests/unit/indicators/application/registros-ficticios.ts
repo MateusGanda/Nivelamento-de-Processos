@@ -9,7 +9,7 @@ export const semQuantidades = { quantidadeBoa: null, quantidadeRetrabalho: null,
 
 export const ordem = (numero: string, quantidade: number, unidade = 'un'): OrdemRegistrada => ({
   id: `ordem-${numero}`, numero, quantidade, unidade, roteiroId: 'roteiro-1',
-  produtoId: 'produto-a', produtoCodigo: 'P-100', produtoNome: 'Produto A', planoCodigo: 'PL-01',
+  produtoId: 'produto-a', produtoCodigo: 'P-100', produtoNome: 'Produto A', planoCodigo: 'PL-01', prazo: null,
 });
 
 // Posto em que cada etapa é apontada nos registros fictícios.

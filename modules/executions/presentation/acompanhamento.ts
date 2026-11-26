@@ -1,4 +1,4 @@
-import type { ExecucaoAcompanhada } from '../domain/execucao.ts';
+import { totalApontado, type ExecucaoAcompanhada } from '../domain/execucao.ts';
 import { tempoDecorrido } from './tempo-decorrido.ts';
 
 // Acompanhamento das execuções abertas no painel: cliente de GET /api/execucoes e funções puras da tela.
@@ -7,14 +7,15 @@ import { tempoDecorrido } from './tempo-decorrido.ts';
 export const INTERVALO_ATUALIZACAO_MS = 30_000;
 
 /** Campos que bastam para tempos, pausa e atenção; a tela da TV usa estas funções sem dados do operador. */
-export type ExecucaoComTempos = Pick<ExecucaoAcompanhada, 'status' | 'eventos' | 'tempoPadraoSegundos'> & { ordem: { quantidade: number } };
+export type ExecucaoComTempos = Pick<ExecucaoAcompanhada, 'status' | 'eventos' | 'tempoPadraoSegundos' | 'apontado'> & { ordem: { quantidade: number } };
 
 export type RespostaAcompanhamento = { meta: { consultadoEm: string }; execucoes: ExecucaoAcompanhada[] };
 export type FiltroSituacao = 'todas' | 'EM_EXECUCAO' | 'PAUSADA' | 'ATENCAO';
 
 /**
  * Sinais de atenção mostrados no acompanhamento (decisão de 05/11/2026). Só destacam; não mudam a execução.
- * - ACIMA_DO_PREVISTO: tempo produtivo maior que o previsto para a ordem (tempo padrão × quantidade).
+ * - ACIMA_DO_PREVISTO: tempo produtivo maior que o previsto para o que falta na etapa (tempo padrão × quantidade
+ *   da ordem menos o que os encerramentos parciais já apontaram).
  * - INICIADA_EM_OUTRO_DIA: começou antes do dia de hoje no horário de Brasília, sinal de execução esquecida.
  */
 export type Atencao = { tipo: 'ACIMA_DO_PREVISTO'; previstoSegundos: number } | { tipo: 'INICIADA_EM_OUTRO_DIA'; inicio: string };
@@ -34,6 +35,14 @@ const texto = (valor: unknown): valor is string => typeof valor === 'string';
 const instante = (valor: unknown) => texto(valor) && Number.isFinite(Date.parse(valor));
 const TIPOS_EVENTO = ['INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO'];
 
+const quantidadeValida = (valor: unknown) => typeof valor === 'number' && Number.isFinite(valor) && valor >= 0;
+const ehApontado = (valor: unknown) => objeto(valor) && quantidadeValida(valor.quantidadeBoa) && quantidadeValida(valor.quantidadeRetrabalho) && quantidadeValida(valor.quantidadeRefugo);
+
+/** Quantidade da ordem que ainda falta na etapa, descontado o que os encerramentos parciais apontaram. */
+export function quantidadeQueFalta(execucao: Pick<ExecucaoComTempos, 'apontado' | 'ordem'>): number {
+  return Math.max(0, Math.round((execucao.ordem.quantidade - totalApontado(execucao.apontado)) * 100) / 100);
+}
+
 function ehExecucaoAcompanhada(valor: unknown): valor is ExecucaoAcompanhada {
   if (!objeto(valor)) return false;
   const { ordem, produto, etapa, posto, operador, eventos } = valor;
@@ -44,7 +53,7 @@ function ehExecucaoAcompanhada(valor: unknown): valor is ExecucaoAcompanhada {
     objeto(produto) && texto(produto.codigo) && texto(produto.nome) &&
     objeto(etapa) && texto(etapa.id) && Number.isInteger(etapa.ordem) && texto(etapa.operacao) &&
     objeto(posto) && texto(posto.id) && texto(posto.codigo) && texto(posto.nome) &&
-    objeto(operador) && texto(operador.matricula) && texto(operador.nome) &&
+    objeto(operador) && texto(operador.matricula) && texto(operador.nome) && ehApontado(valor.apontado) &&
     Array.isArray(eventos) && eventos.length > 0 && eventos.every((evento: unknown) => objeto(evento) && texto(evento.tipo) &&
       TIPOS_EVENTO.includes(evento.tipo) && instante(evento.dataHora) && (evento.motivo === null || texto(evento.motivo)));
 }
@@ -86,7 +95,7 @@ const DIA_COMPLETO = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_P
 export function atencoesDaExecucao(execucao: ExecucaoComTempos, agoraServidorMs: number): Atencao[] {
   const atencoes: Atencao[] = [];
   if (execucao.tempoPadraoSegundos !== null && execucao.tempoPadraoSegundos > 0) {
-    const previstoSegundos = Math.round(execucao.tempoPadraoSegundos * execucao.ordem.quantidade);
+    const previstoSegundos = Math.round(execucao.tempoPadraoSegundos * quantidadeQueFalta(execucao));
     if (temposAteAgora(execucao, agoraServidorMs).produtivoSegundos > previstoSegundos) atencoes.push({ tipo: 'ACIMA_DO_PREVISTO', previstoSegundos });
   }
   const inicio = inicioDaExecucao(execucao);

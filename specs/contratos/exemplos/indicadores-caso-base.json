@@ -25,7 +25,10 @@
       "etapasInconsistentes": 0,
       "etapaAtual": null,
       "emExecucao": false,
-      "ultimaBaixaEm": "2026-10-06T12:30:00.000Z"
+      "ultimaBaixaEm": "2026-10-06T12:30:00.000Z",
+      "prazo": null,
+      "atrasada": false,
+      "diasDeAtraso": null
     },
     {
       "ordemId": "00000000-0000-4000-8000-000000000302",
@@ -41,12 +44,17 @@
       "etapaAtual": {
         "etapaRoteiroId": "00000000-0000-4000-8000-000000000401",
         "ordem": 1,
-        "operacaoNome": "Corte"
+        "operacaoNome": "Corte",
+        "quantidadeApontada": 0
       },
       "emExecucao": false,
-      "ultimaBaixaEm": null
+      "ultimaBaixaEm": null,
+      "prazo": null,
+      "atrasada": false,
+      "diasDeAtraso": null
     }
   ],
+  "etapasParciais": [],
   "producao": [
     {
       "produtoCodigo": "REF-001",
@@ -56,6 +64,7 @@
       "ultimaEtapa": true,
       "unidade": "un",
       "ordensBaixadas": 1,
+      "encerramentosParciais": 0,
       "quantidadeBoa": 40,
       "quantidadeRetrabalho": 0,
       "quantidadeRefugo": 0
@@ -111,6 +120,7 @@
       "produtivoSegundos": 4800,
       "pausaSegundos": 600,
       "baixas": 1,
+      "encerramentosParciais": 0,
       "tempoPadraoDasBaixasSegundos": 4000
     }
   ],

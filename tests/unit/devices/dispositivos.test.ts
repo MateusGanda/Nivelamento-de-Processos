@@ -158,6 +158,7 @@ function execucao(id: string, postoId: string, status: 'EM_EXECUCAO' | 'PAUSADA'
     etapa: { id: 'e', ordem: 2, operacao: 'Montagem' }, posto: { id: postoId, codigo: 'x', nome: 'x' },
     eventos: [{ tipo: 'INICIO', dataHora: '2026-11-09T11:00:00.000Z', motivo: null }],
     operador: { matricula: 'OF-MON1', nome: 'Fulano de Tal' }, setor: 'Montagem', tempoPadraoSegundos: 60,
+    apontado: { quantidadeBoa: 0, quantidadeRetrabalho: 0, quantidadeRefugo: 0 },
   };
 }
 const fontes: FontesDoPainel = {

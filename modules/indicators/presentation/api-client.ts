@@ -27,9 +27,17 @@ const posto = (valor: unknown) => objeto(valor) && texto(valor.id) && texto(valo
 const ordem = (o: Registro) => texto(o.ordemId) && texto(o.numero) && texto(o.produtoCodigo) && texto(o.produtoNome) &&
   numero(o.quantidade) && texto(o.unidade) && texto(o.planoCodigo) && Number.isInteger(o.etapasTotal) && Number.isInteger(o.etapasBaixadas) &&
   Number.isInteger(o.etapasInconsistentes) && typeof o.emExecucao === 'boolean' && (o.ultimaBaixaEm === null || instante(o.ultimaBaixaEm)) &&
-  (o.etapaAtual === null || (objeto(o.etapaAtual) && texto(o.etapaAtual.etapaRoteiroId) && Number.isInteger(o.etapaAtual.ordem) && texto(o.etapaAtual.operacaoNome)));
+  (o.prazo === null || (texto(o.prazo) && /^\d{4}-\d{2}-\d{2}$/.test(o.prazo as string))) && typeof o.atrasada === 'boolean' &&
+  (o.diasDeAtraso === null || Number.isInteger(o.diasDeAtraso)) &&
+  (o.etapaAtual === null || (objeto(o.etapaAtual) && texto(o.etapaAtual.etapaRoteiroId) && Number.isInteger(o.etapaAtual.ordem) && texto(o.etapaAtual.operacaoNome) &&
+    numero(o.etapaAtual.quantidadeApontada)));
+const etapaParcial = (e: Registro) => texto(e.ordemId) && texto(e.numero) && texto(e.produtoCodigo) && texto(e.produtoNome) && texto(e.etapaRoteiroId) &&
+  Number.isInteger(e.ordem) && texto(e.operacaoNome) && numero(e.quantidade) && texto(e.unidade) && numero(e.quantidadeBoa) && numero(e.quantidadeRetrabalho) &&
+  numero(e.quantidadeRefugo) && numero(e.quantidadeApontada) && numero(e.quantidadeQueFalta) && numero(e.percentualApontado) &&
+  Number.isInteger(e.encerramentosParciais) && (e.inicioEm === null || instante(e.inicioEm)) && (e.ultimoEncerramentoEm === null || instante(e.ultimoEncerramentoEm)) &&
+  typeof e.emExecucao === 'boolean';
 const producao = (p: Registro) => texto(p.produtoCodigo) && texto(p.etapaRoteiroId) && Number.isInteger(p.ordem) && texto(p.operacaoNome) &&
-  typeof p.ultimaEtapa === 'boolean' && texto(p.unidade) && Number.isInteger(p.ordensBaixadas) &&
+  typeof p.ultimaEtapa === 'boolean' && texto(p.unidade) && Number.isInteger(p.ordensBaixadas) && Number.isInteger(p.encerramentosParciais) &&
   numero(p.quantidadeBoa) && numero(p.quantidadeRetrabalho) && numero(p.quantidadeRefugo);
 const producaoFinal = (p: Registro) => texto(p.produtoCodigo) && texto(p.unidade) && numero(p.quantidadeBoa);
 const tempos = (t: Registro) => posto(t.posto) && texto((t.posto as Registro).setorNome) && numero(t.produtivoSegundos) && numero(t.pausaSegundos) &&
@@ -42,7 +50,7 @@ const cargaPendente = (c: Registro) => texto(c.produtoCodigo) && texto(c.etapaRo
   texto(c.unidade) && Number.isInteger(c.ordensPendentes) && numero(c.quantidadePendente) && numeroOuNulo(c.tempoPadraoSegundos) &&
   numeroOuNulo(c.cargaPendenteSegundos) && lista(c.postosCompativeis, posto);
 const porDia = (d: Registro) => texto(d.data) && /^\d{4}-\d{2}-\d{2}$/.test(d.data as string) && numero(d.produtivoSegundos) && numero(d.pausaSegundos) &&
-  Number.isInteger(d.baixas) && numeroOuNulo(d.tempoPadraoDasBaixasSegundos);
+  Number.isInteger(d.baixas) && Number.isInteger(d.encerramentosParciais) && numeroOuNulo(d.tempoPadraoDasBaixasSegundos);
 const cargaPorPosto = (c: Registro) => posto(c.posto) && numeroOuNulo(c.cargaPendenteSegundos) && numeroOuNulo(c.percentualDaCarga);
 
 function ehResposta(valor: unknown): valor is RespostaIndicadores {
@@ -50,7 +58,7 @@ function ehResposta(valor: unknown): valor is RespostaIndicadores {
   const meta = valor.meta;
   return instante(meta.consultadoEm) && texto(meta.fuso) && objeto(meta.filtros) && instante(meta.filtros.inicio) && instante(meta.filtros.fim) &&
     lista(meta.pendencias, (p) => texto(p.codigo)) &&
-    lista(valor.ordens, ordem) && lista(valor.producao, producao) && lista(valor.producaoFinal, producaoFinal) &&
+    lista(valor.ordens, ordem) && lista(valor.etapasParciais, etapaParcial) && lista(valor.producao, producao) && lista(valor.producaoFinal, producaoFinal) &&
     lista(valor.tempos, tempos) && lista(valor.tempoMedio, tempoMedio) && lista(valor.porDia, porDia) && lista(valor.cargaPendente, cargaPendente) &&
     lista(valor.cargaPorPosto, cargaPorPosto);
 }

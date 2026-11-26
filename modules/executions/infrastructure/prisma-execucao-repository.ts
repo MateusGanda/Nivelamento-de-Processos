@@ -1,6 +1,7 @@
 import type { Numeric } from '@prisma/orm-postgres/target/codec-types';
 import { db } from '../../../src/prisma/db.ts';
 import type { ExecucaoEncontrada, ExecucaoRepository, OperadorEncontrado, SituacaoDestino } from '../application/contracts.ts';
+import { NADA_APONTADO, somarApontamentos, totalApontado } from '../domain/execucao.ts';
 import type { Baixa, Destino, ExecucaoAberta, ExecucaoAcompanhada, OrdemDisponivel, StatusExecucao, TipoEvento } from '../domain/execucao.ts';
 import { traduzirErroGravacaoExecucao } from './persistence-errors.ts';
 
@@ -28,7 +29,7 @@ const collation = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: tru
 // travada, então de dois pedidos simultâneos só um encontra o estado e grava.
 type CamposDeEstado = {
   status: StatusExecucao;
-  tipoFinalizacao?: 'TROCA_OPERACAO' | 'BAIXA';
+  tipoFinalizacao?: 'TROCA_OPERACAO' | 'BAIXA' | 'ENCERRAMENTO_PARCIAL';
   quantidadeBoa?: Numeric<12, 2>;
   quantidadeRetrabalho?: Numeric<12, 2>;
   quantidadeRefugo?: Numeric<12, 2>;
@@ -64,6 +65,64 @@ async function encerrarOutrasDaEtapa(tx: Transacao, execucaoId: string, agora: s
   }
 }
 
+// Trava a linha da ordem até o fim da transação. Baixa e encerramento parcial da mesma ordem passam um de
+// cada vez, então a soma do que já foi apontado não muda entre a leitura e a gravação.
+async function travarOrdem(tx: Transacao, ordemId: string): Promise<void> {
+  await tx.execute(db.raw.sql`SELECT "id" FROM "public"."OrdemProducao" WHERE "id" = ${ordemId}::uuid FOR UPDATE`.affectedCount().build());
+}
+
+type LinhaApontada = { ordemProducaoId: string; etapaRoteiroId: string; quantidadeBoa: string | null; quantidadeRetrabalho: string | null; quantidadeRefugo: string | null };
+
+function paraApontamento(linha: LinhaApontada): Baixa {
+  if (linha.quantidadeBoa === null || linha.quantidadeRetrabalho === null || linha.quantidadeRefugo === null) {
+    throw new Error('Encerramento parcial sem quantidades no banco.');
+  }
+  return { quantidadeBoa: decimal(linha.quantidadeBoa), quantidadeRetrabalho: decimal(linha.quantidadeRetrabalho), quantidadeRefugo: decimal(linha.quantidadeRefugo) };
+}
+
+// Soma dos encerramentos parciais por ordem e etapa (chave `ordemId|etapaId`).
+function somarPorOrdemEtapa(linhas: readonly LinhaApontada[]): Map<string, Baixa> {
+  const grupos = new Map<string, Baixa[]>();
+  for (const linha of linhas) {
+    const chave = `${linha.ordemProducaoId}|${linha.etapaRoteiroId}`;
+    grupos.set(chave, [...(grupos.get(chave) ?? []), paraApontamento(linha)]);
+  }
+  return new Map([...grupos].map(([chave, lista]) => [chave, somarApontamentos(lista)]));
+}
+
+async function apontadosDasOrdens(t: Tabelas | typeof db.orm.public, ordemIds: readonly string[]): Promise<Map<string, Baixa>> {
+  if (ordemIds.length === 0) return new Map();
+  const linhas = await t.Execucao
+    .where({ tipoFinalizacao: 'ENCERRAMENTO_PARCIAL' })
+    .where((e) => e.ordemProducaoId.in([...new Set(ordemIds)]))
+    .select('ordemProducaoId', 'etapaRoteiroId', 'quantidadeBoa', 'quantidadeRetrabalho', 'quantidadeRefugo')
+    .all();
+  return somarPorOrdemEtapa(linhas);
+}
+
+// Baixa ou encerramento parcial: trava a ordem, soma o que já foi apontado na etapa e deixa o domínio
+// decidir as quantidades (pode recusar com erro, o que desfaz a transação). Devolve false quando a execução
+// já não estava em execução.
+async function finalizarComQuantidades(
+  tx: Transacao, execucaoId: string, tipo: 'BAIXA' | 'ENCERRAMENTO_PARCIAL', quantidades: (jaApontado: Baixa) => Baixa, agora: string,
+): Promise<boolean> {
+  const t = tx.orm.public;
+  const atual = await t.Execucao.where({ id: execucaoId }).select('ordemProducaoId', 'etapaRoteiroId').first();
+  if (!atual) return false;
+  await travarOrdem(tx, atual.ordemProducaoId);
+  const jaApontado = (await apontadosDasOrdens(t, [atual.ordemProducaoId])).get(`${atual.ordemProducaoId}|${atual.etapaRoteiroId}`) ?? NADA_APONTADO;
+  const dados = quantidades(jaApontado);
+  const finalizada = await mudarEstado(tx, execucaoId, 'EM_EXECUCAO', {
+    status: 'FINALIZADA', tipoFinalizacao: tipo,
+    quantidadeBoa: quantidadeParaBanco(dados.quantidadeBoa),
+    quantidadeRetrabalho: quantidadeParaBanco(dados.quantidadeRetrabalho),
+    quantidadeRefugo: quantidadeParaBanco(dados.quantidadeRefugo),
+  });
+  if (!finalizada) return false;
+  await t.EventoTempo.create({ execucaoId, tipo: 'FINALIZACAO', dataHora: agora, motivoPausaId: null });
+  return true;
+}
+
 async function abrirExecucao(t: Tabelas, operadorId: string, destino: Destino, agora: string): Promise<string> {
   const execucao = await t.Execucao.create({
     ordemProducaoId: destino.ordemId, etapaRoteiroId: destino.etapaId, operadorId, postoId: destino.postoId, status: 'EM_EXECUCAO',
@@ -89,7 +148,7 @@ async function nomesDosMotivos(execucoes: readonly { eventosTempo: { motivoPausa
   return new Map(motivos.map((motivo) => [motivo.id, motivo.nome]));
 }
 
-function paraExecucaoAberta(execucao: LinhaAberta, nomeMotivo: Map<string, string>): ExecucaoAberta {
+function paraExecucaoAberta(execucao: LinhaAberta, nomeMotivo: Map<string, string>, apontados: Map<string, Baixa>): ExecucaoAberta {
   const ordem = relacionado(execucao.ordemProducao, 'ordem da execução');
   const etapa = relacionado(execucao.etapaRoteiro, 'etapa da execução');
   const produto = relacionado(ordem.produto, 'produto da ordem');
@@ -103,6 +162,7 @@ function paraExecucaoAberta(execucao: LinhaAberta, nomeMotivo: Map<string, strin
     eventos: execucao.eventosTempo.map((evento) => ({
       tipo: evento.tipo, dataHora: evento.dataHora, motivo: evento.motivoPausaId ? nomeMotivo.get(evento.motivoPausaId) ?? null : null,
     })),
+    apontado: apontados.get(`${ordem.id}|${etapa.id}`) ?? NADA_APONTADO,
   };
 }
 
@@ -126,7 +186,8 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
       .include('eventosTempo', (eventos) => eventos.select('tipo', 'dataHora', 'motivoPausaId').orderBy((evento) => evento.dataHora.asc()))
       .first();
     if (!execucao || execucao.status === 'FINALIZADA') return null;
-    return paraExecucaoAberta({ ...execucao, status: execucao.status }, await nomesDosMotivos([execucao]));
+    const apontados = await apontadosDasOrdens(db.orm.public, [execucao.ordemProducaoId]);
+    return paraExecucaoAberta({ ...execucao, status: execucao.status }, await nomesDosMotivos([execucao]), apontados);
   }
 
   async listarExecucoesAbertas(): Promise<ExecucaoAcompanhada[]> {
@@ -140,6 +201,7 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
       .include('eventosTempo', (eventos) => eventos.select('tipo', 'dataHora', 'motivoPausaId').orderBy((evento) => evento.dataHora.asc()))
       .all();
     const nomeMotivo = await nomesDosMotivos(execucoes);
+    const apontados = await apontadosDasOrdens(db.orm.public, execucoes.map((execucao) => execucao.ordemProducaoId));
     // Tempo padrão de cada etapa para o produto da ordem, numa única consulta.
     const etapas = [...new Set(execucoes.map((execucao) => execucao.etapaRoteiroId))];
     const tempos = etapas.length === 0 ? [] : await db.orm.public.ProdutoEtapa
@@ -151,7 +213,7 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
       const operador = relacionado(execucao.operador, 'operador da execução');
       const ordem = relacionado(execucao.ordemProducao, 'ordem da execução');
       return [{
-        ...paraExecucaoAberta({ ...execucao, status: execucao.status, posto: { id: posto.id, codigo: posto.codigo, nome: posto.nome } }, nomeMotivo),
+        ...paraExecucaoAberta({ ...execucao, status: execucao.status, posto: { id: posto.id, codigo: posto.codigo, nome: posto.nome } }, nomeMotivo, apontados),
         operador: { matricula: operador.matricula, nome: operador.nome },
         setor: relacionado(posto.setor, 'setor do posto').nome,
         tempoPadraoSegundos: tempoPadrao.get(`${ordem.produtoId}:${execucao.etapaRoteiroId}`) ?? null,
@@ -171,7 +233,7 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
   }
 
   async listarOrdensDisponiveis(): Promise<OrdemDisponivel[]> {
-    const [ordens, etapas, ligacoes, postos, baixas] = await Promise.all([
+    const [ordens, etapas, ligacoes, postos, baixas, parciais] = await Promise.all([
       db.orm.public.OrdemProducao.select('id', 'numero', 'quantidade', 'unidade', 'roteiroId', 'produtoId', 'planoProducaoId')
         .include('produto', (produto) => produto.select('codigo', 'nome'))
         .include('planoProducao', (plano) => plano.select('codigo'))
@@ -180,7 +242,10 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
       db.orm.public.EtapaPosto.select('etapaRoteiroId', 'postoId').all(),
       db.orm.public.Posto.where({ ativo: true }).select('id', 'codigo', 'nome').all(),
       db.orm.public.Execucao.where({ tipoFinalizacao: 'BAIXA' }).select('ordemProducaoId', 'etapaRoteiroId').all(),
+      db.orm.public.Execucao.where({ tipoFinalizacao: 'ENCERRAMENTO_PARCIAL' })
+        .select('ordemProducaoId', 'etapaRoteiroId', 'quantidadeBoa', 'quantidadeRetrabalho', 'quantidadeRefugo').all(),
     ]);
+    const apontados = somarPorOrdemEtapa(parciais);
     const postoPorId = new Map(postos.map((posto) => [posto.id, posto]));
     const baixadas = new Set(baixas.map((baixa) => `${baixa.ordemProducaoId}|${baixa.etapaRoteiroId}`));
     return ordens.map((ordem) => ({
@@ -190,6 +255,7 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
       etapas: etapas.filter((etapa) => etapa.roteiroId === ordem.roteiroId).sort((a, b) => a.ordem - b.ordem).map((etapa) => ({
         id: etapa.id, ordem: etapa.ordem, operacao: relacionado(etapa.operacao, 'operação da etapa').nome,
         baixada: baixadas.has(`${ordem.id}|${etapa.id}`),
+        apontado: totalApontado(apontados.get(`${ordem.id}|${etapa.id}`) ?? NADA_APONTADO),
         // Só postos ativos ligados à etapa podem receber execuções.
         postos: ligacoes.filter((ligacao) => ligacao.etapaRoteiroId === etapa.id).flatMap((ligacao) => postoPorId.get(ligacao.postoId) ?? [])
           .sort((a, b) => collation.compare(a.codigo, b.codigo)),
@@ -264,21 +330,21 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
     }
   }
 
-  async baixar(execucaoId: string, baixa: Baixa, agora: string): Promise<boolean> {
+  async baixar(execucaoId: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string): Promise<boolean> {
     try {
       return await db.transaction(async (tx) => {
-        const t = tx.orm.public;
-        const finalizada = await mudarEstado(tx, execucaoId, 'EM_EXECUCAO', {
-          status: 'FINALIZADA', tipoFinalizacao: 'BAIXA',
-          quantidadeBoa: quantidadeParaBanco(baixa.quantidadeBoa),
-          quantidadeRetrabalho: quantidadeParaBanco(baixa.quantidadeRetrabalho),
-          quantidadeRefugo: quantidadeParaBanco(baixa.quantidadeRefugo),
-        });
-        if (!finalizada) return false;
-        await t.EventoTempo.create({ execucaoId, tipo: 'FINALIZACAO', dataHora: agora, motivoPausaId: null });
+        if (!await finalizarComQuantidades(tx, execucaoId, 'BAIXA', quantidades, agora)) return false;
         await encerrarOutrasDaEtapa(tx, execucaoId, agora);
         return true;
       });
+    } catch (erro) {
+      return traduzirErroGravacaoExecucao(erro);
+    }
+  }
+
+  async encerrarParcial(execucaoId: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string): Promise<boolean> {
+    try {
+      return await db.transaction((tx) => finalizarComQuantidades(tx, execucaoId, 'ENCERRAMENTO_PARCIAL', quantidades, agora));
     } catch (erro) {
       return traduzirErroGravacaoExecucao(erro);
     }

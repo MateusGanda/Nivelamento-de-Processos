@@ -142,10 +142,10 @@ test('baixa é a execução com tipo de finalização BAIXA', () => {
   const aberta = { tipoFinalizacao: null, ...semQuantidade };
   const troca = { tipoFinalizacao: 'TROCA_OPERACAO' as const, ...semQuantidade };
   const completa = { quantidadeBoa: 38, quantidadeRetrabalho: 1, quantidadeRefugo: 1 };
-  assert.deepEqual(identificarBaixa(40, []), { situacao: 'SEM_BAIXA', resultado: null });
+  assert.deepEqual(identificarBaixa(40, []), { situacao: 'SEM_BAIXA', resultado: null, apontado: null });
   assert.equal(identificarBaixa(40, [aberta]).situacao, 'SEM_BAIXA');
   assert.equal(identificarBaixa(40, [troca, troca]).situacao, 'SEM_BAIXA');
-  assert.deepEqual(identificarBaixa(40, [troca, { tipoFinalizacao: 'BAIXA', ...completa }]), { situacao: 'BAIXADA', resultado: completa });
+  assert.deepEqual(identificarBaixa(40, [troca, { tipoFinalizacao: 'BAIXA', ...completa }]), { situacao: 'BAIXADA', resultado: completa, apontado: null });
   // lote inteiro refugado continua sendo baixa
   assert.equal(identificarBaixa(40, [{ tipoFinalizacao: 'BAIXA', quantidadeBoa: 0, quantidadeRetrabalho: 0, quantidadeRefugo: 40 }]).situacao, 'BAIXADA');
 });

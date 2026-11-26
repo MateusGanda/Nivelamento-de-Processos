@@ -1,5 +1,5 @@
 import {
-  ehIdentificadorValido, ErroDeExecucao, exigirStatus, MENSAGEM_ESTADO_MUDOU, validarBaixa, validarDestino, validarMatricula,
+  ehIdentificadorValido, ErroDeExecucao, exigirStatus, MENSAGEM_ESTADO_MUDOU, validarBaixa, validarDestino, validarEncerramentoParcial, validarMatricula,
   type Baixa, type Destino, type ExecucaoAcompanhada, type OperadorDaIlha, type OrdemDisponivel,
 } from '../domain/execucao.ts';
 import type { ExecucaoEncontrada, ExecucaoRepository, OperadorEncontrado } from './contracts.ts';
@@ -81,8 +81,19 @@ export class ExecucoesService {
   async baixar(matricula: unknown, execucaoId: string, baixaInformada: Partial<Record<keyof Baixa, unknown>>): Promise<OperadorDaIlha> {
     const { operador, execucao } = await this.exigirExecucaoDoOperador(matricula, execucaoId);
     exigirStatus(execucao.status, 'EM_EXECUCAO', 'dar baixa');
-    const baixa = validarBaixa(baixaInformada, execucao.quantidadeOrdem);
-    if (!await this.execucoes.baixar(execucao.id, baixa, this.instante())) throw estadoMudou();
+    // A soma é conferida dentro da transação, com o que já foi apontado nos encerramentos parciais.
+    const gravou = await this.execucoes.baixar(execucao.id, (jaApontado) => validarBaixa(baixaInformada, execucao.quantidadeOrdem, jaApontado), this.instante());
+    if (!gravou) throw estadoMudou();
+    return this.identificar(operador.matricula);
+  }
+
+  // Encerramento parcial (fim do turno): finaliza a execução com o que foi feito, sem concluir a etapa.
+  // A etapa continua disponível na ilha e o operador fica livre para outra execução.
+  async encerrarParcial(matricula: unknown, execucaoId: string, informado: Partial<Record<keyof Baixa, unknown>>): Promise<OperadorDaIlha> {
+    const { operador, execucao } = await this.exigirExecucaoDoOperador(matricula, execucaoId);
+    exigirStatus(execucao.status, 'EM_EXECUCAO', 'encerrar o turno');
+    const gravou = await this.execucoes.encerrarParcial(execucao.id, (jaApontado) => validarEncerramentoParcial(informado, execucao.quantidadeOrdem, jaApontado), this.instante());
+    if (!gravou) throw estadoMudou();
     return this.identificar(operador.matricula);
   }
 

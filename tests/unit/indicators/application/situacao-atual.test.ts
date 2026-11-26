@@ -13,8 +13,8 @@ test('SIT-01: posição das ordens — etapa atual, execução aberta e última 
   assert.deepEqual(ordens[0], {
     ordemId: 'ordem-0001', numero: '0001', produtoCodigo: 'P-100', produtoNome: 'Produto A', quantidade: 40, unidade: 'un', planoCodigo: 'PL-01',
     etapasTotal: 3, etapasBaixadas: 1, etapasInconsistentes: 0,
-    etapaAtual: { etapaRoteiroId: 'etapa-2', ordem: 2, operacaoNome: 'Montagem' },
-    emExecucao: true, ultimaBaixaEm: '2026-10-06T11:30:00.000Z',
+    etapaAtual: { etapaRoteiroId: 'etapa-2', ordem: 2, operacaoNome: 'Montagem', quantidadeApontada: 0 },
+    emExecucao: true, ultimaBaixaEm: '2026-10-06T11:30:00.000Z', prazo: null, atrasada: false, diasDeAtraso: null,
   });
   assert.deepEqual([ordens[1].etapasBaixadas, ordens[1].etapaAtual?.operacaoNome, ordens[1].emExecucao, ordens[1].ultimaBaixaEm], [0, 'Corte', false, null]);
 });

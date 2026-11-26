@@ -68,7 +68,8 @@ As rotas da TV não usam a sessão administrativa nem o cookie da ilha.
       "produto": { "codigo": "PRD-002", "nome": "Produto B" },
       "etapa": { "ordem": 2, "operacao": "Montagem" },
       "tempoPadraoSegundos": 45,
-      "eventos": [{ "tipo": "INICIO", "dataHora": "2026-11-09T11:30:00.000Z", "motivo": null }]
+      "eventos": [{ "tipo": "INICIO", "dataHora": "2026-11-09T11:30:00.000Z", "motivo": null }],
+      "apontado": { "quantidadeBoa": 0, "quantidadeRetrabalho": 0, "quantidadeRefugo": 0 }
     }]
   }],
   "producaoHoje": { "pecasBoas": [{ "produtoCodigo": "PRD-001", "unidade": "un", "quantidadeBoa": 28 }], "baixas": 3 },
@@ -85,7 +86,7 @@ As rotas da TV não usam a sessão administrativa nem o cookie da ilha.
 
 - `/tv` fica fora do painel. Sem o cookie de uma TV ativa, a tela pede o código. Com o cookie, mostra o painel em tela cheia, com letras proporcionais à largura e sem cursor.
 - O cabeçalho mostra o nome da TV, o setor e o relógio. Em seguida vêm o resumo (em execução, pausados e livres), os cartões dos postos, a produção de hoje e as barras da carga por posto.
-- O cartão do posto mostra a ordem, o produto, a etapa, o tempo produtivo até agora e, na pausa, o motivo. Os sinais de atenção ("acima do previsto", "iniciada em outro dia") seguem a regra da página Execuções.
+- O cartão do posto mostra a ordem, o produto, a etapa (com "X/Y" quando a etapa já teve encerramento parcial), o tempo produtivo até agora e, na pausa, o motivo. Os sinais de atenção ("acima do previsto", "iniciada em outro dia") seguem a regra da página Execuções.
 - Os dados são atualizados a cada 5 s. Se uma atualização falhar, a tela mantém os dados anteriores e avisa de quando eles são. Se a TV perder o acesso, a tela volta a pedir o código.
 - São 9 postos por página. Quando há mais postos, as páginas se alternam a cada 20 s. A tela pede ao navegador para não apagar (Wake Lock) e se recarrega a cada 6 h.
 

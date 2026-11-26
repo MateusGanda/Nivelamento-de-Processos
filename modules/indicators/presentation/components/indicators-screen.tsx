@@ -14,7 +14,7 @@ import { descreverPendencias } from '../pendencias';
 import { GraficoCargaPorPosto, GraficoTemposPorPosto } from './indicadores-graficos';
 import { GraficoPorDia, GraficoQualidade } from './graficos-dia-qualidade';
 import { gerarCsvIndicadores, nomeDoArquivo } from '../exportacao';
-import { leituraDoPadrao, qualidadePorUnidade, resumirIndicadores, situacaoDaOrdem } from '../resumo';
+import { leituraDoPadrao, qualidadePorUnidade, resumirIndicadores, situacaoDaOrdem, textoDoPrazo } from '../resumo';
 
 type Escolha = Atalho | 'personalizado';
 const ATALHOS: { valor: Escolha; rotulo: string }[] = [
@@ -242,12 +242,12 @@ export function IndicatorsScreen() {
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Resumo rotulo="Peças boas na última etapa" valor={resumo.producaoPorUnidade.length ? resumo.producaoPorUnidade.map((p) => formatarQuantidade(p.quantidade, p.unidade)).join(' · ') : 'Nenhuma baixa'} detalhe="Baixas da última etapa de cada roteiro no período." />
-            <Resumo rotulo="Ordens em andamento" valor={resumo.emAndamento} detalhe={resumo.emExecucao === 1 ? '1 em execução agora.' : `${resumo.emExecucao} em execução agora.`} />
+            <Resumo rotulo="Ordens em andamento" valor={resumo.emAndamento} detalhe={`${resumo.emExecucao === 1 ? '1 em execução agora' : `${resumo.emExecucao} em execução agora`}${resumo.atrasadas > 0 ? ` · ${resumo.atrasadas === 1 ? '1 atrasada' : `${resumo.atrasadas} atrasadas`}` : ''}.`} />
             <Resumo rotulo="Tempo produtivo" valor={formatarDuracao(resumo.produtivoSegundos)} detalhe="Soma dos postos no período; execuções abertas ainda não entram." />
             <Resumo rotulo="Tempo em pausa" valor={formatarDuracao(resumo.pausaSegundos)} detalhe={resumo.maiorMotivoDePausa ? `Maior motivo: ${resumo.maiorMotivoDePausa}.` : 'Nenhuma pausa no período.'} />
           </div>
 
-          <Secao id="indicadores-por-dia" titulo="Tempo por dia" tipo="periodo" descricao="Tempo produtivo e de pausa apontado em cada dia, com a linha do tempo padrão das peças que tiveram baixa no dia (quantidade da ordem vezes o tempo padrão). A comparação é aproximada: uma execução que passa de um dia para outro conta o tempo em cada dia, e o tempo padrão entra no dia da baixa.">
+          <Secao id="indicadores-por-dia" titulo="Tempo por dia" tipo="periodo" descricao="Tempo produtivo e de pausa apontado em cada dia, com a linha do tempo padrão do que foi apontado no dia, em baixas e encerramentos parciais (quantidade apontada vezes o tempo padrão). A comparação é aproximada: uma execução que passa de um dia para outro conta o tempo em cada dia, e o tempo padrão entra no dia do apontamento.">
             {dados.porDia.length === 0 ? <Vazio>O período é longo demais para a série por dia.</Vazio> : (
               <div className="space-y-6">
                 <GraficoPorDia dias={dados.porDia} />
@@ -271,11 +271,11 @@ export function IndicatorsScreen() {
             )}
           </Secao>
 
-          <Secao id="indicadores-ordens" titulo="Posição das ordens" tipo="agora" descricao="Ordens com etapa sem baixa ou com baixa no período. A etapa atual é a primeira sem baixa; a sequência é só nominal.">
+          <Secao id="indicadores-ordens" titulo="Posição das ordens" tipo="agora" descricao="Ordens com etapa sem baixa ou com baixa no período. A etapa atual é a primeira sem baixa; a sequência é só nominal. O prazo é a data de fim do plano: a ordem não concluída depois dele aparece como atrasada.">
             {dados.ordens.length === 0 ? <Vazio>Nenhuma ordem em andamento ou com baixa no período.</Vazio> : (
-              <Tabela {...opcoesTabela} itens={dados.ordens} legenda="Posição das ordens de produção" cabecalho={[{ titulo: 'Ordem' }, { titulo: 'Produto' }, { titulo: 'Plano' }, { titulo: 'Quantidade', direita: true }, { titulo: 'Etapas com baixa', direita: true }, { titulo: 'Situação' }, { titulo: 'Última baixa' }]}>
+              <Tabela {...opcoesTabela} itens={dados.ordens} legenda="Posição das ordens de produção" cabecalho={[{ titulo: 'Ordem' }, { titulo: 'Produto' }, { titulo: 'Plano' }, { titulo: 'Quantidade', direita: true }, { titulo: 'Etapas com baixa', direita: true }, { titulo: 'Situação' }, { titulo: 'Última baixa' }, { titulo: 'Prazo' }]}>
                 {(ordem) => (
-                  <tr key={ordem.ordemId}>
+                  <tr key={ordem.ordemId} className={ordem.atrasada ? 'bg-warning-fill/[0.04] shadow-[inset_3px_0_0_var(--warning-fill)]' : undefined}>
                     <td className={`${celula} font-medium`}>{ordem.numero}</td>
                     <td className={celula}>{ordem.produtoCodigo} <span className="text-muted">– {ordem.produtoNome}</span></td>
                     <td className={`${celula} text-muted`}>{ordem.planoCodigo}</td>
@@ -283,13 +283,34 @@ export function IndicatorsScreen() {
                     <td className={numero}>{ordem.etapasBaixadas} de {ordem.etapasTotal}{ordem.etapasInconsistentes > 0 && <span className="block text-xs text-warning">{ordem.etapasInconsistentes} com baixa inconsistente</span>}</td>
                     <td className={celula}>{situacaoDaOrdem(ordem)}</td>
                     <td className={`${celula} whitespace-nowrap text-muted`}>{formatarInstante(ordem.ultimaBaixaEm)}</td>
+                    <td className={`${celula} whitespace-nowrap ${ordem.atrasada ? 'font-medium text-warning' : 'text-muted'}`}>{textoDoPrazo(ordem)}</td>
                   </tr>
                 )}
               </Tabela>
             )}
           </Secao>
 
-          <Secao id="indicadores-qualidade" titulo="Qualidade na última etapa" tipo="periodo" descricao="Composição das baixas da última etapa de cada roteiro no período: peças boas, retrabalho e refugo. O índice de peças boas é boa dividido pelo total baixado.">
+          <Secao id="indicadores-parciais" titulo="Etapas pendentes com apontamento parcial" tipo="agora" descricao="Etapas que não foram concluídas no turno: o operador encerrou o turno informando o que fez, e a etapa ficou pendente. Mostra quanto já foi apontado, quanto falta e há quanto tempo a etapa está em aberto.">
+            {dados.etapasParciais.length === 0 ? <Vazio>Nenhuma etapa pendente com apontamento parcial.</Vazio> : (
+              <Tabela {...opcoesTabela} itens={dados.etapasParciais} legenda="Etapas pendentes com apontamento parcial" cabecalho={[{ titulo: 'Ordem' }, { titulo: 'Etapa' }, { titulo: 'Apontado', direita: true }, { titulo: 'Falta', direita: true }, { titulo: 'Turnos', direita: true }, { titulo: 'Em aberto desde' }, { titulo: 'Situação' }]}>
+                {(etapa) => (
+                  <tr key={etapa.ordemId + etapa.etapaRoteiroId}>
+                    <td className={`${celula} font-medium`}>{etapa.numero}<span className="block text-xs font-normal text-muted">{etapa.produtoCodigo} – {etapa.produtoNome}</span></td>
+                    <td className={celula}>{etapa.ordem}. {etapa.operacaoNome}</td>
+                    <td className={numero}>{formatarQuantidade(etapa.quantidadeApontada, etapa.unidade)} <span className="text-muted">de {formatarQuantidade(etapa.quantidade, etapa.unidade)}</span>
+                      <span className="mt-1 block h-1.5 w-full overflow-hidden rounded-full bg-foreground/10" aria-hidden="true"><span className="block h-full rounded-full bg-accent" style={{ width: `${Math.min(100, etapa.percentualApontado)}%` }} /></span>
+                      <span className="block text-xs text-muted">{etapa.percentualApontado.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}% · boa {etapa.quantidadeBoa.toLocaleString('pt-BR')}, retrabalho {etapa.quantidadeRetrabalho.toLocaleString('pt-BR')}, refugo {etapa.quantidadeRefugo.toLocaleString('pt-BR')}</span></td>
+                    <td className={numero}>{formatarQuantidade(etapa.quantidadeQueFalta, etapa.unidade)}</td>
+                    <td className={numero}>{etapa.encerramentosParciais}</td>
+                    <td className={`${celula} whitespace-nowrap text-muted`}>{formatarInstante(etapa.inicioEm)}</td>
+                    <td className={celula}>{etapa.emExecucao ? 'Em execução' : 'Aguardando o próximo turno'}</td>
+                  </tr>
+                )}
+              </Tabela>
+            )}
+          </Secao>
+
+          <Secao id="indicadores-qualidade" titulo="Qualidade na última etapa" tipo="periodo" descricao="Composição do que foi apontado na última etapa de cada roteiro no período (baixas e encerramentos parciais): peças boas, retrabalho e refugo. O índice de peças boas é boa dividido pelo total apontado.">
             {qualidade.length === 0 ? <Vazio>Nenhuma baixa da última etapa no período.</Vazio> : (
               <div className={`grid gap-6 ${qualidade.length > 1 ? 'lg:grid-cols-2' : ''}`}>
                 {qualidade.map((q) => <GraficoQualidade key={q.unidade} qualidade={q} />)}
@@ -297,14 +318,15 @@ export function IndicatorsScreen() {
             )}
           </Secao>
 
-          <Secao id="indicadores-producao" titulo="Produção no período" tipo="periodo" descricao="Baixas por produto e etapa. Cada etapa informa o mesmo lote, então as etapas não são somadas entre si; a produção final é a da última etapa.">
-            {dados.producao.length === 0 ? <Vazio>Nenhuma baixa no período.</Vazio> : (
-              <Tabela {...opcoesTabela} itens={dados.producao} legenda="Produção do período por produto e etapa" cabecalho={[{ titulo: 'Produto' }, { titulo: 'Etapa' }, { titulo: 'Ordens', direita: true }, { titulo: 'Boa', direita: true }, { titulo: 'Retrabalho', direita: true }, { titulo: 'Refugo', direita: true }]}>
+          <Secao id="indicadores-producao" titulo="Produção no período" tipo="periodo" descricao="Baixas e encerramentos parciais por produto e etapa, cada um no dia em que foi registrado. Cada etapa informa o mesmo lote, então as etapas não são somadas entre si; a produção final é a da última etapa.">
+            {dados.producao.length === 0 ? <Vazio>Nenhuma baixa ou encerramento parcial no período.</Vazio> : (
+              <Tabela {...opcoesTabela} itens={dados.producao} legenda="Produção do período por produto e etapa" cabecalho={[{ titulo: 'Produto' }, { titulo: 'Etapa' }, { titulo: 'Ordens com baixa', direita: true }, { titulo: 'Turnos parciais', direita: true }, { titulo: 'Boa', direita: true }, { titulo: 'Retrabalho', direita: true }, { titulo: 'Refugo', direita: true }]}>
                 {(item) => (
                   <tr key={item.produtoCodigo + item.etapaRoteiroId}>
                     <td className={`${celula} font-medium`}>{item.produtoCodigo}</td>
                     <td className={celula}>{item.ordem}. {item.operacaoNome}{item.ultimaEtapa && <span className="ml-2 rounded-full border border-foreground/10 px-2 py-0.5 text-xs text-muted">última etapa</span>}</td>
                     <td className={numero}>{item.ordensBaixadas}</td>
+                    <td className={numero}>{item.encerramentosParciais}</td>
                     <td className={numero}>{formatarQuantidade(item.quantidadeBoa, item.unidade)}</td>
                     <td className={numero}>{formatarQuantidade(item.quantidadeRetrabalho, item.unidade)}</td>
                     <td className={numero}>{formatarQuantidade(item.quantidadeRefugo, item.unidade)}</td>

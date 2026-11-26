@@ -6,7 +6,7 @@ import { TabelaComRolagem } from '@/shared/presentation/tabela-com-rolagem';
 import { usePaginacaoTabela } from '@/shared/presentation/use-paginacao-tabela';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, AlertTriangle, LoaderCircle, Pause, RefreshCw, Timer } from 'lucide-react';
-import type { ExecucaoAcompanhada } from '../../domain/execucao';
+import { totalApontado, type ExecucaoAcompanhada } from '../../domain/execucao';
 import {
   agoraDoServidor, atencoesDaExecucao, consultarExecucoesAbertas, ErroApiAcompanhamento, filtrarExecucoes, formatarHoraCompleta, formatarHorario,
   inicioDaExecucao, INTERVALO_ATUALIZACAO_MS, pausaAtual, setoresDasExecucoes, temposAteAgora,
@@ -24,6 +24,13 @@ function textoAtencao(atencao: Atencao, referencia: string): string {
   return atencao.tipo === 'ACIMA_DO_PREVISTO'
     ? `Acima do previsto (${formatarDuracao(atencao.previstoSegundos)})`
     : `Iniciada em outro dia (${formatarHorario(atencao.inicio, referencia)})`;
+}
+
+/** Progresso da etapa quando já houve encerramento parcial: "12 de 24 par apontados". */
+function Apontado({ execucao }: { execucao: ExecucaoAcompanhada }) {
+  const total = totalApontado(execucao.apontado);
+  if (total <= 0) return null;
+  return <p className="text-xs font-medium text-warning">{total.toLocaleString('pt-BR')} de {execucao.ordem.quantidade.toLocaleString('pt-BR')} {execucao.ordem.unidade} apontados</p>;
 }
 
 function Situacao({ execucao, referencia, atencoes }: { execucao: ExecucaoAcompanhada; referencia: string; atencoes: Atencao[] }) {
@@ -117,7 +124,7 @@ export function ExecucoesAcompanhamento() {
         <div className="min-w-0">
           <h2 id="acompanhamento-titulo" className="text-lg font-semibold">Execuções em andamento</h2>
           <p className="mt-1.5 text-sm leading-6 text-muted">Execuções em execução ou pausadas agora, da mais antiga para a mais recente. O tempo é da execução e não mede o desempenho de uma pessoa.</p>
-          <p className="mt-1 text-sm leading-6 text-muted">Pedem atenção as execuções com tempo produtivo acima do previsto para a ordem (tempo padrão × quantidade) e as iniciadas em outro dia.</p>
+          <p className="mt-1 text-sm leading-6 text-muted">Pedem atenção as execuções com tempo produtivo acima do previsto para o que falta na etapa (tempo padrão × quantidade) e as iniciadas em outro dia.</p>
           <p aria-live="polite" className="mt-1 text-xs text-muted">
             {dados ? `Atualizado às ${formatarHoraCompleta(dados.meta.consultadoEm)} · atualiza sozinho a cada ${INTERVALO_ATUALIZACAO_MS / 1000} s` : carregando ? 'Carregando…' : ''}
           </p>
@@ -181,7 +188,7 @@ export function ExecucoesAcompanhamento() {
                         <td className="px-3 py-3"><Situacao execucao={execucao} referencia={referencia} atencoes={atencoes} /></td>
                         <td className="px-3 py-3"><p className="font-medium">{execucao.operador.nome}</p><p className="text-xs text-muted">{execucao.operador.matricula}</p></td>
                         <td className="px-3 py-3"><p className="font-medium">{execucao.ordem.numero}</p><p className="text-xs text-muted">{execucao.produto.codigo} – {execucao.produto.nome} · {execucao.ordem.quantidade.toLocaleString('pt-BR')} {execucao.ordem.unidade}</p></td>
-                        <td className="px-3 py-3">{execucao.etapa.ordem}. {execucao.etapa.operacao}</td>
+                        <td className="px-3 py-3">{execucao.etapa.ordem}. {execucao.etapa.operacao}<Apontado execucao={execucao} /></td>
                         <td className="px-3 py-3"><p className="font-medium">{execucao.posto.codigo}</p><p className="text-xs text-muted">{execucao.setor}</p></td>
                         <td className="px-3 py-3 tabular-nums">{inicio ? formatarHorario(inicio, referencia) : '—'}</td>
                         <td className="px-3 py-3 text-right font-mono tabular-nums">{formatarDuracao(tempos.produtivoSegundos)}</td>
@@ -206,7 +213,7 @@ export function ExecucoesAcompanhamento() {
                     </div>
                     <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                       <div className="min-w-0"><dt className="text-xs text-muted">Ordem</dt><dd className="[overflow-wrap:anywhere]">{execucao.ordem.numero} · {execucao.produto.codigo}</dd></div>
-                      <div className="min-w-0"><dt className="text-xs text-muted">Etapa</dt><dd className="[overflow-wrap:anywhere]">{execucao.etapa.ordem}. {execucao.etapa.operacao}</dd></div>
+                      <div className="min-w-0"><dt className="text-xs text-muted">Etapa</dt><dd className="[overflow-wrap:anywhere]">{execucao.etapa.ordem}. {execucao.etapa.operacao}<Apontado execucao={execucao} /></dd></div>
                       <div className="min-w-0"><dt className="text-xs text-muted">Posto</dt><dd className="[overflow-wrap:anywhere]">{execucao.posto.codigo} · {execucao.setor}</dd></div>
                       <div className="min-w-0"><dt className="text-xs text-muted">Início</dt><dd className="tabular-nums">{inicio ? formatarHorario(inicio, referencia) : '—'}</dd></div>
                       <div><dt className="text-xs text-muted">Produtivo</dt><dd className="font-mono tabular-nums">{formatarDuracao(tempos.produtivoSegundos)}</dd></div>

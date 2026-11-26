@@ -37,12 +37,17 @@
       "etapaAtual": {
         "etapaRoteiroId": "00000000-0000-4000-8000-000000000411",
         "ordem": 1,
-        "operacaoNome": "Corte"
+        "operacaoNome": "Corte",
+        "quantidadeApontada": 0
       },
       "emExecucao": true,
-      "ultimaBaixaEm": null
+      "ultimaBaixaEm": null,
+      "prazo": null,
+      "atrasada": false,
+      "diasDeAtraso": null
     }
   ],
+  "etapasParciais": [],
   "producao": [],
   "producaoFinal": [],
   "tempos": [
@@ -74,6 +79,7 @@
       "produtivoSegundos": 1800,
       "pausaSegundos": 300,
       "baixas": 0,
+      "encerramentosParciais": 0,
       "tempoPadraoDasBaixasSegundos": 0
     }
   ],

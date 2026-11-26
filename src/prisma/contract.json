@@ -138,6 +138,10 @@
               {
                 "name": "BAIXA",
                 "value": "BAIXA"
+              },
+              {
+                "name": "ENCERRAMENTO_PARCIAL",
+                "value": "ENCERRAMENTO_PARCIAL"
               }
             ]
           }
@@ -2761,8 +2765,8 @@
             "Execucao": {
               "checks": [
                 {
-                  "expression": "(\"tipoFinalizacao\" = 'BAIXA' AND \"quantidadeBoa\" IS NOT NULL AND \"quantidadeRetrabalho\" IS NOT NULL AND \"quantidadeRefugo\" IS NOT NULL) OR (\"tipoFinalizacao\" = 'TROCA_OPERACAO' AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL) OR (\"tipoFinalizacao\" IS NULL AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL)",
-                  "name": "Execucao_quantidades_finalizacao_check_1fc31576",
+                  "expression": "(\"tipoFinalizacao\" IN ('BAIXA', 'ENCERRAMENTO_PARCIAL') AND \"quantidadeBoa\" IS NOT NULL AND \"quantidadeRetrabalho\" IS NOT NULL AND \"quantidadeRefugo\" IS NOT NULL) OR (\"tipoFinalizacao\" = 'TROCA_OPERACAO' AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL) OR (\"tipoFinalizacao\" IS NULL AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL)",
+                  "name": "Execucao_quantidades_finalizacao_check_5235167e",
                   "prefix": "Execucao_quantidades_finalizacao_check"
                 },
                 {
@@ -2776,8 +2780,8 @@
                   "prefix": "Execucao_status_finalizacao_check"
                 },
                 {
-                  "expression": "\"tipoFinalizacao\" IN ('TROCA_OPERACAO', 'BAIXA')",
-                  "name": "Execucao_tipoFinalizacao_check_874252b2",
+                  "expression": "\"tipoFinalizacao\" IN ('TROCA_OPERACAO', 'BAIXA', 'ENCERRAMENTO_PARCIAL')",
+                  "name": "Execucao_tipoFinalizacao_check_2b2a0d4a",
                   "prefix": "Execucao_tipoFinalizacao_check"
                 }
               ],
@@ -4057,7 +4061,8 @@
               "kind": "valueSet",
               "values": [
                 "TROCA_OPERACAO",
-                "BAIXA"
+                "BAIXA",
+                "ENCERRAMENTO_PARCIAL"
               ]
             }
           }
@@ -4066,7 +4071,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "c172ef842aedcf5daa623427d147d0d60dd89caa22dcc58ebb68edfe1011ba7a"
+    "storageHash": "9f42c351fcf04e3cbcfc642f895a987a6ab4df2b77928e784c9f4375b3af94a4"
   },
   "execution": {
     "executionHash": "a1ef384d8bd6528ddadbd0e183c91f2a9f990140a3e9e0aac7de1afbb92da119",
