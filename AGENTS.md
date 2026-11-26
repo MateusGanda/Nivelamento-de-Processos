@@ -50,8 +50,8 @@ Em especial:
 - `Usuario` e `Operador` são entidades distintas.
 - QR Code ou código funcional identifica o operador, mas não autentica nem concede privilégios.
 - A ordem de produção mantém a versão do roteiro selecionada.
-- A baixa não é parcial.
-- A soma de itens bons, retrabalho e refugo deve corresponder à quantidade da ordem.
+- A baixa conclui a etapa e só existe uma por etapa. Antes dela, o encerramento parcial (fim de turno) pode registrar o que foi feito e deixar a etapa pendente (decisão de 26/11/2026).
+- A soma de itens bons, retrabalho e refugo da etapa (encerramentos parciais mais a baixa) deve corresponder à quantidade da ordem; os encerramentos parciais ficam abaixo dela.
 - Um operador não pode manter duas execuções abertas simultaneamente, incluindo execuções pausadas.
 - Execuções finalizadas não podem ser retomadas.
 - O tempo produtivo deve considerar os intervalos ativos e as pausas registradas.

@@ -12,6 +12,8 @@ export type ExecucaoAberta = {
   etapa: { id: string; ordem: number; operacao: string };
   posto: { id: string; codigo: string; nome: string };
   eventos: EventoDaExecucao[];
+  /** Soma dos encerramentos parciais já feitos nesta etapa da ordem, por qualquer operador. */
+  apontado: Baixa;
 };
 
 // Execução aberta vista pelo administrador no acompanhamento: inclui quem executa, o setor do posto e
@@ -31,7 +33,8 @@ export type OperadorDaIlha = {
 };
 
 export type PostoDisponivel = { id: string; codigo: string; nome: string };
-export type EtapaDisponivel = { id: string; ordem: number; operacao: string; baixada: boolean; postos: PostoDisponivel[] };
+/** `apontado`: total (boa + retrabalho + refugo) dos encerramentos parciais da etapa; zero quando não houve. */
+export type EtapaDisponivel = { id: string; ordem: number; operacao: string; baixada: boolean; apontado: number; postos: PostoDisponivel[] };
 export type OrdemDisponivel = {
   id: string; numero: string; quantidade: number; unidade: string; plano: string;
   produto: { codigo: string; nome: string }; etapas: EtapaDisponivel[];
@@ -85,16 +88,59 @@ function validarQuantidade(valor: unknown, campo: string): number {
   return valor;
 }
 
-// Não existe baixa parcial: boa + retrabalho + refugo precisa ser a quantidade inteira da ordem.
-export function validarBaixa(baixa: Partial<Record<keyof Baixa, unknown>>, quantidadeOrdem: number): Baixa {
-  const dados = {
-    quantidadeBoa: validarQuantidade(baixa.quantidadeBoa, 'Quantidade boa'),
-    quantidadeRetrabalho: validarQuantidade(baixa.quantidadeRetrabalho, 'Retrabalho'),
-    quantidadeRefugo: validarQuantidade(baixa.quantidadeRefugo, 'Refugo'),
+function validarQuantidades(informado: Partial<Record<keyof Baixa, unknown>>): Baixa {
+  return {
+    quantidadeBoa: validarQuantidade(informado.quantidadeBoa, 'Quantidade boa'),
+    quantidadeRetrabalho: validarQuantidade(informado.quantidadeRetrabalho, 'Retrabalho'),
+    quantidadeRefugo: validarQuantidade(informado.quantidadeRefugo, 'Refugo'),
   };
-  const soma = centavos(dados.quantidadeBoa) + centavos(dados.quantidadeRetrabalho) + centavos(dados.quantidadeRefugo);
-  if (soma !== centavos(quantidadeOrdem)) {
+}
+
+const totalEmCentavos = (q: Baixa) => centavos(q.quantidadeBoa) + centavos(q.quantidadeRetrabalho) + centavos(q.quantidadeRefugo);
+
+export const NADA_APONTADO: Baixa = { quantidadeBoa: 0, quantidadeRetrabalho: 0, quantidadeRefugo: 0 };
+
+/** Soma exata, em duas casas, dos encerramentos parciais de uma etapa. */
+export function somarApontamentos(apontamentos: readonly Baixa[]): Baixa {
+  let boa = 0;
+  let retrabalho = 0;
+  let refugo = 0;
+  for (const a of apontamentos) {
+    boa += centavos(a.quantidadeBoa);
+    retrabalho += centavos(a.quantidadeRetrabalho);
+    refugo += centavos(a.quantidadeRefugo);
+  }
+  return { quantidadeBoa: boa / 100, quantidadeRetrabalho: retrabalho / 100, quantidadeRefugo: refugo / 100 };
+}
+
+/** Total já apontado (boa + retrabalho + refugo). */
+export const totalApontado = (apontado: Baixa) => totalEmCentavos(apontado) / 100;
+
+// A baixa conclui a etapa: o que já foi apontado nos encerramentos parciais mais boa + retrabalho + refugo
+// da baixa precisa ser a quantidade inteira da ordem. Sem encerramento parcial, a baixa traz a quantidade toda.
+export function validarBaixa(baixa: Partial<Record<keyof Baixa, unknown>>, quantidadeOrdem: number, jaApontado: Baixa = NADA_APONTADO): Baixa {
+  const dados = validarQuantidades(baixa);
+  const soma = totalEmCentavos(dados);
+  const anterior = totalEmCentavos(jaApontado);
+  const falta = centavos(quantidadeOrdem) - anterior;
+  if (soma === falta) return dados;
+  if (anterior === 0) {
     throw new ErroDeExecucao('ENTRADA_INVALIDA', `A soma de boa, retrabalho e refugo (${soma / 100}) precisa ser igual à quantidade da ordem (${quantidadeOrdem}).`);
+  }
+  throw new ErroDeExecucao('ENTRADA_INVALIDA', `Já foram apontados ${anterior / 100} em turnos anteriores. A soma de boa, retrabalho e refugo (${soma / 100}) precisa ser igual ao que falta (${falta / 100}).`);
+}
+
+// Encerramento parcial (fim do turno): registra o que foi feito e deixa a etapa pendente. Somado ao que já foi
+// apontado, precisa ficar abaixo da quantidade da ordem; quando completa a quantidade, o certo é a baixa.
+export function validarEncerramentoParcial(informado: Partial<Record<keyof Baixa, unknown>>, quantidadeOrdem: number, jaApontado: Baixa = NADA_APONTADO): Baixa {
+  const dados = validarQuantidades(informado);
+  const total = totalEmCentavos(jaApontado) + totalEmCentavos(dados);
+  const falta = (centavos(quantidadeOrdem) - totalEmCentavos(jaApontado)) / 100;
+  if (total === centavos(quantidadeOrdem)) {
+    throw new ErroDeExecucao('ENTRADA_INVALIDA', 'Com essas quantidades a etapa fica completa. Use "Finalizar e dar baixa".');
+  }
+  if (total > centavos(quantidadeOrdem)) {
+    throw new ErroDeExecucao('ENTRADA_INVALIDA', `A soma de boa, retrabalho e refugo (${totalEmCentavos(dados) / 100}) passa do que falta na etapa (${falta}).`);
   }
   return dados;
 }

@@ -17,6 +17,7 @@ const execucao: ExecucaoAberta = {
   etapa: { id: 'etapa-1', ordem: 1, operacao: 'Corte' },
   posto: { id: 'posto-1', codigo: 'COR1', nome: 'Posto' },
   eventos: [{ tipo: 'INICIO', dataHora: instante, motivo: null }],
+  apontado: { quantidadeBoa: 0, quantidadeRetrabalho: 0, quantidadeRefugo: 0 },
 };
 const operadorCom = (aberta: ExecucaoAberta | null): OperadorDaIlha => ({ ...identidade, nome: 'Ana', setor: null, execucaoAberta: aberta });
 

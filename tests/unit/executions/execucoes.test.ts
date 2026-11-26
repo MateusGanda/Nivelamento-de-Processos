@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ExecucoesService } from '../../../modules/executions/application/execucoes.ts';
 import type { ExecucaoRepository, SituacaoDestino } from '../../../modules/executions/application/contracts.ts';
-import { ErroDeExecucao, validarBaixa, type Baixa, type Destino, type ExecucaoAberta, type StatusExecucao, type TipoEvento } from '../../../modules/executions/domain/execucao.ts';
+import { ErroDeExecucao, NADA_APONTADO, somarApontamentos, validarBaixa, validarEncerramentoParcial, type Baixa, type Destino, type ExecucaoAberta, type StatusExecucao, type TipoEvento } from '../../../modules/executions/domain/execucao.ts';
 import { traduzirErroGravacaoExecucao } from '../../../modules/executions/infrastructure/persistence-errors.ts';
 import { criarChaveIlha } from '../../../modules/executions/infrastructure/chave-ilha.ts';
 import { COOKIE_ILHA, criarHandlersIlha } from '../../../modules/executions/presentation/http.ts';
@@ -36,7 +36,13 @@ class RepositorioEmMemoria implements ExecucaoRepository {
       id: e.id, status: e.status, ordem: { id: ORDEM, numero: 'OP-0001', quantidade: 40, unidade: 'un' }, produto: { codigo: 'PRD-001', nome: 'Produto A' },
       etapa: { id: e.destino.etapaId, ordem: e.destino.etapaId === ETAPA1 ? 1 : 2, operacao: e.destino.etapaId === ETAPA1 ? 'Corte' : 'Montagem' },
       posto: { id: e.destino.postoId, codigo: 'P', nome: 'Posto' }, eventos: e.eventos.map((ev) => ({ tipo: ev.tipo, dataHora: ev.dataHora, motivo: ev.motivoId ? 'Falta de material' : null })),
+      apontado: this.apontadoNaEtapa(e.destino),
     };
+  }
+  // Soma dos encerramentos parciais da mesma ordem e etapa, como o repositório real.
+  apontadoNaEtapa(destino: Destino): Baixa {
+    const parciais = this.execucoes.filter((e) => e.tipoFinalizacao === 'ENCERRAMENTO_PARCIAL' && e.destino.ordemId === destino.ordemId && e.destino.etapaId === destino.etapaId);
+    return parciais.length === 0 ? NADA_APONTADO : somarApontamentos(parciais.map((e) => e.baixa!));
   }
   async listarExecucoesAbertas() {
     const abertas = this.execucoes.filter((e) => e.status !== 'FINALIZADA');
@@ -90,8 +96,19 @@ class RepositorioEmMemoria implements ExecucaoRepository {
     e.eventos.push({ tipo: 'FINALIZACAO', dataHora: agora, motivoId: null });
     return this.abrir(operadorId, destino, agora);
   }
-  async baixar(id: string, baixa: Baixa, agora: string) {
+  async encerrarParcial(id: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string) {
     const atual = this.execucoes.find((item) => item.id === id);
+    if (!atual) return false;
+    const dados = quantidades(this.apontadoNaEtapa(atual.destino));
+    const e = this.mudar(id, 'EM_EXECUCAO', 'FINALIZADA');
+    if (!e) return false;
+    Object.assign(e, { tipoFinalizacao: 'ENCERRAMENTO_PARCIAL', baixa: dados });
+    e.eventos.push({ tipo: 'FINALIZACAO', dataHora: agora, motivoId: null });
+    return true;
+  }
+  async baixar(id: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string) {
+    const atual = this.execucoes.find((item) => item.id === id);
+    const baixa = atual ? quantidades(this.apontadoNaEtapa(atual.destino)) : null;
     if (atual && this.execucoes.some((e) => e.tipoFinalizacao === 'BAIXA' && e.destino.ordemId === atual.destino.ordemId && e.destino.etapaId === atual.destino.etapaId)) {
       return traduzirErroGravacaoExecucao({ code: '23505', constraint: 'Execucao_baixa_unica_d8d722ee' });
     }
@@ -320,9 +337,70 @@ test('ilha: ações pela API respondem 201, 200, 400, 404 e 409 e recusam campos
   assert.equal((await handlers.OPERADOR_GET(pedido('/x', 'GET', undefined, cookie), 'NAO-EXISTE')).status, 404);
   const falha = async () => { throw new Error('connect ECONNREFUSED'); };
   const quebrado = criarHandlersIlha({ chave: () => criarChaveIlha(CHAVE), execucoes: {
-    identificar: falha, listarOrdensDisponiveis: falha, listarMotivos: falha, iniciar: falha, pausar: falha, retomar: falha, trocar: falha, baixar: falha,
+    identificar: falha, listarOrdensDisponiveis: falha, listarMotivos: falha, iniciar: falha, pausar: falha, retomar: falha, trocar: falha, baixar: falha, encerrarParcial: falha,
   } });
   const resposta = await quebrado.ORDENS_GET(pedido('/x', 'GET', undefined, cookie));
   assert.equal(resposta.status, 500);
   assert.deepEqual(await resposta.json(), { erro: { codigo: 'ERRO_INTERNO', mensagem: 'Não foi possível concluir a solicitação.' } });
+});
+
+test('encerramento parcial: fim do turno registra o que foi feito e deixa a etapa pendente', async () => {
+  const { service, repositorio } = novoServico();
+  const id = (await service.iniciar('AS-MON1', destino())).execucaoAberta!.id;
+  const depois = await service.encerrarParcial('AS-MON1', id, baixaDe(15, 1, 0));
+  // O operador fica livre e a execução guarda as quantidades do turno.
+  assert.equal(depois.execucaoAberta, null);
+  const linha = repositorio.execucoes.find((e) => e.id === id)!;
+  assert.deepEqual([linha.status, linha.tipoFinalizacao, linha.baixa], ['FINALIZADA', 'ENCERRAMENTO_PARCIAL', baixaDe(15, 1, 0)]);
+  assert.deepEqual(linha.eventos.map((e) => e.tipo), ['INICIO', 'FINALIZACAO']);
+  // A etapa não teve baixa: outro operador continua no dia seguinte e vê o que já foi apontado.
+  const continuacao = (await service.iniciar('BL-MON1', destino())).execucaoAberta!;
+  assert.deepEqual(continuacao.apontado, baixaDe(15, 1, 0));
+});
+
+test('encerramento parcial: a soma fica abaixo da quantidade da ordem; completar é papel da baixa', async () => {
+  const { service } = novoServico();
+  const id = (await service.iniciar('AS-MON1', destino())).execucaoAberta!.id;
+  await assert.rejects(() => service.encerrarParcial('AS-MON1', id, baixaDe(40)), erroCom('ENTRADA_INVALIDA', /Finalizar e dar baixa/));
+  await assert.rejects(() => service.encerrarParcial('AS-MON1', id, baixaDe(41)), erroCom('ENTRADA_INVALIDA', /passa do que falta/));
+  await assert.rejects(() => service.encerrarParcial('AS-MON1', id, baixaDe(5, -1)), erroCom('ENTRADA_INVALIDA', /zero ou maior/));
+  await service.encerrarParcial('AS-MON1', id, baixaDe(30));
+  const segundo = (await service.iniciar('AS-MON1', destino())).execucaoAberta!.id;
+  // Já foram 30: um novo encerramento parcial precisa ficar abaixo dos 10 que faltam.
+  await assert.rejects(() => service.encerrarParcial('AS-MON1', segundo, baixaDe(10)), erroCom('ENTRADA_INVALIDA', /Finalizar e dar baixa/));
+  await service.encerrarParcial('AS-MON1', segundo, baixaDe(0));
+});
+
+test('baixa depois de encerramentos parciais completa só o que falta', async () => {
+  const { service, repositorio } = novoServico();
+  const primeiro = (await service.iniciar('AS-MON1', destino())).execucaoAberta!.id;
+  await service.encerrarParcial('AS-MON1', primeiro, baixaDe(20, 2, 1));
+  const segundo = (await service.iniciar('BL-MON1', destino())).execucaoAberta!.id;
+  // Faltam 17: a quantidade inteira da ordem não é mais aceita.
+  await assert.rejects(() => service.baixar('BL-MON1', segundo, baixaDe(40)), erroCom('ENTRADA_INVALIDA', /Já foram apontados 23.*igual ao que falta \(17\)/));
+  await service.baixar('BL-MON1', segundo, baixaDe(16, 0, 1));
+  const linha = repositorio.execucoes.find((e) => e.id === segundo)!;
+  assert.deepEqual([linha.tipoFinalizacao, linha.baixa], ['BAIXA', baixaDe(16, 0, 1)]);
+  await assert.rejects(() => service.iniciar('AS-MON1', destino()), erroCom('CONFLITO', /já teve baixa/));
+});
+
+test('regras do apontamento: baixa e encerramento parcial conferem o que já foi apontado', () => {
+  assert.deepEqual(validarBaixa(baixaDe(10), 40, baixaDe(30)), baixaDe(10));
+  assert.throws(() => validarBaixa(baixaDe(40), 40, baixaDe(30)), /igual ao que falta \(10\)/);
+  assert.deepEqual(validarEncerramentoParcial(baixaDe(9.99), 40, baixaDe(30)), baixaDe(9.99));
+  assert.throws(() => validarEncerramentoParcial(baixaDe(10), 40, baixaDe(30)), /Finalizar e dar baixa/);
+  assert.deepEqual(somarApontamentos([baixaDe(0.1, 0.2), baixaDe(0.2, 0.1, 0.3)]), baixaDe(0.3, 0.3, 0.3));
+});
+
+test('ilha: encerramento parcial pela API responde 200 e recusa campos extras', async () => {
+  const { service } = novoServico();
+  const id = (await service.iniciar('AS-MON1', destino())).execucaoAberta!.id;
+  const chave = criarChaveIlha(CHAVE);
+  const handlers = criarHandlersIlha({ chave: () => chave, execucoes: service, esperarAposErro: async () => {} });
+  const cookie = `${COOKIE_ILHA}=${chave.credencial()}`;
+  assert.equal((await handlers.ENCERRAMENTO_POST(pedido('/x', 'POST', { matricula: 'AS-MON1', ...baixaDe(5), extra: 1 }, cookie), id)).status, 400);
+  assert.equal((await handlers.ENCERRAMENTO_POST(pedido('/x', 'POST', { matricula: 'AS-MON1', ...baixaDe(40) }, cookie), id)).status, 400);
+  const resposta = await handlers.ENCERRAMENTO_POST(pedido('/x', 'POST', { matricula: 'AS-MON1', ...baixaDe(5) }, cookie), id);
+  assert.equal(resposta.status, 200);
+  assert.equal((await resposta.json()).execucaoAberta, null);
 });

@@ -137,6 +137,7 @@ export function IlhaDestino({ rotuloConfirmar, ocupado, aoConfirmar, aoCancelar,
           return <button key={item.id} type="button" aria-pressed={item.id === etapaId} disabled={motivo !== null || indisponivel}
             onClick={() => { if (!ocupado && !controle.emAndamento()) dispatch({ tipo: 'selecionarEtapa', id: item.id, atual: etapaAtual }); }} className={`${cartao} ${selecionado(item.id === etapaId)}`}>
             <span className="block font-semibold">{item.ordem}. {item.operacao}</span><span className="block text-sm text-subtle">{motivo ?? `${item.postos.length} ${item.postos.length === 1 ? 'posto' : 'postos'}`}</span>
+            {!motivo && item.apontado > 0 && <span className="block text-sm font-medium text-warning">Pendente: {item.apontado.toLocaleString('pt-BR')} de {ordem.quantidade.toLocaleString('pt-BR')} {ordem.unidade} já apontados</span>}
           </button>;
         })}</div>
       </fieldset>}

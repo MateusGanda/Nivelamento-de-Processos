@@ -25,7 +25,8 @@ Versão 1.1: campo `tempoPadraoSegundos` e sinais de atenção na tela (seção 
     "eventos": [
       { "tipo": "INICIO", "dataHora": "2026-11-05T11:30:00.000Z", "motivo": null },
       { "tipo": "PAUSA", "dataHora": "2026-11-05T12:00:00.000Z", "motivo": "Falta de material" }
-    ]
+    ],
+    "apontado": { "quantidadeBoa": 0, "quantidadeRetrabalho": 0, "quantidadeRefugo": 0 }
   }]
 }
 ```
@@ -34,6 +35,7 @@ Versão 1.1: campo `tempoPadraoSegundos` e sinais de atenção na tela (seção 
 - **`setor`:** setor do posto da execução.
 - **`tempoPadraoSegundos`:** tempo padrão da etapa para o produto da ordem, em segundos por unidade (`ProdutoEtapa.tempoPadrao`); `null` se não estiver cadastrado.
 - **`eventos`:** em ordem de data, com o nome do motivo nas pausas, no mesmo formato da ilha.
+- **`apontado`:** soma dos encerramentos parciais (fim de turno) já feitos na mesma ordem e etapa, por qualquer operador (desde 26/11/2026). Quando passa de zero, a tela mostra "X de Y apontados" na etapa.
 - **`meta.consultadoEm`:** horário do servidor na consulta. A tela conta o tempo a partir dele, e não do relógio do computador.
 - **Erros** no formato `{ erro: { codigo, mensagem } }`: `400 ENTRADA_INVALIDA` com parâmetros, `401 NAO_AUTENTICADO` sem sessão, `403 SEM_AUTORIZACAO` para usuário inativo e `500 ERRO_INTERNO` sem detalhes. Todas as respostas com `Cache-Control: no-store`.
 
@@ -50,7 +52,7 @@ Versão 1.1: campo `tempoPadraoSegundos` e sinais de atenção na tela (seção 
 
 Decisão de 05/11/2026. A tela destaca a execução (faixa e texto em amarelo) e a conta no filtro **Com atenção** quando:
 
-- **Acima do previsto:** o tempo produtivo até agora passa do previsto para a ordem, `tempoPadraoSegundos × quantidade`. Sem tempo padrão (ou com zero) não há comparação. A pausa não conta como tempo produtivo.
+- **Acima do previsto:** o tempo produtivo até agora passa do previsto para o que falta na etapa, `tempoPadraoSegundos × (quantidade − apontado)`; sem encerramento parcial, é a quantidade inteira. Sem tempo padrão (ou com zero) não há comparação. A pausa não conta como tempo produtivo.
 - **Iniciada em outro dia:** o primeiro `INICIO` é de um dia anterior ao de hoje, no horário de Brasília. É o sinal de uma execução esquecida aberta.
 
 Os sinais só destacam a execução: não mudam o banco nem a execução, e não avaliam a pessoa. A comparação com o previsto usa a mesma base dos indicadores (tempo padrão por unidade).

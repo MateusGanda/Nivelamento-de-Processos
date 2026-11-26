@@ -72,6 +72,16 @@ Falha encontrada nos testes da etapa 8: dois operadores podem executar a mesma e
 
 Correção: a baixa encerra, na mesma transação, as outras execuções abertas da mesma ordem e etapa, em execução ou pausadas, sem quantidades e com finalização do tipo `TROCA_OPERACAO`. O horário do encerramento é o da baixa ou, se o último evento da execução for no mesmo milissegundo ou depois (uma pausa simultânea), 1 ms depois desse evento, para a ordem dos eventos nunca empatar. O trecho final conta como produtivo ou como pausa, conforme a situação da execução encerrada; para isso, `PAUSA → FINALIZACAO` passou a ser uma sequência válida em `derivarIntervalos`. Um pedido simultâneo do outro operador é resolvido pela condição de estado no próprio UPDATE. Na ilha, uma tela antiga desse operador recebe conflito na próxima ação e oferece atualizar a situação. Sem mudança de API ou banco.
 
+## Encerramento parcial no fim do turno — 26/11/2026
+
+Pedido da banca: quando o operador não termina a etapa no turno, a etapa precisa ficar pendente para o dia seguinte, com alguma métrica do que foi feito. Antes, a única saída era deixar a execução pausada durante a noite.
+
+- Na execução em andamento, o botão **Encerrar turno** abre o mesmo formulário de quantidades da baixa. O operador informa boa, retrabalho e refugo do turno; a soma precisa ficar abaixo do que falta na etapa (para completar, o certo é a baixa).
+- A execução é finalizada com o tipo `ENCERRAMENTO_PARCIAL`; o operador fica livre e a confirmação mostra quanto falta.
+- Na escolha da etapa, a etapa pendente mostra "Pendente: X de Y já apontados". Ao continuar, a tela da execução mostra o que foi apontado nos turnos anteriores e o que falta, e a baixa pede só o restante.
+- No painel, o acompanhamento mostra "X de Y apontados" e calcula o "Acima do previsto" sobre o que falta; a TV mostra X/Y no quadro do posto; os indicadores têm a seção "Etapas pendentes com apontamento parcial" e contam a produção de cada turno no dia em que foi feita.
+- Rota nova: `POST /api/ilha/execucoes/[id]/encerramento` (`{ matricula, quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo }`), com as mesmas respostas da baixa.
+
 ## Arquivos principais
 
 - [Escolha do destino](../../modules/executions/presentation/components/ilha-destino.tsx).

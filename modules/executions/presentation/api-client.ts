@@ -28,7 +28,13 @@ function ehPosto(valor: unknown): boolean {
 
 function ehEtapa(valor: unknown): boolean {
   return objeto(valor) && typeof valor.id === 'string' && typeof valor.ordem === 'number' && Number.isFinite(valor.ordem) &&
-    typeof valor.operacao === 'string' && typeof valor.baixada === 'boolean' && Array.isArray(valor.postos) && valor.postos.every(ehPosto);
+    typeof valor.operacao === 'string' && typeof valor.baixada === 'boolean' && typeof valor.apontado === 'number' && Number.isFinite(valor.apontado) &&
+    Array.isArray(valor.postos) && valor.postos.every(ehPosto);
+}
+
+const ehQuantidade = (valor: unknown) => typeof valor === 'number' && Number.isFinite(valor);
+function ehApontado(valor: unknown): boolean {
+  return objeto(valor) && ehQuantidade(valor.quantidadeBoa) && ehQuantidade(valor.quantidadeRetrabalho) && ehQuantidade(valor.quantidadeRefugo);
 }
 
 function ehOrdem(valor: unknown): valor is OrdemDisponivel {
@@ -52,7 +58,7 @@ function ehOperador(valor: unknown): valor is OperadorDaIlha {
     typeof aberta.ordem.quantidade === 'number' && Number.isFinite(aberta.ordem.quantidade) && typeof aberta.ordem.unidade === 'string' &&
     objeto(aberta.produto) && typeof aberta.produto.codigo === 'string' && typeof aberta.produto.nome === 'string' &&
     objeto(aberta.etapa) && typeof aberta.etapa.id === 'string' && typeof aberta.etapa.ordem === 'number' &&
-    Number.isFinite(aberta.etapa.ordem) && typeof aberta.etapa.operacao === 'string' && ehPosto(aberta.posto) &&
+    Number.isFinite(aberta.etapa.ordem) && typeof aberta.etapa.operacao === 'string' && ehPosto(aberta.posto) && ehApontado(aberta.apontado) &&
     Array.isArray(aberta.eventos) && aberta.eventos.every((evento: unknown) => objeto(evento) &&
       typeof evento.tipo === 'string' && ['INICIO', 'PAUSA', 'RETOMADA', 'FINALIZACAO'].includes(evento.tipo) &&
       typeof evento.dataHora === 'string' && Number.isFinite(Date.parse(evento.dataHora)) &&
@@ -78,6 +84,7 @@ export const pausarExecucao = (matricula: string, id: string, motivoId: string) 
 export const retomarExecucao = (matricula: string, id: string) => operador(post(rotaExecucao(id, 'retomada'), { matricula }));
 export const trocarOperacao = (matricula: string, id: string, destino: Destino) => operador(post(rotaExecucao(id, 'troca'), { matricula, ...destino }));
 export const darBaixa = (matricula: string, id: string, baixa: Baixa) => operador(post(rotaExecucao(id, 'baixa'), { matricula, ...baixa }));
+export const encerrarTurno = (matricula: string, id: string, quantidades: Baixa) => operador(post(rotaExecucao(id, 'encerramento'), { matricula, ...quantidades }));
 
 export async function listarOrdensDisponiveis(signal?: AbortSignal): Promise<OrdemDisponivel[]> {
   const ordens = await lerResposta(await get('/api/ilha/ordens', signal));

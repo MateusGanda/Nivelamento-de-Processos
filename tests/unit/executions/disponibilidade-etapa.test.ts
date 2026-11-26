@@ -4,7 +4,7 @@ import type { EtapaDisponivel } from '../../../modules/executions/domain/execuca
 import { motivoIndisponibilidadeEtapa } from '../../../modules/executions/presentation/disponibilidade-etapa.ts';
 
 const corte: EtapaDisponivel = {
-  id: 'etapa-corte-compartilhada', ordem: 1, operacao: 'Corte', baixada: false,
+  id: 'etapa-corte-compartilhada', ordem: 1, operacao: 'Corte', baixada: false, apontado: 0,
   postos: [{ id: 'posto-corte', codigo: 'COR1', nome: 'Posto de corte' }],
 };
 const atual = { ordemId: 'op-001', etapaId: corte.id };

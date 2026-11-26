@@ -6,7 +6,7 @@ import type { ExecucaoAcompanhada, EventoDaExecucao } from '../../../modules/exe
 import { criarHandlersAcompanhamento } from '../../../modules/executions/presentation/http-painel.ts';
 import { ErroDeAcesso } from '../../../modules/access/domain/usuario.ts';
 import {
-  agoraDoServidor, atencoesDaExecucao, filtrarExecucoes, formatarHorario, inicioDaExecucao, lerRespostaAcompanhamento, pausaAtual, setoresDasExecucoes, temposAteAgora,
+  agoraDoServidor, atencoesDaExecucao, quantidadeQueFalta, filtrarExecucoes, formatarHorario, inicioDaExecucao, lerRespostaAcompanhamento, pausaAtual, setoresDasExecucoes, temposAteAgora,
 } from '../../../modules/executions/presentation/acompanhamento.ts';
 
 const t = (hora: string) => `2026-11-05T${hora}:00.000Z`;
@@ -18,7 +18,7 @@ function execucao(id: string, mudancas: Partial<ExecucaoAcompanhada> = {}): Exec
     ordem: { id: `ordem-${id}`, numero: 'OP-0001', quantidade: 40, unidade: 'un' }, produto: { codigo: 'PRD-001', nome: 'Produto A' },
     etapa: { id: `etapa-${id}`, ordem: 1, operacao: 'Corte' }, posto: { id: `posto-${id}`, codigo: 'PRE-01', nome: 'Corte 1' },
     eventos: [evento('INICIO', '11:00')], operador: { matricula: 'OF-PRE1', nome: 'Operador Fictício 1' }, setor: 'Preparação',
-    tempoPadraoSegundos: null,
+    tempoPadraoSegundos: null, apontado: { quantidadeBoa: 0, quantidadeRetrabalho: 0, quantidadeRefugo: 0 },
     ...mudancas,
   };
 }
@@ -111,6 +111,14 @@ test('acompanhamento: atenção quando o tempo produtivo passa do previsto (temp
   // Sem tempo padrão (ou zero) não há previsto para comparar.
   assert.deepEqual(atencoesDaExecucao(execucao('c'), Date.parse(t('18:00'))), []);
   assert.deepEqual(atencoesDaExecucao(execucao('d', { tempoPadraoSegundos: 0 }), Date.parse(t('18:00'))), []);
+});
+
+test('acompanhamento: depois de um encerramento parcial, o previsto é só o que falta na etapa', () => {
+  // 30 de 40 un já apontados em turno anterior: faltam 10 un × 60 s = 10 min previstos.
+  const continuacao = execucao('a', { tempoPadraoSegundos: 60, apontado: { quantidadeBoa: 28, quantidadeRetrabalho: 1, quantidadeRefugo: 1 } });
+  assert.equal(quantidadeQueFalta(continuacao), 10);
+  assert.deepEqual(atencoesDaExecucao(continuacao, Date.parse(t('11:10'))), []);
+  assert.deepEqual(atencoesDaExecucao(continuacao, Date.parse(t('11:11'))), [{ tipo: 'ACIMA_DO_PREVISTO', previstoSegundos: 600 }]);
 });
 
 test('acompanhamento: atenção para execução iniciada em outro dia, no horário de Brasília', () => {

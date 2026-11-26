@@ -35,7 +35,7 @@ export class PrismaIndicadoresRepository implements IndicadoresRepository {
       db.orm.public.OrdemProducao
         .select('id', 'numero', 'quantidade', 'unidade', 'roteiroId', 'produtoId', 'planoProducaoId')
         .include('produto', (produto) => produto.select('codigo', 'nome'))
-        .include('planoProducao', (plano) => plano.select('codigo'))
+        .include('planoProducao', (plano) => plano.select('codigo', 'dataFim'))
         .all(),
       db.orm.public.EtapaRoteiro
         .select('id', 'roteiroId', 'operacaoId', 'ordem')
@@ -57,6 +57,7 @@ export class PrismaIndicadoresRepository implements IndicadoresRepository {
     return {
       ordens: ordens.map((o) => {
         const produto = relacionado(o.produto, 'produto da ordem');
+        const plano = relacionado(o.planoProducao, 'plano da ordem');
         return {
           id: o.id,
           numero: o.numero,
@@ -66,7 +67,8 @@ export class PrismaIndicadoresRepository implements IndicadoresRepository {
           produtoId: o.produtoId,
           produtoCodigo: produto.codigo,
           produtoNome: produto.nome,
-          planoCodigo: relacionado(o.planoProducao, 'plano da ordem').codigo,
+          planoCodigo: plano.codigo,
+          prazo: plano.dataFim,
         };
       }),
       etapas: etapas.map((e) => ({ id: e.id, roteiroId: e.roteiroId, ordem: e.ordem, operacaoNome: relacionado(e.operacao, 'operação da etapa').nome })),

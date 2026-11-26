@@ -30,8 +30,8 @@ export function conferirResultado(quantidadeOrdem: number, resultado: Resultado)
 }
 
 /** Mesmos valores de TipoFinalizacao no contrato do banco. Nulo: execução ainda aberta. */
-export type TipoFinalizacao = 'TROCA_OPERACAO' | 'BAIXA';
-/** Execução como está no banco: as quantidades só existem na finalização por BAIXA. */
+export type TipoFinalizacao = 'TROCA_OPERACAO' | 'BAIXA' | 'ENCERRAMENTO_PARCIAL';
+/** Execução como está no banco: as quantidades só existem na finalização por BAIXA ou por ENCERRAMENTO_PARCIAL. */
 export type ExecucaoDaEtapa = {
   tipoFinalizacao: TipoFinalizacao | null;
   quantidadeBoa: number | null;
@@ -40,24 +40,46 @@ export type ExecucaoDaEtapa = {
 };
 export type SituacaoBaixa = 'SEM_BAIXA' | 'BAIXADA' | 'INCONSISTENTE';
 
-/** Baixa de UMA etapa de UMA ordem: a execução com tipoFinalizacao BAIXA.
- * Execução aberta ou finalizada por TROCA_OPERACAO não é baixa.
- * O banco garante baixa única por ordem e etapa, com as três quantidades. Ele
- * não confere a soma com a quantidade da ordem nem o sinal: baixa com soma
- * diferente ou quantidade negativa é inconsistência, e a etapa não conta como baixada.
+/** Quantidades de UMA execução que registra produção (baixa ou encerramento parcial); null quando falta alguma ou há negativa. */
+export function quantidadesDaExecucao(execucao: ExecucaoDaEtapa): Resultado | null {
+  const { quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo } = execucao;
+  if (quantidadeBoa === null || quantidadeRetrabalho === null || quantidadeRefugo === null) return null;
+  if (quantidadeBoa < 0 || quantidadeRetrabalho < 0 || quantidadeRefugo < 0) return null;
+  return { quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo };
+}
+
+/** Se a execução registra produção: baixa ou encerramento parcial (fim de turno). */
+export const registraProducao = (execucao: ExecucaoDaEtapa) => execucao.tipoFinalizacao === 'BAIXA' || execucao.tipoFinalizacao === 'ENCERRAMENTO_PARCIAL';
+
+/** Resultado de UMA etapa de UMA ordem. A etapa é concluída pela execução com tipoFinalizacao BAIXA;
+ * antes dela, os encerramentos parciais (ENCERRAMENTO_PARCIAL) registram o que foi feito em cada turno.
+ * O resultado da etapa é a soma dos encerramentos parciais com a baixa.
+ * Execução aberta ou finalizada por TROCA_OPERACAO não tem quantidades.
+ * O banco garante baixa única por ordem e etapa e exige as três quantidades na baixa e no encerramento
+ * parcial. Ele não confere a soma com a quantidade da ordem nem o sinal: soma diferente, quantidade
+ * negativa ou encerramentos parciais que já completam a ordem sem baixa são inconsistência, e a etapa
+ * não conta como baixada. `apontado` é a soma dos encerramentos parciais (null quando não houve nenhum).
  */
-export function identificarBaixa(quantidadeOrdem: number, execucoes: readonly ExecucaoDaEtapa[]): { situacao: SituacaoBaixa; resultado: Resultado | null } {
+export function identificarBaixa(quantidadeOrdem: number, execucoes: readonly ExecucaoDaEtapa[]): { situacao: SituacaoBaixa; resultado: Resultado | null; apontado: Resultado | null } {
   if (centesimos(quantidadeOrdem, 'Quantidade da ordem') === 0) throw new Error('Quantidade da ordem deve ser positiva.');
-  const baixas = execucoes.filter(e => e.tipoFinalizacao === 'BAIXA');
-  if (baixas.length === 0) return { situacao: 'SEM_BAIXA', resultado: null };
-  const [{ quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo }] = baixas;
-  if (baixas.length > 1 || quantidadeBoa === null || quantidadeRetrabalho === null || quantidadeRefugo === null) {
-    return { situacao: 'INCONSISTENTE', resultado: null };
+  const parciais = execucoes.filter((e) => e.tipoFinalizacao === 'ENCERRAMENTO_PARCIAL').map(quantidadesDaExecucao);
+  if (parciais.some((q) => q === null)) return { situacao: 'INCONSISTENTE', resultado: null, apontado: null };
+  const somaParciais = parciais.length > 0 ? somarResultados(parciais as Resultado[]) : null;
+  const apontado = somaParciais && { quantidadeBoa: somaParciais.quantidadeBoa, quantidadeRetrabalho: somaParciais.quantidadeRetrabalho, quantidadeRefugo: somaParciais.quantidadeRefugo };
+  const baixas = execucoes.filter((e) => e.tipoFinalizacao === 'BAIXA');
+  if (baixas.length === 0) {
+    // Encerramentos parciais nunca completam a ordem: quem completa é a baixa.
+    if (somaParciais && centesimos(somaParciais.total, 'Total') >= centesimos(quantidadeOrdem, 'Quantidade da ordem')) {
+      return { situacao: 'INCONSISTENTE', resultado: null, apontado };
+    }
+    return { situacao: 'SEM_BAIXA', resultado: null, apontado };
   }
-  if (quantidadeBoa < 0 || quantidadeRetrabalho < 0 || quantidadeRefugo < 0) return { situacao: 'INCONSISTENTE', resultado: null };
-  const resultado = { quantidadeBoa, quantidadeRetrabalho, quantidadeRefugo };
-  if (!conferirResultado(quantidadeOrdem, resultado).confere) return { situacao: 'INCONSISTENTE', resultado: null };
-  return { situacao: 'BAIXADA', resultado };
+  const baixa = baixas.length === 1 ? quantidadesDaExecucao(baixas[0]) : null;
+  if (!baixa) return { situacao: 'INCONSISTENTE', resultado: null, apontado };
+  const soma = somarResultados(apontado ? [apontado, baixa] : [baixa]);
+  const resultado = { quantidadeBoa: soma.quantidadeBoa, quantidadeRetrabalho: soma.quantidadeRetrabalho, quantidadeRefugo: soma.quantidadeRefugo };
+  if (!conferirResultado(quantidadeOrdem, resultado).confere) return { situacao: 'INCONSISTENTE', resultado: null, apontado };
+  return { situacao: 'BAIXADA', resultado, apontado };
 }
 
 /** Posição de UMA ordem no seu roteiro. A sequência das etapas é só nominal:

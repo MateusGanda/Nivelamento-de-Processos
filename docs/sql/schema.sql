@@ -92,10 +92,10 @@ CREATE TABLE "public"."Execucao" (
   "status" text NOT NULL,
   "tipoFinalizacao" text,
   PRIMARY KEY ("id"),
-  CONSTRAINT "Execucao_quantidades_finalizacao_check_1fc31576" CHECK (("tipoFinalizacao" = 'BAIXA' AND "quantidadeBoa" IS NOT NULL AND "quantidadeRetrabalho" IS NOT NULL AND "quantidadeRefugo" IS NOT NULL) OR ("tipoFinalizacao" = 'TROCA_OPERACAO' AND "quantidadeBoa" IS NULL AND "quantidadeRetrabalho" IS NULL AND "quantidadeRefugo" IS NULL) OR ("tipoFinalizacao" IS NULL AND "quantidadeBoa" IS NULL AND "quantidadeRetrabalho" IS NULL AND "quantidadeRefugo" IS NULL)),
+  CONSTRAINT "Execucao_quantidades_finalizacao_check_5235167e" CHECK (("tipoFinalizacao" IN ('BAIXA', 'ENCERRAMENTO_PARCIAL') AND "quantidadeBoa" IS NOT NULL AND "quantidadeRetrabalho" IS NOT NULL AND "quantidadeRefugo" IS NOT NULL) OR ("tipoFinalizacao" = 'TROCA_OPERACAO' AND "quantidadeBoa" IS NULL AND "quantidadeRetrabalho" IS NULL AND "quantidadeRefugo" IS NULL) OR ("tipoFinalizacao" IS NULL AND "quantidadeBoa" IS NULL AND "quantidadeRetrabalho" IS NULL AND "quantidadeRefugo" IS NULL)),
   CONSTRAINT "Execucao_status_check_03bbbb48" CHECK ("status" IN ('EM_EXECUCAO', 'PAUSADA', 'FINALIZADA')),
   CONSTRAINT "Execucao_status_finalizacao_check_491cacf7" CHECK (("status" = 'FINALIZADA' AND "tipoFinalizacao" IS NOT NULL) OR ("status" IN ('EM_EXECUCAO', 'PAUSADA') AND "tipoFinalizacao" IS NULL)),
-  CONSTRAINT "Execucao_tipoFinalizacao_check_874252b2" CHECK ("tipoFinalizacao" IN ('TROCA_OPERACAO', 'BAIXA'))
+  CONSTRAINT "Execucao_tipoFinalizacao_check_2b2a0d4a" CHECK ("tipoFinalizacao" IN ('TROCA_OPERACAO', 'BAIXA', 'ENCERRAMENTO_PARCIAL'))
 );
 
 CREATE TABLE "public"."MotivoPausa" (

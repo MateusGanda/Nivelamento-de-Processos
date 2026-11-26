@@ -27,7 +27,12 @@ export interface ExecucaoRepository {
   pausar(execucaoId: string, motivoId: string, agora: string): Promise<boolean>;
   retomar(execucaoId: string, agora: string): Promise<boolean>;
   trocar(execucaoId: string, operadorId: string, destino: Destino, agora: string): Promise<string | null>;
-  // Na mesma transação, encerra as outras execuções abertas (em execução ou pausadas) da mesma ordem e
+  // Baixa e encerramento parcial dependem do que já foi apontado na etapa. O repositório trava a ordem,
+  // soma os encerramentos parciais da etapa e chama `quantidades` com essa soma, na mesma transação:
+  // dois encerramentos simultâneos na mesma etapa não passam juntos da quantidade da ordem.
+  // `quantidades` valida (regra do domínio) e devolve o que será gravado; um erro dela desfaz a transação.
+  // A baixa também encerra as outras execuções abertas (em execução ou pausadas) da mesma ordem e
   // etapa, sem quantidades: a etapa foi concluída e elas não teriam como terminar (decisão de 07/11/2026).
-  baixar(execucaoId: string, baixa: Baixa, agora: string): Promise<boolean>;
+  baixar(execucaoId: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string): Promise<boolean>;
+  encerrarParcial(execucaoId: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string): Promise<boolean>;
 }

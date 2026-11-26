@@ -1,5 +1,5 @@
 import type { Janela } from '../../../shared/validation.ts';
-import type { EventoDaExecucao, ExecucaoAcompanhada } from '../../executions/domain/execucao.ts';
+import type { Baixa, EventoDaExecucao, ExecucaoAcompanhada } from '../../executions/domain/execucao.ts';
 import type { CargaDoPosto, ProducaoFinal } from '../../indicators/application/indicadores.ts';
 import type { Dispositivo } from '../domain/dispositivo.ts';
 import type { PostoDoPainel } from './contracts.ts';
@@ -15,6 +15,8 @@ export type ExecucaoNoPainel = {
   etapa: { ordem: number; operacao: string };
   tempoPadraoSegundos: number | null;
   eventos: EventoDaExecucao[];
+  /** Encerramentos parciais já feitos na etapa (fim de turno). */
+  apontado: Baixa;
 };
 
 export type SituacaoDoPosto = 'LIVRE' | 'EM_EXECUCAO' | 'PAUSADA';
@@ -52,6 +54,7 @@ function paraPainel(execucao: ExecucaoAcompanhada): ExecucaoNoPainel {
     etapa: { ordem: execucao.etapa.ordem, operacao: execucao.etapa.operacao },
     tempoPadraoSegundos: execucao.tempoPadraoSegundos,
     eventos: execucao.eventos,
+    apontado: execucao.apontado,
   };
 }
 

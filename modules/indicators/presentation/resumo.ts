@@ -19,6 +19,7 @@ export function resumirIndicadores(dados: RespostaIndicadores) {
     producaoPorUnidade: [...producaoPorUnidade].map(([unidade, quantidade]) => ({ unidade, quantidade })),
     emAndamento: emAndamento.length,
     emExecucao: emAndamento.filter((ordem) => ordem.emExecucao).length,
+    atrasadas: emAndamento.filter((ordem) => ordem.atrasada).length,
     produtivoSegundos: dados.tempos.reduce((soma, t) => soma + t.produtivoSegundos, 0),
     pausaSegundos: dados.tempos.reduce((soma, t) => soma + t.pausaSegundos, 0),
     maiorMotivoDePausa: [...pausasPorMotivo].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
@@ -47,7 +48,18 @@ export function percentualDePecasBoas(q: Qualidade): number | null {
 
 export function situacaoDaOrdem(ordem: PosicaoDaOrdem): string {
   if (ordem.etapaAtual === null) return 'Concluída';
-  return `${ordem.emExecucao ? 'Em execução' : 'Aguardando'}: ${ordem.etapaAtual.ordem}. ${ordem.etapaAtual.operacaoNome}`;
+  const parcial = ordem.etapaAtual.quantidadeApontada > 0
+    ? ` (${ordem.etapaAtual.quantidadeApontada.toLocaleString('pt-BR')} de ${ordem.quantidade.toLocaleString('pt-BR')} ${ordem.unidade} apontados)`
+    : '';
+  return `${ordem.emExecucao ? 'Em execução' : 'Aguardando'}: ${ordem.etapaAtual.ordem}. ${ordem.etapaAtual.operacaoNome}${parcial}`;
+}
+
+/** Prazo da ordem (fim do plano) para a tela e a planilha. */
+export function textoDoPrazo(ordem: PosicaoDaOrdem): string {
+  if (ordem.prazo === null) return 'Sem prazo';
+  const data = `${ordem.prazo.slice(8, 10)}/${ordem.prazo.slice(5, 7)}/${ordem.prazo.slice(0, 4)}`;
+  if (!ordem.atrasada) return data;
+  return `${data} · atrasada há ${ordem.diasDeAtraso} ${ordem.diasDeAtraso === 1 ? 'dia' : 'dias'}`;
 }
 
 /** Leitura do tempo por unidade comparado ao tempo padrão. */

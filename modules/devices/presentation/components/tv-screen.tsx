@@ -6,6 +6,7 @@ import { AlertTriangle, Pause, Timer, WifiOff } from 'lucide-react';
 import { BrandGunp } from '../../../access/presentation/components/brand-gunp';
 import type { ExecucaoNoPainel, PainelTv, PostoNoPainel } from '../../application/painel-tv';
 import { agoraDoServidor, atencoesDaExecucao, pausaAtual, temposAteAgora } from '../../../executions/presentation/acompanhamento';
+import { totalApontado } from '../../../executions/domain/execucao';
 import { formatarDuracao as formatarCronometro } from '../../../executions/presentation/tempo-decorrido';
 import { formatarDuracao } from '../../../indicators/presentation/formatacao';
 import { buscarPainelTv, ErroApiDispositivos } from '../api-client';
@@ -50,6 +51,7 @@ function QuadroPosto({ posto, agoraServidor }: { posto: PostoNoPainel; agoraServ
             <p className="truncate text-[1.4vw] leading-snug font-semibold">{execucao.ordem.numero} · {execucao.produto.codigo}</p>
             <p className="truncate text-[1.1vw] leading-snug">
               <span className="text-muted">{posto.nome} · </span>{execucao.etapa.ordem}. {execucao.etapa.operacao}
+              {totalApontado(execucao.apontado) > 0 && <span className="text-muted"> · {totalApontado(execucao.apontado).toLocaleString('pt-BR')}/{execucao.ordem.quantidade.toLocaleString('pt-BR')}</span>}
               {posto.execucoes.length > 1 && <span className="text-muted"> · +{posto.execucoes.length - 1} {posto.execucoes.length === 2 ? 'execução' : 'execuções'}</span>}
             </p>
             {pausa ? (

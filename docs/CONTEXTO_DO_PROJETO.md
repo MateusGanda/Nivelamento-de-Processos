@@ -53,9 +53,9 @@ Consultar `MODELO_CONCEITUAL_GUNP_atualizado.md` para relações e regras detalh
 - Depois que a ordem tem execuções, a quantidade e a unidade não podem mudar, porque a baixa é conferida com elas.
 - Cadastros usados por outros registros não são apagados: `Produto`, `Operacao`, `Setor`, `Posto`, `Roteiro` e `Operador` têm `ativo`. Um cadastro inativo não entra em vínculos novos, mas continua nos registros que já o usam (decisão da equipe de 22/10/2026).
 - A sequência das etapas do roteiro é nominal/organizacional no MVP; não presumir um motor de precedências ou otimização que não esteja definido no modelo atual.
-- Não há baixa parcial. No apontamento de baixa, as quantidades finais devem representar a quantidade total da ordem: `boa + retrabalho + refugo = quantidade da OrdemProducao`.
-- Não registrar quantidades incrementais a cada evento de execução. O apontamento final segue a regra do modelo conceitual.
-- Pode haver várias execuções associadas à mesma ordem e etapa, mas apenas uma baixa efetiva para a combinação definida pelo modelo.
+- A baixa conclui a etapa. Quando o turno acaba antes, o operador faz o **encerramento parcial** (tipo `ENCERRAMENTO_PARCIAL`): informa boa, retrabalho e refugo do turno, a execução é finalizada e a etapa continua pendente para o próximo turno (decisão de 26/11/2026, pedido da banca). A soma dos encerramentos parciais fica abaixo da quantidade da ordem, e a baixa completa o que falta: `encerramentos parciais + baixa = quantidade da OrdemProducao` em boa + retrabalho + refugo. Antes dessa decisão não havia baixa parcial; as ordens antigas continuam com uma baixa que traz a quantidade inteira.
+- Não registrar quantidades a cada evento de pausa ou retomada. Quantidades só existem no encerramento parcial e na baixa.
+- Pode haver várias execuções associadas à mesma ordem e etapa, inclusive vários encerramentos parciais, mas apenas uma baixa efetiva para a combinação definida pelo modelo.
 - Estados de execução: `EM_EXECUCAO`, `PAUSADA` e `FINALIZADA`. A execução finalizada é terminal; não reabri-la silenciosamente.
 - Transições previstas: `EM_EXECUCAO → PAUSADA`, `PAUSADA → EM_EXECUCAO` e `EM_EXECUCAO → FINALIZADA`. `PAUSADA → FINALIZADA` só no encerramento pela baixa de outro operador.
 - A baixa de uma etapa encerra, na mesma transação, as outras execuções abertas da mesma ordem e etapa, sem quantidades (tipo `TROCA_OPERACAO`), para que ninguém fique preso numa etapa já concluída (decisão de 07/11/2026, após os testes da etapa 8).

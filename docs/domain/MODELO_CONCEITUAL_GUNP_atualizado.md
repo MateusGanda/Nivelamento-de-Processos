@@ -105,18 +105,18 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 ### Plano de produção
 - Código automático, único e permanente (`PLN-0001`); descrição opcional; período opcional.
 - As datas são gravadas como texto `AAAA-MM-DD`, precisam existir no calendário, e o fim não pode ser anterior ao início, inclusive quando só uma das datas é alterada (decisão de 22/10/2026).
+- A data de fim do plano é o prazo das suas ordens. Uma ordem com etapa sem baixa depois desse dia (horário de Brasília) é **atrasada**; o último dia do plano ainda está no prazo, e plano sem data de fim não gera atraso. É só um sinal nos indicadores: não bloqueia nenhuma ação (decisão de 26/11/2026, pedido da banca).
 
 ### Ordem e quantidade
 - Uma Ordem representa uma quantidade de um único produto.
 - Na criação: número automático, único e permanente (`OP-0001`), plano existente, produto ativo, versão do roteiro ligada ao produto, ativa e com etapas, e quantidade maior que zero com até duas casas decimais.
 - Número, produto e versão do roteiro não mudam depois da criação. O plano pode ser editado; quantidade e unidade, somente enquanto a ordem não tem execuções.
 - A identificação por QR usa `GUNP-OP-<UUID>` em maiúsculas e permanece nas edições permitidas, independentemente do formato do número legado. A ficha apresenta os dados atuais e as etapas da versão vinculada; não declara disponibilidade ou conclusão. Contrato: [QR Code das ordens](../../specs/contratos/identificacao-ordens-qrcode.md).
-- Não existe baixa parcial.
-- A baixa considera 100% da quantidade da Ordem na etapa.
-- Resultado da baixa: boa, retrabalho e refugo.
-- `boa + retrabalho + refugo = quantidade da Ordem`.
-- As quantidades da baixa não podem ser negativas e têm até duas casas decimais.
-- Não existem registros incrementais de quantidade no MVP.
+- A baixa conclui a etapa. Antes dela, cada **encerramento parcial** (fim de turno) registra boa, retrabalho e refugo do que foi feito naquele turno, e a etapa continua pendente (decisão de 26/11/2026, pedido da banca).
+- Resultado da etapa: a soma dos encerramentos parciais com a baixa, em boa, retrabalho e refugo.
+- `boa + retrabalho + refugo` da etapa (encerramentos parciais + baixa) `= quantidade da Ordem`. Os encerramentos parciais, somados, ficam abaixo da quantidade da Ordem; a baixa traz exatamente o que falta. Sem encerramento parcial, a baixa traz a quantidade inteira, como antes.
+- As quantidades não podem ser negativas e têm até duas casas decimais.
+- Não há quantidade registrada em pausas ou retomadas: só no encerramento parcial e na baixa.
 
 ### Execução
 - Uma Ordem pode possuir várias execuções, inclusive várias para a mesma etapa.
@@ -126,7 +126,8 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Quando uma etapa recebe a baixa, as outras execuções abertas (em execução ou pausadas) da mesma ordem e etapa são encerradas na mesma transação, sem quantidades e com finalização do tipo troca de operação (decisão de 07/11/2026). O trecho final conta como produtivo ou como pausa, conforme a situação da execução encerrada. Sem essa regra, a execução de quem trabalhava junto ficaria aberta numa etapa já concluída, sem poder dar baixa.
 - Não há `NAO_INICIADA` persistido. Ausência de execução pode ser apresentada como não iniciada.
 - Execução finalizada é terminal e não recebe novos eventos.
-- Troca de operação finaliza a execução atual e cria outra.
+- Troca de operação finaliza a execução atual, sem quantidades, e cria outra.
+- Encerramento parcial (fim de turno) finaliza a execução atual com as quantidades do turno, sem concluir a etapa e sem abrir outra execução: o operador fica livre e a etapa continua disponível na ilha, para qualquer operador, com o que já foi apontado e o que falta.
 - Operador não pode manter duas execuções abertas simultaneamente; execução pausada continua ocupando o operador. O banco garante a regra com o índice único parcial `Execucao_operador_aberta_unica` (status diferente de `FINALIZADA`).
 - Para iniciar: operador ativo, etapa pertencente ao roteiro da Ordem e ainda sem baixa, e posto ativo e compatível com a etapa.
 - O operador é responsável pelo apontamento, não necessariamente o único trabalhador da célula.

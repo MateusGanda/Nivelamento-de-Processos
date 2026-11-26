@@ -1,8 +1,17 @@
 # Contrato de consulta dos indicadores
 
-Versão de trabalho 0.9 — 26/10/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
+Versão de trabalho 1.0 — 26/11/2026. Responsável: Mateus. Revisão: Gustavo (contrato) e Arthur (dados do banco).
 
 **Status: proposta para revisão.** A rota `GET /api/indicadores` está implementada e lê o banco, ainda sem os filtros `setorId` e `postoId` e sem `meta.origem` (ver "Implementação"). Esta versão segue o contrato do banco em `src/prisma/contract.prisma` e as regras de `docs/domain/MODELO_CONCEITUAL_GUNP_atualizado.md`. As decisões ainda abertas estão em [`PENDENCIAS_MODELO.md`](../PENDENCIAS_MODELO.md). Os exemplos em `exemplos/` usam dados fictícios.
+
+## O que mudou na versão 1.0
+
+- **Encerramento parcial (fim de turno).** `Execucao.tipoFinalizacao` ganhou `ENCERRAMENTO_PARCIAL`: a execução registra boa, retrabalho e refugo do turno e a etapa continua sem baixa. O resultado da etapa é a soma dos encerramentos parciais com a baixa (regra no fim do documento).
+- **Bloco novo `etapasParciais[]`** (situação atual): etapas sem baixa que já tiveram encerramento parcial, com o apontado, o que falta e desde quando estão em aberto.
+- **`ordens[].etapaAtual.quantidadeApontada`**: o que os encerramentos parciais já apontaram na etapa atual.
+- **Ordem atrasada:** `ordens[].prazo` (data de fim do plano), `atrasada` e `diasDeAtraso`. A ordem não tem data de entrega própria; o prazo é o fim do plano que a agrupa.
+- **`cargaPendente`** considera só o que falta: a quantidade apontada nos encerramentos parciais sai da quantidade pendente.
+- **Blocos do período** contam cada baixa e cada encerramento parcial no instante em que foi registrado, com as próprias quantidades: `producao[].encerramentosParciais`, `porDia[].encerramentosParciais`, e `tempoMedio` passa a considerar também as execuções encerradas parcialmente. `porDia[].tempoPadraoDasBaixasSegundos` mantém o nome e passa a ser o tempo padrão de tudo o que foi apontado no dia.
 
 ## O que mudou na versão 0.9
 
@@ -41,7 +50,7 @@ Versão de trabalho 0.9 — 26/10/2026. Responsável: Mateus. Revisão: Gustavo 
 
 ## O que mudou em relação à versão 0.1
 
-- **Sem baixa parcial.** A produção de uma etapa é a baixa única da ordem; saiu o "realizado parcial".
+- **Sem baixa parcial.** A produção de uma etapa é a baixa única da ordem; saiu o "realizado parcial". (Revisto na versão 1.0 com o encerramento parcial.)
 - **Posição das ordens** virou bloco próprio: é a informação mais pedida pela empresa.
 - **Tempos por posto**, não por operador. O operador é só o responsável pelo apontamento, e a etapa pode ser feita por uma célula.
 - **Pausas por motivo**, sem as categorias apoio, interrupção e pausa prevista, que o modelo não tem.
@@ -110,13 +119,32 @@ Uma linha por ordem de produção que ainda tem etapa sem baixa ou que teve baix
 | `planoCodigo` | texto | Plano de produção que agrupa a ordem. Toda ordem pertence a um plano. |
 | `etapasTotal`, `etapasBaixadas` | inteiro | Etapas do roteiro da ordem e quantas já têm baixa. |
 | `etapasInconsistentes` | inteiro | Etapas com baixa cuja soma das quantidades difere da quantidade da ordem. |
-| `etapaAtual` | objeto \| `null` | Primeira etapa sem baixa, pela ordem do roteiro: `etapaRoteiroId`, `ordem`, `operacaoNome`. `null` quando todas têm baixa. |
+| `etapaAtual` | objeto \| `null` | Primeira etapa sem baixa, pela ordem do roteiro: `etapaRoteiroId`, `ordem`, `operacaoNome` e `quantidadeApontada` (soma dos encerramentos parciais dessa etapa; zero quando não houve). `null` quando todas têm baixa. |
 | `emExecucao` | booleano | Se há execução aberta na etapa atual. |
 | `ultimaBaixaEm` | instante \| `null` | Momento da baixa mais recente. |
+| `prazo` | data \| `null` | `PlanoProducao.dataFim` (AAAA-MM-DD). `null` quando o plano não tem fim. |
+| `atrasada` | booleano | Ordem com etapa sem baixa e prazo vencido: hoje, no horário de Brasília, é depois do prazo. O último dia do plano ainda está no prazo. Ordem concluída nunca é atrasada. |
+| `diasDeAtraso` | inteiro \| `null` | Dias corridos depois do prazo; `null` quando não está atrasada. |
 
 A ordem das etapas é só nominal. `etapaAtual` é a primeira sem baixa, mas o sistema não impede que uma etapa posterior seja baixada antes.
 
-### `producao[]` — baixas do período por produto e etapa
+### `etapasParciais[]` — etapas pendentes com encerramento parcial
+
+Situação atual. Uma linha por ordem e etapa sem baixa que já teve pelo menos um encerramento parcial (fim de turno).
+
+| Campo | Tipo | Significado |
+| --- | --- | --- |
+| `ordemId`, `numero`, `produtoCodigo`, `produtoNome` | texto | Ordem e produto. |
+| `etapaRoteiroId`, `ordem`, `operacaoNome` | texto, inteiro, texto | Etapa. |
+| `quantidade`, `unidade` | decimal, texto | Tamanho do lote. |
+| `quantidadeBoa`, `quantidadeRetrabalho`, `quantidadeRefugo` | decimal | Somas dos encerramentos parciais. |
+| `quantidadeApontada`, `quantidadeQueFalta` | decimal | Boa + retrabalho + refugo já apontados, e o que falta para a baixa. |
+| `percentualApontado` | número | `quantidadeApontada ÷ quantidade × 100`. |
+| `encerramentosParciais` | inteiro | Quantos turnos encerraram a etapa sem concluí-la. |
+| `inicioEm`, `ultimoEncerramentoEm` | instante \| `null` | Início da primeira execução da etapa e último encerramento parcial. |
+| `emExecucao` | booleano | Se há execução aberta na etapa agora. |
+
+### `producao[]` — baixas e encerramentos parciais do período por produto e etapa
 
 | Campo | Tipo | Significado |
 | --- | --- | --- |
@@ -124,9 +152,10 @@ A ordem das etapas é só nominal. `etapaAtual` é a primeira sem baixa, mas o s
 | `ultimaEtapa` | booleano | Se é a última etapa do roteiro. |
 | `unidade` | texto | Unidade das quantidades. |
 | `ordensBaixadas` | inteiro | Ordens que tiveram baixa nesta etapa no período. |
-| `quantidadeBoa`, `quantidadeRetrabalho`, `quantidadeRefugo` | decimal | Somas das baixas do período. |
+| `encerramentosParciais` | inteiro | Encerramentos parciais (fim de turno) desta etapa no período. |
+| `quantidadeBoa`, `quantidadeRetrabalho`, `quantidadeRefugo` | decimal | Somas do que as baixas e os encerramentos parciais do período registraram. |
 
-A baixa pertence ao período pelo instante do evento `FINALIZACAO` da execução que a registrou.
+A baixa e o encerramento parcial pertencem ao período pelo instante do evento `FINALIZACAO` da execução que os registrou. Cada um entra com as próprias quantidades: depois de encerramentos parciais, a baixa traz só o restante, então o mesmo lote nunca é contado duas vezes.
 
 ### `producaoFinal[]` — por produto
 
@@ -172,7 +201,8 @@ Uma linha por dia do horário de Brasília (UTC−3, sem horário de verão) que
 | `data` | texto | Dia, no formato `AAAA-MM-DD`. |
 | `produtivoSegundos`, `pausaSegundos` | número | Mesma regra de `tempos[]`, somando todos os postos e recortada ao dia. Execução aberta não conta o trecho em andamento; execução com eventos inconsistentes fica de fora. |
 | `baixas` | inteiro | Baixas válidas com `FINALIZACAO` no dia. |
-| `tempoPadraoDasBaixasSegundos` | número \| `null` | Soma, nas baixas válidas do dia, da quantidade da ordem vezes o `tempoPadrao` do produto na etapa. `null` quando alguma dessas baixas não tem tempo padrão; zero quando não houve baixa. |
+| `encerramentosParciais` | inteiro | Encerramentos parciais (fim de turno) com `FINALIZACAO` no dia. |
+| `tempoPadraoDasBaixasSegundos` | número \| `null` | Soma, nas baixas válidas e nos encerramentos parciais do dia, da quantidade apontada vezes o `tempoPadrao` do produto na etapa (sem encerramento parcial, a baixa traz a quantidade da ordem). `null` quando alguma dessas baixas não tem tempo padrão; zero quando não houve baixa. |
 
 A comparação entre o tempo do dia e o tempo padrão das baixas do dia é aproximada: uma execução que atravessa dias conta o tempo em cada dia, enquanto o tempo padrão entra no dia da baixa. Execução encerrada por troca de operação conta tempo e não tem baixa.
 
@@ -261,6 +291,8 @@ Falta: filtros `setorId` e `postoId` e `meta.origem`.
 As quantidades são somadas em centésimos, porque o banco guarda duas casas decimais. A conversão dos valores do banco (texto para número, data para milissegundos) é responsabilidade da camada de infraestrutura.
 
 ## Regra de baixa usada nos cálculos
+
+Desde 26/11/2026 (versão 1.0): o resultado da etapa é a soma dos encerramentos parciais (`ENCERRAMENTO_PARCIAL`) com a baixa. A etapa conta como baixada quando essa soma é igual à quantidade da ordem, sem quantidade negativa. Encerramentos parciais que já completam a ordem sem baixa, ou baixa que, somada a eles, difere da quantidade, são inconsistência. Sem encerramento parcial vale a regra original, abaixo.
 
 Desde a migração de 08/10/2026 a baixa está no contrato do banco, em `Execucao.tipoFinalizacao`:
 

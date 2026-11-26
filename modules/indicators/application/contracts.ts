@@ -15,6 +15,8 @@ export type OrdemRegistrada = {
   produtoCodigo: string;
   produtoNome: string;
   planoCodigo: string;
+  /** Data de fim do plano da ordem (AAAA-MM-DD); null quando o plano não tem fim. */
+  prazo: string | null;
 };
 
 export type EtapaRegistrada = { id: string; roteiroId: string; ordem: number; operacaoNome: string };

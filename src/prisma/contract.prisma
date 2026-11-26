@@ -13,9 +13,12 @@ enum TipoEventoTempo {
   FINALIZACAO
 }
 
+// ENCERRAMENTO_PARCIAL: o turno acabou antes da etapa. Registra o que foi feito até ali e a etapa
+// continua pendente; a BAIXA conclui a etapa com o que falta (decisão de 26/11/2026, pedido da banca).
 enum TipoFinalizacao {
   TROCA_OPERACAO
   BAIXA
+  ENCERRAMENTO_PARCIAL
 }
 
 enum PapelUsuario {
@@ -286,11 +289,11 @@ model Execucao {
     name: "Execucao_status_finalizacao_check"
   )
 
-  // Quantidades só existem quando a execução é finalizada por BAIXA.
+  // Quantidades só existem quando a execução é finalizada por BAIXA ou por ENCERRAMENTO_PARCIAL.
   // TROCA_OPERACAO não possui resultado.
 
   @@check(
-    expression: "(\"tipoFinalizacao\" = 'BAIXA' AND \"quantidadeBoa\" IS NOT NULL AND \"quantidadeRetrabalho\" IS NOT NULL AND \"quantidadeRefugo\" IS NOT NULL) OR (\"tipoFinalizacao\" = 'TROCA_OPERACAO' AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL) OR (\"tipoFinalizacao\" IS NULL AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL)",
+    expression: "(\"tipoFinalizacao\" IN ('BAIXA', 'ENCERRAMENTO_PARCIAL') AND \"quantidadeBoa\" IS NOT NULL AND \"quantidadeRetrabalho\" IS NOT NULL AND \"quantidadeRefugo\" IS NOT NULL) OR (\"tipoFinalizacao\" = 'TROCA_OPERACAO' AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL) OR (\"tipoFinalizacao\" IS NULL AND \"quantidadeBoa\" IS NULL AND \"quantidadeRetrabalho\" IS NULL AND \"quantidadeRefugo\" IS NULL)",
     name: "Execucao_quantidades_finalizacao_check"
   )
 

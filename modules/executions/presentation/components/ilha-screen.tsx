@@ -3,11 +3,11 @@
 import { ThemeToggle } from '@/shared/presentation/theme-toggle';
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, CheckCircle2, LoaderCircle, Lock, LogOut, Pause, Play, RefreshCw, Repeat, ScanLine, Square, Timer } from 'lucide-react';
+import { AlertCircle, CalendarClock, CheckCircle2, LoaderCircle, Lock, LogOut, Pause, Play, RefreshCw, Repeat, ScanLine, Square, Timer } from 'lucide-react';
 import { BrandGunp } from '../../../access/presentation/components/brand-gunp';
 import type { Destino, ExecucaoAberta, OperadorDaIlha } from '../../domain/execucao';
 import {
-  bloquearTerminal, darBaixa, ErroApiIlha, identificarOperador, iniciarExecucao, pausarExecucao, retomarExecucao, trocarOperacao,
+  bloquearTerminal, darBaixa, encerrarTurno, ErroApiIlha, identificarOperador, iniciarExecucao, pausarExecucao, retomarExecucao, trocarOperacao,
 } from '../api-client';
 import { formatarDuracao, lerQuantidade, tempoDecorrido } from '../tempo-decorrido';
 import { criarControleRequisicoesIlha } from '../requisicoes-ilha';
@@ -16,7 +16,7 @@ import { avaliarLimpeza, CONFIRMACAO_MS } from '../limpeza-ilha';
 import { IlhaDestino } from './ilha-destino';
 import { IlhaPausa } from './ilha-pausa';
 
-type Modo = null | 'iniciar' | 'trocar' | 'pausar' | 'baixa';
+type Modo = null | 'iniciar' | 'trocar' | 'pausar' | 'baixa' | 'encerrar';
 type EstadoBloqueio = null | 'enviando' | 'falhou' | 'concluido';
 type RecuperacaoPendente = { operador: IdentificacaoEsperada; detalhe: string; erroConsulta: string };
 
@@ -237,7 +237,13 @@ export function IlhaScreen() {
   const quantidades = { boa: lerQuantidade(baixa.boa), retrabalho: lerQuantidade(baixa.retrabalho), refugo: lerQuantidade(baixa.refugo) };
   const quantidadesValidas = quantidades.boa !== undefined && quantidades.retrabalho !== undefined && quantidades.refugo !== undefined;
   const soma = quantidadesValidas ? Math.round(((quantidades.boa ?? 0) + (quantidades.retrabalho ?? 0) + (quantidades.refugo ?? 0)) * 100) / 100 : null;
-  const somaCerta = execucao !== null && soma === execucao.ordem.quantidade;
+  // O que os encerramentos parciais já apontaram nesta etapa e o que falta para concluí-la.
+  const apontado = execucao ? Math.round((execucao.apontado.quantidadeBoa + execucao.apontado.quantidadeRetrabalho + execucao.apontado.quantidadeRefugo) * 100) / 100 : 0;
+  const falta = execucao ? Math.round((execucao.ordem.quantidade - apontado) * 100) / 100 : 0;
+  // Baixa: a soma completa o que falta. Encerramento parcial: fica abaixo do que falta.
+  const somaCerta = execucao !== null && soma !== null && (modo === 'encerrar' ? soma < falta : soma === falta);
+  const unidade = execucao?.ordem.unidade ?? '';
+  const numero = (valor: number) => valor.toLocaleString('pt-BR');
 
   return (
     <main className="min-h-dvh bg-background text-foreground">
@@ -316,17 +322,22 @@ export function IlhaScreen() {
                   <div><dt className="text-sm text-muted">Produto</dt><dd className="font-semibold">{execucao.produto.codigo} – {execucao.produto.nome}</dd></div>
                   <div><dt className="text-sm text-muted">Etapa</dt><dd className="font-semibold">{execucao.etapa.ordem}. {execucao.etapa.operacao}</dd></div>
                   <div><dt className="text-sm text-muted">Posto</dt><dd className="font-semibold">{execucao.posto.codigo} – {execucao.posto.nome}</dd></div>
+                  {apontado > 0 && (
+                    <div className="sm:col-span-2"><dt className="text-sm text-muted">Já apontado nesta etapa (turnos anteriores)</dt>
+                      <dd className="font-semibold">{numero(apontado)} de {numero(execucao.ordem.quantidade)} {unidade} · faltam {numero(falta)} {unidade}</dd></div>
+                  )}
                 </dl>
                 <Relogio execucao={execucao} />
 
                 {modo === null && (
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {execucao.status === 'PAUSADA' ? (
-                      <button type="button" disabled={ocupado} onClick={() => void executar(() => retomarExecucao(operador.matricula, execucao.id), 'Execução retomada.')} className={`${botaoGrande} bg-success-fill text-on-success hover:bg-success-fill-hover sm:col-span-3`}><Play aria-hidden="true" size={22} strokeWidth={2} />Retomar</button>
+                      <button type="button" disabled={ocupado} onClick={() => void executar(() => retomarExecucao(operador.matricula, execucao.id), 'Execução retomada.')} className={`${botaoGrande} bg-success-fill text-on-success hover:bg-success-fill-hover sm:col-span-2 lg:col-span-4`}><Play aria-hidden="true" size={22} strokeWidth={2} />Retomar</button>
                     ) : (
                       <>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('pausar'); setErro(''); setMensagem(''); }} className={`${botaoGrande} bg-warning-fill text-on-warning hover:bg-warning-fill-hover`}><Pause aria-hidden="true" size={22} strokeWidth={2} />Pausar</button>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('trocar'); setErro(''); }} className={`${botaoGrande} border border-line hover:border-accent`}><Repeat aria-hidden="true" size={22} strokeWidth={2} />Trocar operação</button>
+                        <button type="button" disabled={ocupado} onClick={() => { setModo('encerrar'); setBaixa({ boa: '', retrabalho: '', refugo: '' }); setErro(''); }} className={`${botaoGrande} border border-line hover:border-accent`}><CalendarClock aria-hidden="true" size={22} strokeWidth={2} />Encerrar turno</button>
                         <button type="button" disabled={ocupado} onClick={() => { setModo('baixa'); setBaixa({ boa: '', retrabalho: '', refugo: '' }); setErro(''); }} className={`${botaoGrande} bg-accent text-on-accent hover:bg-accent-hover`}><Square aria-hidden="true" size={22} strokeWidth={2} />Finalizar e dar baixa</button>
                       </>
                     )}
@@ -338,11 +349,23 @@ export function IlhaScreen() {
                     aoConfirmar={(motivoId) => void executar(() => pausarExecucao(operador.matricula, execucao.id, motivoId), 'Execução pausada.')} />
                 )}
 
-                {modo === 'baixa' && (
-                  <form onSubmit={(event) => { event.preventDefault(); if (somaCerta) void executar(() => darBaixa(operador.matricula, execucao.id, { quantidadeBoa: quantidades.boa!, quantidadeRetrabalho: quantidades.retrabalho!, quantidadeRefugo: quantidades.refugo! }), 'Baixa registrada. A etapa foi concluída.'); }}
+                {(modo === 'baixa' || modo === 'encerrar') && (
+                  <form onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!somaCerta) return;
+                    const informado = { quantidadeBoa: quantidades.boa!, quantidadeRetrabalho: quantidades.retrabalho!, quantidadeRefugo: quantidades.refugo! };
+                    if (modo === 'encerrar') void executar(() => encerrarTurno(operador.matricula, execucao.id, informado), `Turno encerrado. A etapa continua pendente: faltam ${numero(Math.round((falta - (soma ?? 0)) * 100) / 100)} ${unidade}.`);
+                    else void executar(() => darBaixa(operador.matricula, execucao.id, informado), 'Baixa registrada. A etapa foi concluída.');
+                  }}
                     className="space-y-4 border-t border-foreground/10 pt-5">
-                    <p className="text-lg font-semibold">Resultado da etapa</p>
-                    <p className="text-base text-muted">A baixa é da quantidade inteira da ordem: boa + retrabalho + refugo = {execucao.ordem.quantidade.toLocaleString('pt-BR')} {execucao.ordem.unidade}.</p>
+                    <p className="text-lg font-semibold">{modo === 'encerrar' ? 'Encerrar o turno sem concluir a etapa' : 'Resultado da etapa'}</p>
+                    <p className="text-base text-muted">
+                      {modo === 'encerrar'
+                        ? `Informe o que foi feito neste turno. A etapa continua pendente e pode ser continuada depois, por qualquer operador, lendo a ficha da ordem. A soma precisa ficar abaixo de ${numero(falta)} ${unidade}; para completar a etapa, use a baixa.`
+                        : apontado > 0
+                          ? `A baixa conclui a etapa com o que falta: ${numero(apontado)} ${unidade} já foram apontados, então boa + retrabalho + refugo = ${numero(falta)} ${unidade}.`
+                          : `A baixa é da quantidade inteira da ordem: boa + retrabalho + refugo = ${numero(execucao.ordem.quantidade)} ${unidade}.`}
+                    </p>
                     <div className="grid gap-3 sm:grid-cols-3">
                       {([['boa', 'Boas'], ['retrabalho', 'Retrabalho'], ['refugo', 'Refugo']] as const).map(([campo, rotulo]) => (
                         <div key={campo}>
@@ -353,11 +376,17 @@ export function IlhaScreen() {
                       ))}
                     </div>
                     <p aria-live="polite" className={`text-base font-medium ${somaCerta ? 'text-success' : 'text-warning'}`}>
-                      {!quantidadesValidas ? 'Use números maiores ou iguais a zero, com até duas casas decimais.' : `Soma: ${soma?.toLocaleString('pt-BR')} de ${execucao.ordem.quantidade.toLocaleString('pt-BR')}`}
+                      {!quantidadesValidas ? 'Use números maiores ou iguais a zero, com até duas casas decimais.'
+                        : modo === 'encerrar'
+                          ? `Soma: ${numero(soma ?? 0)} · precisa ficar abaixo de ${numero(falta)}`
+                          : `Soma: ${numero(soma ?? 0)} de ${numero(falta)}`}
                     </p>
                     <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                       <button type="button" onClick={() => setModo(null)} disabled={ocupado} className={botaoSecundario}>Cancelar</button>
-                      <button type="submit" disabled={!somaCerta || ocupado} className={`${botaoGrande} bg-accent text-on-accent hover:bg-accent-hover disabled:cursor-not-allowed`}><Square aria-hidden="true" size={22} strokeWidth={2} />Confirmar baixa</button>
+                      <button type="submit" disabled={!somaCerta || ocupado} className={`${botaoGrande} bg-accent text-on-accent hover:bg-accent-hover disabled:cursor-not-allowed`}>
+                        {modo === 'encerrar' ? <CalendarClock aria-hidden="true" size={22} strokeWidth={2} /> : <Square aria-hidden="true" size={22} strokeWidth={2} />}
+                        {modo === 'encerrar' ? 'Confirmar encerramento' : 'Confirmar baixa'}
+                      </button>
                     </div>
                   </form>
                 )}

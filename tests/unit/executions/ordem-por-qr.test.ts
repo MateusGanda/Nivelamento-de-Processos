@@ -11,10 +11,10 @@ const id = (numero: number) => `00000000-0000-4000-8000-${String(numero).padStar
 const ordem: OrdemDisponivel = {
   id: 'c6eb45de-c043-4f93-9c83-eecfc5741e95', numero: 'OP-0001', quantidade: 50, unidade: 'un', plano: 'PL-2026-11',
   produto: { codigo: 'PRD-001', nome: 'Sapato de Teste' }, etapas: [
-    { id: id(11), ordem: 1, operacao: 'Pesponto', baixada: false, postos: [{ id: id(21), codigo: 'PES-1', nome: 'Máquina de pesponto' }] },
-    { id: id(12), ordem: 2, operacao: 'Costura', baixada: false, postos: [{ id: id(22), codigo: 'COS-1', nome: 'Costura 1' }, { id: id(23), codigo: 'COS-2', nome: 'Costura 2' }] },
-    { id: id(13), ordem: 3, operacao: 'Montagem', baixada: true, postos: [{ id: id(24), codigo: 'MON-1', nome: 'Montagem' }] },
-    { id: id(14), ordem: 4, operacao: 'Acabamento', baixada: false, postos: [] },
+    { id: id(11), ordem: 1, operacao: 'Pesponto', baixada: false, apontado: 0, postos: [{ id: id(21), codigo: 'PES-1', nome: 'Máquina de pesponto' }] },
+    { id: id(12), ordem: 2, operacao: 'Costura', baixada: false, apontado: 0, postos: [{ id: id(22), codigo: 'COS-1', nome: 'Costura 1' }, { id: id(23), codigo: 'COS-2', nome: 'Costura 2' }] },
+    { id: id(13), ordem: 3, operacao: 'Montagem', baixada: true, apontado: 0, postos: [{ id: id(24), codigo: 'MON-1', nome: 'Montagem' }] },
+    { id: id(14), ordem: 4, operacao: 'Acabamento', baixada: false, apontado: 0, postos: [] },
   ],
 };
 const outra: OrdemDisponivel = { ...ordem, id: id(2), numero: 'OP-0002' };

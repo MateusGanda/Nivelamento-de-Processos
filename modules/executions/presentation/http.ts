@@ -52,7 +52,7 @@ async function lerCorpo(request: Request, campos: readonly string[]): Promise<Re
 type Dependencias = {
   // A chave em uso é lida a cada pedido (banco ou ILHA_CHAVE): trocar a chave bloqueia os terminais na hora.
   chave: () => ChaveIlha | Promise<ChaveIlha>;
-  execucoes: Pick<ExecucoesService, 'identificar' | 'listarOrdensDisponiveis' | 'listarMotivos' | 'iniciar' | 'pausar' | 'retomar' | 'trocar' | 'baixar'>;
+  execucoes: Pick<ExecucoesService, 'identificar' | 'listarOrdensDisponiveis' | 'listarMotivos' | 'iniciar' | 'pausar' | 'retomar' | 'trocar' | 'baixar' | 'encerrarParcial'>;
   // Atraso depois de uma chave errada, para dificultar tentativas em sequência.
   esperarAposErro?: () => Promise<void>;
 };
@@ -118,6 +118,10 @@ export function criarHandlersIlha({ chave, execucoes, esperarAposErro = () => ne
     BAIXA_POST: (request: Request, id: string) => responder(request, async () => {
       const { matricula, ...baixa } = await lerCorpo(request, ['matricula', 'quantidadeBoa', 'quantidadeRetrabalho', 'quantidadeRefugo']);
       return execucoes.baixar(matricula, id, baixa);
+    }),
+    ENCERRAMENTO_POST: (request: Request, id: string) => responder(request, async () => {
+      const { matricula, ...quantidades } = await lerCorpo(request, ['matricula', 'quantidadeBoa', 'quantidadeRetrabalho', 'quantidadeRefugo']);
+      return execucoes.encerrarParcial(matricula, id, quantidades);
     }),
   };
 }

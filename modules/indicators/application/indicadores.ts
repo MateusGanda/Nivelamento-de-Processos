@@ -2,11 +2,12 @@ import { centesimos, validarJanela } from '../../../shared/validation.ts';
 import type { Janela } from '../../../shared/validation.ts';
 import { calcularCargaPendente, distribuirCargaPorPosto } from '../domain/carga.ts';
 import type { CargaDaEtapaNosPostos } from '../domain/carga.ts';
-import { calcularPosicao, identificarBaixa, somarResultados } from '../domain/producao.ts';
+import { calcularPosicao, identificarBaixa, quantidadesDaExecucao, registraProducao, somarResultados } from '../domain/producao.ts';
 import type { Resultado } from '../domain/producao.ts';
 import { calcularTempoMedioPorUnidade, calcularTempos, compararComTempoPadrao, derivarIntervalos } from '../domain/tempos.ts';
 import type { Intervalo } from '../domain/tempos.ts';
 import { dataDoInstante, dividirEmDias } from '../domain/dias.ts';
+import { avaliarPrazo } from '../domain/prazo.ts';
 import type { EtapaRegistrada, ExecucaoRegistrada, IndicadoresRepository, OrdemRegistrada, RegistrosDeProducao } from './contracts.ts';
 
 export type Pendencia =
@@ -27,9 +28,41 @@ export type PosicaoDaOrdem = {
   etapasTotal: number;
   etapasBaixadas: number;
   etapasInconsistentes: number;
-  etapaAtual: { etapaRoteiroId: string; ordem: number; operacaoNome: string } | null;
+  /** `quantidadeApontada`: soma dos encerramentos parciais (fim de turno) já feitos na etapa atual. */
+  etapaAtual: { etapaRoteiroId: string; ordem: number; operacaoNome: string; quantidadeApontada: number } | null;
   emExecucao: boolean;
   ultimaBaixaEm: string | null;
+  /** Data de fim do plano (AAAA-MM-DD); null quando o plano não tem fim. */
+  prazo: string | null;
+  /** Ordem com etapa sem baixa e prazo vencido (o último dia do plano ainda está no prazo). */
+  atrasada: boolean;
+  diasDeAtraso: number | null;
+};
+
+/** Etapa ainda sem baixa que já teve encerramento parcial: o trabalho ficou pendente para outro turno. */
+export type EtapaParcial = {
+  ordemId: string;
+  numero: string;
+  produtoCodigo: string;
+  produtoNome: string;
+  etapaRoteiroId: string;
+  ordem: number;
+  operacaoNome: string;
+  quantidade: number;
+  unidade: string;
+  quantidadeBoa: number;
+  quantidadeRetrabalho: number;
+  quantidadeRefugo: number;
+  /** boa + retrabalho + refugo já apontados. */
+  quantidadeApontada: number;
+  quantidadeQueFalta: number;
+  /** quantidadeApontada ÷ quantidade × 100. */
+  percentualApontado: number;
+  encerramentosParciais: number;
+  /** Início da primeira execução da etapa; a tela mostra há quantos dias a etapa está em aberto. */
+  inicioEm: string | null;
+  ultimoEncerramentoEm: string | null;
+  emExecucao: boolean;
 };
 
 export type CargaDaEtapa = {
@@ -51,7 +84,7 @@ export type CargaDoPosto = {
   percentualDaCarga: number | null;
 };
 
-export type SituacaoAtual = { ordens: PosicaoDaOrdem[]; cargaPendente: CargaDaEtapa[]; cargaPorPosto: CargaDoPosto[]; pendencias: Pendencia[] };
+export type SituacaoAtual = { ordens: PosicaoDaOrdem[]; etapasParciais: EtapaParcial[]; cargaPendente: CargaDaEtapa[]; cargaPorPosto: CargaDoPosto[]; pendencias: Pendencia[] };
 
 export type ProducaoDaEtapa = {
   produtoCodigo: string;
@@ -61,6 +94,8 @@ export type ProducaoDaEtapa = {
   ultimaEtapa: boolean;
   unidade: string;
   ordensBaixadas: number;
+  /** Encerramentos parciais (fim de turno) do período; as quantidades deles entram nas somas. */
+  encerramentosParciais: number;
   quantidadeBoa: number;
   quantidadeRetrabalho: number;
   quantidadeRefugo: number;
@@ -98,6 +133,8 @@ export type DiaDoPeriodo = {
   produtivoSegundos: number;
   pausaSegundos: number;
   baixas: number;
+  encerramentosParciais: number;
+  /** Tempo padrão do que foi apontado no dia: baixas e encerramentos parciais. */
   tempoPadraoDasBaixasSegundos: number | null;
 };
 
@@ -137,23 +174,27 @@ const comparar = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 /** Janela que contém qualquer instante: mede a execução inteira, sem recorte. */
 const SEM_RECORTE: Janela = { inicioMs: Number.MIN_SAFE_INTEGER, fimMs: Number.MAX_SAFE_INTEGER };
 
-/** Blocos `ordens`, `cargaPendente` e `cargaPorPosto`: situação no momento da consulta.
+/** Blocos `ordens`, `etapasParciais`, `cargaPendente` e `cargaPorPosto`: situação no momento da consulta.
  * O período só decide quais ordens já concluídas ainda aparecem (as que tiveram
  * baixa dentro dele).
  */
-function montarSituacaoAtual(dados: RegistrosDeProducao, periodo: Janela): SituacaoAtual {
+function montarSituacaoAtual(dados: RegistrosDeProducao, periodo: Janela, hoje: string): SituacaoAtual {
   const etapasPorRoteiro = agrupar(dados.etapas, (e) => e.roteiroId);
   const execucoesPorOrdemEtapa = agrupar(dados.execucoes, (e) => `${e.ordemProducaoId}|${e.etapaRoteiroId}`);
   const pendencias: Pendencia[] = [];
   const ordens: PosicaoDaOrdem[] = [];
+  const etapasParciais: EtapaParcial[] = [];
   const pendentes = new Map<string, { produtoId: string; produtoCodigo: string; unidade: string; etapa: EtapaRegistrada; ordens: number; centesimos: number }>();
 
   for (const ordem of dados.ordens) {
     const etapas = etapasPorRoteiro.get(ordem.roteiroId) ?? [];
     const baixasMs: number[] = [];
+    const apontadoPorEtapa = new Map<string, number>();
     const situacoes = etapas.map((etapa) => {
       const execucoes = execucoesPorOrdemEtapa.get(`${ordem.id}|${etapa.id}`) ?? [];
-      const { situacao } = identificarBaixa(ordem.quantidade, execucoes);
+      const { situacao, apontado } = identificarBaixa(ordem.quantidade, execucoes);
+      const apontadoCentesimos = apontado ? centesimos(somarResultados([apontado]).total, 'Quantidade apontada') : 0;
+      apontadoPorEtapa.set(etapa.id, apontadoCentesimos / 100);
       if (situacao === 'BAIXADA') {
         const baixa = execucoes.find((e) => e.tipoFinalizacao === 'BAIXA');
         const instante = baixa ? instanteDaFinalizacao(baixa) : null;
@@ -161,11 +202,30 @@ function montarSituacaoAtual(dados: RegistrosDeProducao, periodo: Janela): Situa
         return { ordem: etapa.ordem, situacao };
       }
       if (situacao === 'INCONSISTENTE') pendencias.push({ codigo: 'BAIXA_INCONSISTENTE', ordemId: ordem.id, etapaRoteiroId: etapa.id });
+      const quantidadeCentesimos = centesimos(ordem.quantidade, 'Quantidade da ordem');
+      if (situacao === 'SEM_BAIXA' && apontado) {
+        const parciais = execucoes.filter((e) => e.tipoFinalizacao === 'ENCERRAMENTO_PARCIAL');
+        const inicios = execucoes.map(instanteDoInicio).filter((ms): ms is number => ms !== null);
+        const fins = parciais.map(instanteDaFinalizacao).filter((ms): ms is number => ms !== null);
+        etapasParciais.push({
+          ordemId: ordem.id, numero: ordem.numero, produtoCodigo: ordem.produtoCodigo, produtoNome: ordem.produtoNome,
+          etapaRoteiroId: etapa.id, ordem: etapa.ordem, operacaoNome: etapa.operacaoNome, quantidade: ordem.quantidade, unidade: ordem.unidade,
+          quantidadeBoa: apontado.quantidadeBoa, quantidadeRetrabalho: apontado.quantidadeRetrabalho, quantidadeRefugo: apontado.quantidadeRefugo,
+          quantidadeApontada: apontadoCentesimos / 100,
+          quantidadeQueFalta: (quantidadeCentesimos - apontadoCentesimos) / 100,
+          percentualApontado: (apontadoCentesimos / quantidadeCentesimos) * 100,
+          encerramentosParciais: parciais.length,
+          inicioEm: inicios.length > 0 ? new Date(Math.min(...inicios)).toISOString() : null,
+          ultimoEncerramentoEm: fins.length > 0 ? new Date(Math.max(...fins)).toISOString() : null,
+          emExecucao: execucoes.some((e) => e.tipoFinalizacao === null),
+        });
+      }
       // Unidades diferentes não são somadas: a unidade faz parte do agrupamento.
+      // O que os encerramentos parciais já apontaram sai do pendente: falta só o restante.
       const chave = `${ordem.produtoId}|${etapa.id}|${ordem.unidade}`;
       const pendente = pendentes.get(chave) ?? { produtoId: ordem.produtoId, produtoCodigo: ordem.produtoCodigo, unidade: ordem.unidade, etapa, ordens: 0, centesimos: 0 };
       pendente.ordens += 1;
-      pendente.centesimos += centesimos(ordem.quantidade, 'Quantidade da ordem');
+      pendente.centesimos += Math.max(0, quantidadeCentesimos - (situacao === 'SEM_BAIXA' ? apontadoCentesimos : 0));
       pendentes.set(chave, pendente);
       return { ordem: etapa.ordem, situacao };
     });
@@ -175,6 +235,7 @@ function montarSituacaoAtual(dados: RegistrosDeProducao, periodo: Janela): Situa
     if (posicao.etapasBaixadas === posicao.etapasTotal && !baixouNoPeriodo) continue;
 
     const atual = etapas.find((e) => e.ordem === posicao.etapaAtual) ?? null;
+    const prazo = avaliarPrazo(ordem.prazo, atual === null, hoje);
     ordens.push({
       ordemId: ordem.id,
       numero: ordem.numero,
@@ -186,9 +247,12 @@ function montarSituacaoAtual(dados: RegistrosDeProducao, periodo: Janela): Situa
       etapasTotal: posicao.etapasTotal,
       etapasBaixadas: posicao.etapasBaixadas,
       etapasInconsistentes: posicao.etapasInconsistentes,
-      etapaAtual: atual && { etapaRoteiroId: atual.id, ordem: atual.ordem, operacaoNome: atual.operacaoNome },
+      etapaAtual: atual && { etapaRoteiroId: atual.id, ordem: atual.ordem, operacaoNome: atual.operacaoNome, quantidadeApontada: apontadoPorEtapa.get(atual.id) ?? 0 },
       emExecucao: atual !== null && (execucoesPorOrdemEtapa.get(`${ordem.id}|${atual.id}`) ?? []).some((e) => e.tipoFinalizacao === null),
       ultimaBaixaEm: baixasMs.length > 0 ? new Date(Math.max(...baixasMs)).toISOString() : null,
+      prazo: ordem.prazo,
+      atrasada: prazo.atrasada,
+      diasDeAtraso: prazo.diasDeAtraso,
     });
   }
 
@@ -239,8 +303,9 @@ function montarSituacaoAtual(dados: RegistrosDeProducao, periodo: Janela): Situa
     .sort((a, b) => comparar(a.posto.codigo, b.posto.codigo));
 
   ordens.sort((a, b) => comparar(a.numero, b.numero));
+  etapasParciais.sort((a, b) => comparar(a.numero, b.numero) || a.ordem - b.ordem);
   cargaPendente.sort((a, b) => comparar(a.produtoCodigo, b.produtoCodigo) || a.ordem - b.ordem || comparar(a.unidade, b.unidade));
-  return { ordens, cargaPendente, cargaPorPosto, pendencias };
+  return { ordens, etapasParciais, cargaPendente, cargaPorPosto, pendencias };
 }
 
 /** Blocos `producao`, `producaoFinal`, `tempos` e `tempoMedio`: só o que aconteceu no período.
@@ -268,51 +333,61 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
   };
 
   type Grupo = { ordem: OrdemRegistrada; etapa: EtapaRegistrada; ultimaEtapa: boolean };
-  const producao = new Map<string, Grupo & { ordens: number; resultados: Resultado[] }>();
+  const producao = new Map<string, Grupo & { ordens: number; parciais: number; resultados: Resultado[] }>();
   const final = new Map<string, { produtoCodigo: string; unidade: string; resultados: Resultado[] }>();
   const medio = new Map<string, Grupo & { execucoes: { produtivoSegundos: number; quantidadeBoa: number }[]; resultados: Resultado[] }>();
-  // Baixas válidas por dia: quantidade da ordem vezes o tempo padrão (null quando falta o tempo padrão).
-  const baixasPorDia = new Map<string, { baixas: number; centesimosDeSegundo: number | null }>();
+  // Produção apontada por dia (baixas e encerramentos parciais): quantidade apontada vezes o tempo padrão
+  // (null quando falta o tempo padrão).
+  const baixasPorDia = new Map<string, { baixas: number; parciais: number; centesimosDeSegundo: number | null }>();
 
   for (const ordem of dados.ordens) {
     const etapas = etapasPorRoteiro.get(ordem.roteiroId) ?? [];
     const ultimaOrdem = Math.max(...etapas.map((e) => e.ordem));
     for (const etapa of etapas) {
       const execucoes = execucoesPorOrdemEtapa.get(`${ordem.id}|${etapa.id}`) ?? [];
-      const { situacao, resultado } = identificarBaixa(ordem.quantidade, execucoes);
-      const baixa = execucoes.find((e) => e.tipoFinalizacao === 'BAIXA');
-      const instante = baixa ? instanteDaFinalizacao(baixa) : null;
-      if (situacao !== 'BAIXADA' || !resultado || !baixa || instante === null || !noPeriodo(instante, periodo)) continue;
-
+      // Etapa inconsistente fica fora de todos os blocos do período (a pendência sai na situação atual).
+      if (identificarBaixa(ordem.quantidade, execucoes).situacao === 'INCONSISTENTE') continue;
       const ultimaEtapa = etapa.ordem === ultimaOrdem;
       const chave = `${ordem.produtoId}|${etapa.id}|${ordem.unidade}`;
-      const linha = producao.get(chave) ?? { ordem, etapa, ultimaEtapa, ordens: 0, resultados: [] };
-      linha.ordens += 1;
-      linha.resultados.push(resultado);
-      producao.set(chave, linha);
-
-      const dia = baixasPorDia.get(dataDoInstante(instante)) ?? { baixas: 0, centesimosDeSegundo: 0 };
       const tempoPadrao = temposPadrao.get(`${ordem.produtoId}|${etapa.id}`);
-      dia.baixas += 1;
-      dia.centesimosDeSegundo = tempoPadrao === undefined || dia.centesimosDeSegundo === null
-        ? null
-        : dia.centesimosDeSegundo + centesimos(ordem.quantidade, 'Quantidade da ordem') * tempoPadrao;
-      baixasPorDia.set(dataDoInstante(instante), dia);
+      // Cada baixa ou encerramento parcial entra no período em que foi registrado, com as próprias quantidades:
+      // o mesmo lote não é contado duas vezes, e a produção de um turno aparece no dia em que foi feita.
+      for (const execucao of execucoes) {
+        if (!registraProducao(execucao)) continue;
+        const quantidades = quantidadesDaExecucao(execucao);
+        const instante = instanteDaFinalizacao(execucao);
+        if (!quantidades || instante === null || !noPeriodo(instante, periodo)) continue;
+        const ehBaixa = execucao.tipoFinalizacao === 'BAIXA';
 
-      if (ultimaEtapa) {
-        const chaveFinal = `${ordem.produtoId}|${ordem.unidade}`;
-        const total = final.get(chaveFinal) ?? { produtoCodigo: ordem.produtoCodigo, unidade: ordem.unidade, resultados: [] };
-        total.resultados.push(resultado);
-        final.set(chaveFinal, total);
+        const linha = producao.get(chave) ?? { ordem, etapa, ultimaEtapa, ordens: 0, parciais: 0, resultados: [] };
+        if (ehBaixa) linha.ordens += 1;
+        else linha.parciais += 1;
+        linha.resultados.push(quantidades);
+        producao.set(chave, linha);
+
+        const dia = baixasPorDia.get(dataDoInstante(instante)) ?? { baixas: 0, parciais: 0, centesimosDeSegundo: 0 };
+        if (ehBaixa) dia.baixas += 1;
+        else dia.parciais += 1;
+        dia.centesimosDeSegundo = tempoPadrao === undefined || dia.centesimosDeSegundo === null
+          ? null
+          : dia.centesimosDeSegundo + centesimos(somarResultados([quantidades]).total, 'Quantidade apontada') * tempoPadrao;
+        baixasPorDia.set(dataDoInstante(instante), dia);
+
+        if (ultimaEtapa) {
+          const chaveFinal = `${ordem.produtoId}|${ordem.unidade}`;
+          const total = final.get(chaveFinal) ?? { produtoCodigo: ordem.produtoCodigo, unidade: ordem.unidade, resultados: [] };
+          total.resultados.push(quantidades);
+          final.set(chaveFinal, total);
+        }
+
+        // Tempo médio: a execução inteira que registrou a produção, sem recorte do período.
+        const derivado = intervalosDe(execucao);
+        if (!derivado) continue;
+        const media = medio.get(chave) ?? { ordem, etapa, ultimaEtapa, execucoes: [], resultados: [] };
+        media.execucoes.push({ produtivoSegundos: calcularTempos(derivado.intervalos, SEM_RECORTE).produtivoSegundos, quantidadeBoa: quantidades.quantidadeBoa });
+        media.resultados.push(quantidades);
+        medio.set(chave, media);
       }
-
-      // Tempo médio: a execução inteira que registrou a baixa, sem recorte do período.
-      const derivado = intervalosDe(baixa);
-      if (!derivado) continue;
-      const media = medio.get(chave) ?? { ordem, etapa, ultimaEtapa, execucoes: [], resultados: [] };
-      media.execucoes.push({ produtivoSegundos: calcularTempos(derivado.intervalos, SEM_RECORTE).produtivoSegundos, quantidadeBoa: resultado.quantidadeBoa });
-      media.resultados.push(resultado);
-      medio.set(chave, media);
     }
   }
 
@@ -360,12 +435,13 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
 
   const porDia: DiaDoPeriodo[] = dividirEmDias(periodo).map((dia) => {
     const t = calcularTempos(todosOsIntervalos, dia);
-    const baixas = baixasPorDia.get(dia.data) ?? { baixas: 0, centesimosDeSegundo: 0 };
+    const baixas = baixasPorDia.get(dia.data) ?? { baixas: 0, parciais: 0, centesimosDeSegundo: 0 };
     return {
       data: dia.data,
       produtivoSegundos: t.produtivoSegundos,
       pausaSegundos: t.pausaSegundos,
       baixas: baixas.baixas,
+      encerramentosParciais: baixas.parciais,
       tempoPadraoDasBaixasSegundos: baixas.centesimosDeSegundo === null ? null : baixas.centesimosDeSegundo / 100,
     };
   });
@@ -382,6 +458,7 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
         ultimaEtapa: l.ultimaEtapa,
         unidade: l.ordem.unidade,
         ordensBaixadas: l.ordens,
+        encerramentosParciais: l.parciais,
         quantidadeBoa: soma.quantidadeBoa,
         quantidadeRetrabalho: soma.quantidadeRetrabalho,
         quantidadeRefugo: soma.quantidadeRefugo,
@@ -416,19 +493,27 @@ function montarBlocosDoPeriodo(dados: RegistrosDeProducao, periodo: Janela): Blo
 
 export class IndicadoresService {
   private readonly registros: IndicadoresRepository;
+  private readonly agora: () => Date;
 
-  constructor(registros: IndicadoresRepository) {
+  constructor(registros: IndicadoresRepository, agora: () => Date = () => new Date()) {
     this.registros = registros;
+    this.agora = agora;
+  }
+
+  /** Dia de hoje no horário de Brasília, para o atraso das ordens. */
+  private hoje(): string {
+    return dataDoInstante(this.agora().getTime());
   }
 
   /** Todos os blocos do contrato de indicadores, com uma única leitura dos registros. */
   async consultar(periodo: Janela): Promise<Indicadores> {
     validarJanela(periodo);
     const dados = await this.registros.carregarRegistrosDeProducao();
-    const situacao = montarSituacaoAtual(dados, periodo);
+    const situacao = montarSituacaoAtual(dados, periodo, this.hoje());
     const doPeriodo = montarBlocosDoPeriodo(dados, periodo);
     return {
       ordens: situacao.ordens,
+      etapasParciais: situacao.etapasParciais,
       producao: doPeriodo.producao,
       producaoFinal: doPeriodo.producaoFinal,
       tempos: doPeriodo.tempos,
@@ -443,6 +528,6 @@ export class IndicadoresService {
   /** Só os blocos da situação atual (`ordens`, `cargaPendente` e `cargaPorPosto`). */
   async consultarSituacaoAtual(periodo: Janela): Promise<SituacaoAtual> {
     validarJanela(periodo);
-    return montarSituacaoAtual(await this.registros.carregarRegistrosDeProducao(), periodo);
+    return montarSituacaoAtual(await this.registros.carregarRegistrosDeProducao(), periodo, this.hoje());
   }
 }

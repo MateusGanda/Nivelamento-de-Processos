@@ -57,19 +57,25 @@ export function gerarCsvIndicadores(dados: RespostaIndicadores): string {
     ...resumo.producaoPorUnidade.map((p) => ['Peças boas na última etapa', numero(p.quantidade), textoCsv(p.unidade)]),
     ['Ordens em andamento', String(resumo.emAndamento), 'ordens'],
     ['Ordens em execução agora', String(resumo.emExecucao), 'ordens'],
+    ['Ordens atrasadas (prazo do plano vencido)', String(resumo.atrasadas), 'ordens'],
     ['Tempo produtivo', minutos(resumo.produtivoSegundos), 'min'],
     ['Tempo em pausa', minutos(resumo.pausaSegundos), 'min'],
   ]);
   bloco('Atenção aos dados', ['Aviso'], descreverPendencias(dados).map((aviso) => [textoCsv(aviso)]));
-  bloco('Posição das ordens', ['Ordem', 'Produto', 'Nome do produto', 'Plano', 'Quantidade', 'Unidade', 'Etapas com baixa', 'Etapas do roteiro', 'Situação', 'Última baixa'],
+  bloco('Posição das ordens', ['Ordem', 'Produto', 'Nome do produto', 'Plano', 'Quantidade', 'Unidade', 'Etapas com baixa', 'Etapas do roteiro', 'Situação', 'Última baixa', 'Prazo', 'Dias de atraso'],
     dados.ordens.map((o) => [textoCsv(o.numero), textoCsv(o.produtoCodigo), textoCsv(o.produtoNome), textoCsv(o.planoCodigo), numero(o.quantidade), textoCsv(o.unidade),
-      String(o.etapasBaixadas), String(o.etapasTotal), textoCsv(situacaoDaOrdem(o)), o.ultimaBaixaEm === null ? '' : formatarInstante(o.ultimaBaixaEm)]));
-  bloco('Tempo por dia', ['Dia', 'Produtivo (min)', 'Pausa (min)', 'Baixas', 'Tempo padrão das baixas (min)'],
-    dados.porDia.map((d) => [dataBr(d.data), minutos(d.produtivoSegundos), minutos(d.pausaSegundos), String(d.baixas), minutos(d.tempoPadraoDasBaixasSegundos)]));
+      String(o.etapasBaixadas), String(o.etapasTotal), textoCsv(situacaoDaOrdem(o)), o.ultimaBaixaEm === null ? '' : formatarInstante(o.ultimaBaixaEm),
+      o.prazo === null ? '' : dataBr(o.prazo), o.diasDeAtraso === null ? '' : String(o.diasDeAtraso)]));
+  bloco('Etapas pendentes com apontamento parcial', ['Ordem', 'Produto', 'Etapa', 'Quantidade', 'Apontado', 'Falta', 'Apontado (%)', 'Boa', 'Retrabalho', 'Refugo', 'Unidade', 'Encerramentos parciais', 'Início', 'Último encerramento'],
+    dados.etapasParciais.map((e) => [textoCsv(e.numero), textoCsv(e.produtoCodigo), textoCsv(`${e.ordem}. ${e.operacaoNome}`), numero(e.quantidade), numero(e.quantidadeApontada),
+      numero(e.quantidadeQueFalta), numero(e.percentualApontado, 1), numero(e.quantidadeBoa), numero(e.quantidadeRetrabalho), numero(e.quantidadeRefugo), textoCsv(e.unidade),
+      String(e.encerramentosParciais), e.inicioEm === null ? '' : formatarInstante(e.inicioEm), e.ultimoEncerramentoEm === null ? '' : formatarInstante(e.ultimoEncerramentoEm)]));
+  bloco('Tempo por dia', ['Dia', 'Produtivo (min)', 'Pausa (min)', 'Baixas', 'Encerramentos parciais', 'Tempo padrão do apontado (min)'],
+    dados.porDia.map((d) => [dataBr(d.data), minutos(d.produtivoSegundos), minutos(d.pausaSegundos), String(d.baixas), String(d.encerramentosParciais), minutos(d.tempoPadraoDasBaixasSegundos)]));
   bloco('Qualidade na última etapa', ['Unidade', 'Boa', 'Retrabalho', 'Refugo', 'Peças boas (%)'],
     qualidadePorUnidade(dados).map((q) => [textoCsv(q.unidade), numero(q.boa), numero(q.retrabalho), numero(q.refugo), numero(percentualDePecasBoas(q), 1)]));
-  bloco('Produção no período', ['Produto', 'Etapa', 'Última etapa', 'Ordens', 'Boa', 'Retrabalho', 'Refugo', 'Unidade'],
-    dados.producao.map((p) => [textoCsv(p.produtoCodigo), textoCsv(`${p.ordem}. ${p.operacaoNome}`), p.ultimaEtapa ? 'Sim' : 'Não', String(p.ordensBaixadas),
+  bloco('Produção no período', ['Produto', 'Etapa', 'Última etapa', 'Ordens com baixa', 'Encerramentos parciais', 'Boa', 'Retrabalho', 'Refugo', 'Unidade'],
+    dados.producao.map((p) => [textoCsv(p.produtoCodigo), textoCsv(`${p.ordem}. ${p.operacaoNome}`), p.ultimaEtapa ? 'Sim' : 'Não', String(p.ordensBaixadas), String(p.encerramentosParciais),
       numero(p.quantidadeBoa), numero(p.quantidadeRetrabalho), numero(p.quantidadeRefugo), textoCsv(p.unidade)]));
   bloco('Tempos por posto', ['Posto', 'Nome', 'Setor', 'Produtivo (min)', 'Pausa (min)', 'Total (min)', 'Finalizadas', 'Em aberto'],
     dados.tempos.map((t) => [textoCsv(t.posto.codigo), textoCsv(t.posto.nome), textoCsv(t.posto.setorNome), minutos(t.produtivoSegundos), minutos(t.pausaSegundos),

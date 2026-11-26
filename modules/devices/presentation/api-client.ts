@@ -83,7 +83,8 @@ const ehEvento = (e: unknown) => objeto(e) && texto(e.tipo) && ['INICIO', 'PAUSA
 const ehExecucaoTv = (e: unknown) => objeto(e) && texto(e.id) && (e.status === 'EM_EXECUCAO' || e.status === 'PAUSADA') &&
   objeto(e.ordem) && texto(e.ordem.numero) && numero(e.ordem.quantidade) && texto(e.ordem.unidade) &&
   objeto(e.produto) && texto(e.produto.codigo) && texto(e.produto.nome) && objeto(e.etapa) && Number.isInteger(e.etapa.ordem) && texto(e.etapa.operacao) &&
-  (e.tempoPadraoSegundos === null || numero(e.tempoPadraoSegundos)) && Array.isArray(e.eventos) && e.eventos.length > 0 && e.eventos.every(ehEvento);
+  (e.tempoPadraoSegundos === null || numero(e.tempoPadraoSegundos)) && Array.isArray(e.eventos) && e.eventos.length > 0 && e.eventos.every(ehEvento) &&
+  objeto(e.apontado) && numero(e.apontado.quantidadeBoa) && numero(e.apontado.quantidadeRetrabalho) && numero(e.apontado.quantidadeRefugo);
 
 /** Confere o formato antes de mostrar; resposta malformada vira erro e a TV mantém os dados anteriores. */
 export function lerPainelTv(corpo: unknown): PainelTv {

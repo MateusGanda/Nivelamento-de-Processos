@@ -5,7 +5,7 @@ import { criarControleRequisicoesIlha } from '../../../modules/executions/presen
 
 const ordem = {
   id: 'ordem-1', numero: 'OP-0001', quantidade: 10, unidade: 'un', plano: 'PL-1', produto: { codigo: 'PRD-1', nome: 'Produto' },
-  etapas: [{ id: 'etapa-1', ordem: 1, operacao: 'Corte', baixada: false, postos: [{ id: 'posto-1', codigo: 'COR1', nome: 'Posto de corte' }] }],
+  etapas: [{ id: 'etapa-1', ordem: 1, operacao: 'Corte', baixada: false, apontado: 0, postos: [{ id: 'posto-1', codigo: 'COR1', nome: 'Posto de corte' }] }],
 };
 
 test('ilha: identificação aceita cancelamento e codifica a matrícula sem enviar POST', async (t) => {
