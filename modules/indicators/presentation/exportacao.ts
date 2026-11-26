@@ -66,10 +66,10 @@ export function gerarCsvIndicadores(dados: RespostaIndicadores): string {
     dados.ordens.map((o) => [textoCsv(o.numero), textoCsv(o.produtoCodigo), textoCsv(o.produtoNome), textoCsv(o.planoCodigo), numero(o.quantidade), textoCsv(o.unidade),
       String(o.etapasBaixadas), String(o.etapasTotal), textoCsv(situacaoDaOrdem(o)), o.ultimaBaixaEm === null ? '' : formatarInstante(o.ultimaBaixaEm),
       o.prazo === null ? '' : dataBr(o.prazo), o.diasDeAtraso === null ? '' : String(o.diasDeAtraso)]));
-  bloco('Etapas pendentes com apontamento parcial', ['Ordem', 'Produto', 'Etapa', 'Quantidade', 'Apontado', 'Falta', 'Apontado (%)', 'Boa', 'Retrabalho', 'Refugo', 'Unidade', 'Encerramentos parciais', 'Início', 'Último encerramento'],
+  bloco('Etapas pendentes com apontamento parcial', ['Ordem', 'Produto', 'Etapa', 'Quantidade', 'Apontado', 'Falta', 'Apontado (%)', 'Boa', 'Retrabalho', 'Refugo', 'Unidade', 'Encerramentos parciais', 'Início', 'Último encerramento', 'Motivo do último encerramento'],
     dados.etapasParciais.map((e) => [textoCsv(e.numero), textoCsv(e.produtoCodigo), textoCsv(`${e.ordem}. ${e.operacaoNome}`), numero(e.quantidade), numero(e.quantidadeApontada),
       numero(e.quantidadeQueFalta), numero(e.percentualApontado, 1), numero(e.quantidadeBoa), numero(e.quantidadeRetrabalho), numero(e.quantidadeRefugo), textoCsv(e.unidade),
-      String(e.encerramentosParciais), e.inicioEm === null ? '' : formatarInstante(e.inicioEm), e.ultimoEncerramentoEm === null ? '' : formatarInstante(e.ultimoEncerramentoEm)]));
+      String(e.encerramentosParciais), e.inicioEm === null ? '' : formatarInstante(e.inicioEm), e.ultimoEncerramentoEm === null ? '' : formatarInstante(e.ultimoEncerramentoEm), textoCsv(e.motivoUltimoEncerramento ?? 'Fim do turno')]));
   bloco('Tempo por dia', ['Dia', 'Produtivo (min)', 'Pausa (min)', 'Baixas', 'Encerramentos parciais', 'Tempo padrão do apontado (min)'],
     dados.porDia.map((d) => [dataBr(d.data), minutos(d.produtivoSegundos), minutos(d.pausaSegundos), String(d.baixas), String(d.encerramentosParciais), minutos(d.tempoPadraoDasBaixasSegundos)]));
   bloco('Qualidade na última etapa', ['Unidade', 'Boa', 'Retrabalho', 'Refugo', 'Peças boas (%)'],

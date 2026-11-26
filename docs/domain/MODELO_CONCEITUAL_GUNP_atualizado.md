@@ -127,7 +127,7 @@ Atualização consolidada das decisões de domínio do MVP. Este documento defin
 - Não há `NAO_INICIADA` persistido. Ausência de execução pode ser apresentada como não iniciada.
 - Execução finalizada é terminal e não recebe novos eventos.
 - Troca de operação finaliza a execução atual, sem quantidades, e cria outra.
-- Encerramento parcial (fim de turno) finaliza a execução atual com as quantidades do turno, sem concluir a etapa e sem abrir outra execução: o operador fica livre e a etapa continua disponível na ilha, para qualquer operador, com o que já foi apontado e o que falta.
+- Encerramento parcial (fim de turno) finaliza a execução atual com as quantidades do turno, sem concluir a etapa e sem abrir outra execução: o operador fica livre e a etapa continua disponível na ilha, para qualquer operador, com o que já foi apontado e o que falta. O encerramento pode ter um motivo (um motivo de pausa ativo), gravado no evento FINALIZACAO; sem motivo, considera-se o fim do turno.
 - Operador não pode manter duas execuções abertas simultaneamente; execução pausada continua ocupando o operador. O banco garante a regra com o índice único parcial `Execucao_operador_aberta_unica` (status diferente de `FINALIZADA`).
 - Para iniciar: operador ativo, etapa pertencente ao roteiro da Ordem e ainda sem baixa, e posto ativo e compatível com a etapa.
 - O operador é responsável pelo apontamento, não necessariamente o único trabalhador da célula.

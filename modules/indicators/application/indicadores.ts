@@ -62,6 +62,8 @@ export type EtapaParcial = {
   /** Início da primeira execução da etapa; a tela mostra há quantos dias a etapa está em aberto. */
   inicioEm: string | null;
   ultimoEncerramentoEm: string | null;
+  /** Motivo do último encerramento parcial; null quando foi o fim do turno. */
+  motivoUltimoEncerramento: string | null;
   emExecucao: boolean;
 };
 
@@ -184,6 +186,7 @@ function montarSituacaoAtual(dados: RegistrosDeProducao, periodo: Janela, hoje: 
   const pendencias: Pendencia[] = [];
   const ordens: PosicaoDaOrdem[] = [];
   const etapasParciais: EtapaParcial[] = [];
+  const nomeDoMotivo = new Map(dados.motivosPausa.map((m) => [m.id, m.nome]));
   const pendentes = new Map<string, { produtoId: string; produtoCodigo: string; unidade: string; etapa: EtapaRegistrada; ordens: number; centesimos: number }>();
 
   for (const ordem of dados.ordens) {
@@ -207,6 +210,9 @@ function montarSituacaoAtual(dados: RegistrosDeProducao, periodo: Janela, hoje: 
         const parciais = execucoes.filter((e) => e.tipoFinalizacao === 'ENCERRAMENTO_PARCIAL');
         const inicios = execucoes.map(instanteDoInicio).filter((ms): ms is number => ms !== null);
         const fins = parciais.map(instanteDaFinalizacao).filter((ms): ms is number => ms !== null);
+        // O motivo fica no evento FINALIZACAO do encerramento parcial; sem motivo, foi o fim do turno.
+        const ultimo = [...parciais].sort((a, b) => (instanteDaFinalizacao(b) ?? 0) - (instanteDaFinalizacao(a) ?? 0))[0];
+        const motivoId = ultimo?.eventos.find((e) => e.tipo === 'FINALIZACAO')?.motivoPausaId ?? null;
         etapasParciais.push({
           ordemId: ordem.id, numero: ordem.numero, produtoCodigo: ordem.produtoCodigo, produtoNome: ordem.produtoNome,
           etapaRoteiroId: etapa.id, ordem: etapa.ordem, operacaoNome: etapa.operacaoNome, quantidade: ordem.quantidade, unidade: ordem.unidade,
@@ -217,6 +223,7 @@ function montarSituacaoAtual(dados: RegistrosDeProducao, periodo: Janela, hoje: 
           encerramentosParciais: parciais.length,
           inicioEm: inicios.length > 0 ? new Date(Math.min(...inicios)).toISOString() : null,
           ultimoEncerramentoEm: fins.length > 0 ? new Date(Math.max(...fins)).toISOString() : null,
+          motivoUltimoEncerramento: motivoId === null ? null : nomeDoMotivo.get(motivoId) ?? null,
           emExecucao: execucoes.some((e) => e.tipoFinalizacao === null),
         });
       }

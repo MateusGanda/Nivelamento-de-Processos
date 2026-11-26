@@ -102,9 +102,10 @@ async function apontadosDasOrdens(t: Tabelas | typeof db.orm.public, ordemIds: r
 
 // Baixa ou encerramento parcial: trava a ordem, soma o que já foi apontado na etapa e deixa o domínio
 // decidir as quantidades (pode recusar com erro, o que desfaz a transação). Devolve false quando a execução
-// já não estava em execução.
+// já não estava em execução. `motivoId` só existe no encerramento parcial e vai no evento FINALIZACAO.
 async function finalizarComQuantidades(
   tx: Transacao, execucaoId: string, tipo: 'BAIXA' | 'ENCERRAMENTO_PARCIAL', quantidades: (jaApontado: Baixa) => Baixa, agora: string,
+  motivoId: string | null = null,
 ): Promise<boolean> {
   const t = tx.orm.public;
   const atual = await t.Execucao.where({ id: execucaoId }).select('ordemProducaoId', 'etapaRoteiroId').first();
@@ -119,7 +120,7 @@ async function finalizarComQuantidades(
     quantidadeRefugo: quantidadeParaBanco(dados.quantidadeRefugo),
   });
   if (!finalizada) return false;
-  await t.EventoTempo.create({ execucaoId, tipo: 'FINALIZACAO', dataHora: agora, motivoPausaId: null });
+  await t.EventoTempo.create({ execucaoId, tipo: 'FINALIZACAO', dataHora: agora, motivoPausaId: motivoId });
   return true;
 }
 
@@ -342,9 +343,9 @@ export class PrismaExecucaoRepository implements ExecucaoRepository {
     }
   }
 
-  async encerrarParcial(execucaoId: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string): Promise<boolean> {
+  async encerrarParcial(execucaoId: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string, motivoId: string | null): Promise<boolean> {
     try {
-      return await db.transaction((tx) => finalizarComQuantidades(tx, execucaoId, 'ENCERRAMENTO_PARCIAL', quantidades, agora));
+      return await db.transaction((tx) => finalizarComQuantidades(tx, execucaoId, 'ENCERRAMENTO_PARCIAL', quantidades, agora, motivoId));
     } catch (erro) {
       return traduzirErroGravacaoExecucao(erro);
     }

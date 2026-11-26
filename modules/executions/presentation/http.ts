@@ -120,8 +120,8 @@ export function criarHandlersIlha({ chave, execucoes, esperarAposErro = () => ne
       return execucoes.baixar(matricula, id, baixa);
     }),
     ENCERRAMENTO_POST: (request: Request, id: string) => responder(request, async () => {
-      const { matricula, ...quantidades } = await lerCorpo(request, ['matricula', 'quantidadeBoa', 'quantidadeRetrabalho', 'quantidadeRefugo']);
-      return execucoes.encerrarParcial(matricula, id, quantidades);
+      const { matricula, motivoId, ...quantidades } = await lerCorpo(request, ['matricula', 'quantidadeBoa', 'quantidadeRetrabalho', 'quantidadeRefugo', 'motivoId']);
+      return execucoes.encerrarParcial(matricula, id, quantidades, motivoId);
     }),
   };
 }

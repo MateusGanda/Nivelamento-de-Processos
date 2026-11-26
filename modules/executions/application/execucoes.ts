@@ -89,10 +89,19 @@ export class ExecucoesService {
 
   // Encerramento parcial (fim do turno): finaliza a execução com o que foi feito, sem concluir a etapa.
   // A etapa continua disponível na ilha e o operador fica livre para outra execução.
-  async encerrarParcial(matricula: unknown, execucaoId: string, informado: Partial<Record<keyof Baixa, unknown>>): Promise<OperadorDaIlha> {
+  // O motivo é opcional: sem ele, vale o fim do turno; com ele, é um motivo de pausa ativo (por exemplo,
+  // falta de material), para o gestor saber por que a etapa ficou pendente.
+  async encerrarParcial(matricula: unknown, execucaoId: string, informado: Partial<Record<keyof Baixa, unknown>>, motivoInformado?: unknown): Promise<OperadorDaIlha> {
     const { operador, execucao } = await this.exigirExecucaoDoOperador(matricula, execucaoId);
     exigirStatus(execucao.status, 'EM_EXECUCAO', 'encerrar o turno');
-    const gravou = await this.execucoes.encerrarParcial(execucao.id, (jaApontado) => validarEncerramentoParcial(informado, execucao.quantidadeOrdem, jaApontado), this.instante());
+    let motivoId: string | null = null;
+    if (motivoInformado !== undefined && motivoInformado !== null) {
+      if (!ehIdentificadorValido(motivoInformado)) throw new ErroDeExecucao('ENTRADA_INVALIDA', 'Selecione um motivo válido ou deixe o fim do turno.');
+      const motivo = await this.execucoes.buscarMotivo(motivoInformado);
+      if (!motivo || !motivo.ativo) throw new ErroDeExecucao('ENTRADA_INVALIDA', 'Motivo não encontrado ou inativo.');
+      motivoId = motivoInformado;
+    }
+    const gravou = await this.execucoes.encerrarParcial(execucao.id, (jaApontado) => validarEncerramentoParcial(informado, execucao.quantidadeOrdem, jaApontado), this.instante(), motivoId);
     if (!gravou) throw estadoMudou();
     return this.identificar(operador.matricula);
   }

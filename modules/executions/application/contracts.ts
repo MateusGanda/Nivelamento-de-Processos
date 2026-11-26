@@ -34,5 +34,6 @@ export interface ExecucaoRepository {
   // A baixa também encerra as outras execuções abertas (em execução ou pausadas) da mesma ordem e
   // etapa, sem quantidades: a etapa foi concluída e elas não teriam como terminar (decisão de 07/11/2026).
   baixar(execucaoId: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string): Promise<boolean>;
-  encerrarParcial(execucaoId: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string): Promise<boolean>;
+  // `motivoId` vai no evento FINALIZACAO do encerramento parcial; null quando o motivo é o fim do turno.
+  encerrarParcial(execucaoId: string, quantidades: (jaApontado: Baixa) => Baixa, agora: string, motivoId: string | null): Promise<boolean>;
 }
